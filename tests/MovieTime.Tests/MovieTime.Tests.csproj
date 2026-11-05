@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -21,6 +21,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\MovieTime.Core\MovieTime.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\src\MovieTime.App\Common\*.cs" LinkBase="Common" />
+    <Compile Include="..\..\src\MovieTime.App\ViewModels\*.cs" LinkBase="ViewModels" />
   </ItemGroup>
 
 </Project>

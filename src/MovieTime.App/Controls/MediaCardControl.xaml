@@ -1,0 +1,133 @@
+<UserControl
+    x:Class="MovieTime.App.Controls.MediaCardControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:MovieTime.App.ViewModels"
+    mc:Ignorable="d"
+    d:DataContext="{d:DesignInstance Type=vm:MediaCardViewModel}"
+    IsTabStop="True"
+    UseSystemFocusVisuals="False">
+
+    <StackPanel Width="260" Spacing="8" Margin="0,12,20,16">
+        <!-- 16:9 Card Thumbnail Area (260 x 146) -->
+        <Grid x:Name="CardContainer" Width="260" Height="146" RenderTransformOrigin="0.5,0.5">
+            <Grid.RenderTransform>
+                <CompositeTransform x:Name="CardScale" ScaleX="1.0" ScaleY="1.0" />
+            </Grid.RenderTransform>
+
+            <!-- Drop shadow effect layer -->
+            <Border x:Name="CardShadow"
+                    CornerRadius="14"
+                    Background="#55000000"
+                    Opacity="0.0"
+                    Margin="-4,-4,-4,-4" />
+
+            <!-- Card Background / Content Base -->
+            <Border CornerRadius="14" Background="#181820">
+                <Grid>
+                    <!-- Typographical / Gradient Fallback Artwork -->
+                    <Border Background="#1C1C26">
+                        <Grid>
+                            <!-- Radial decorative gradient glow -->
+                            <Border Opacity="0.35">
+                                <Border.Background>
+                                    <RadialGradientBrush Center="0.5,0.4" GradientOrigin="0.5,0.4" RadiusX="0.7" RadiusY="0.7">
+                                        <GradientStop Color="#3D4058" Offset="0" />
+                                        <GradientStop Color="#181822" Offset="1" />
+                                    </RadialGradientBrush>
+                                </Border.Background>
+                            </Border>
+
+                            <!-- Subtle film icon -->
+                            <FontIcon Glyph="&#xE714;"
+                                      FontSize="32"
+                                      Foreground="#2E2E3E"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      Margin="0,0,0,16" />
+
+                            <!-- Title snippet in fallback state -->
+                            <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}"
+                                       FontSize="13"
+                                       FontWeight="Medium"
+                                       Foreground="#8A8A96"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Bottom"
+                                       Margin="12,0,12,16"
+                                       TextTrimming="CharacterEllipsis"
+                                       MaxLines="1" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Quality / Source Tag Badge (e.g. 4K HDR, tv+) -->
+                    <Border Visibility="{x:Bind ViewModel.HasQualityTag, Mode=OneWay}"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Bottom"
+                            Background="#80000000"
+                            CornerRadius="4"
+                            Padding="6,2"
+                            Margin="0,0,10,10">
+                        <TextBlock Text="{x:Bind ViewModel.QualityTag, Mode=OneWay}"
+                                   FontSize="10"
+                                   FontWeight="SemiBold"
+                                   Foreground="#F0F0F0" />
+                    </Border>
+
+                    <!-- Preview / Sample tag -->
+                    <Border Visibility="{x:Bind ViewModel.IsSample, Mode=OneWay}"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Top"
+                            Background="#60000000"
+                            CornerRadius="4"
+                            Padding="5,2"
+                            Margin="8,8,0,0">
+                        <TextBlock Text="PREVIEW"
+                                   FontSize="9"
+                                   FontWeight="Bold"
+                                   Foreground="#A0A0A0" />
+                    </Border>
+
+                    <!-- Continue Watching Progress Bar -->
+                    <Grid Visibility="{x:Bind ViewModel.HasProgress, Mode=OneWay}"
+                          VerticalAlignment="Bottom"
+                          Height="4"
+                          Background="#40000000">
+                        <ProgressBar Value="{x:Bind ViewModel.ProgressWidthPercentage, Mode=OneWay}"
+                                     Maximum="100"
+                                     Minimum="0"
+                                     Foreground="#FFFFFF"
+                                     Background="Transparent"
+                                     BorderThickness="0"
+                                     Height="4"
+                                     IsIndeterminate="False" />
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- Apple TV Focused State Border (Bright White Stroke) -->
+            <Border x:Name="FocusBorder"
+                    CornerRadius="14"
+                    BorderBrush="#FFFFFF"
+                    BorderThickness="3"
+                    Opacity="0.0"
+                    IsHitTestVisible="False" />
+        </Grid>
+
+        <!-- Movie/Show Metadata below card -->
+        <StackPanel Spacing="2" Padding="2,0,0,0">
+            <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}"
+                       FontSize="14"
+                       FontWeight="SemiBold"
+                       Foreground="#FFFFFF"
+                       TextTrimming="CharacterEllipsis"
+                       MaxLines="1" />
+            <TextBlock Text="{x:Bind ViewModel.Subtitle, Mode=OneWay}"
+                       FontSize="12"
+                       Foreground="#8E8E93"
+                       TextTrimming="CharacterEllipsis"
+                       MaxLines="1" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>

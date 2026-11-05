@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
+using MovieTime.App.ViewModels;
 using MovieTime.Core;
 using MovieTime.Core.Extensions;
 using Serilog;
@@ -65,6 +66,7 @@ public partial class App : Application
 #endif
 
         // 3. Presentation Services & Windows
+        services.AddTransient<HomeViewModel>();
         services.AddTransient<MainWindow>();
 
         return services.BuildServiceProvider();
