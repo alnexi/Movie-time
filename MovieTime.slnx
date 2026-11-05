@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MovieTime.App/MovieTime.App.csproj" />
+    <Project Path="src/MovieTime.Core/MovieTime.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MovieTime.Tests/MovieTime.Tests.csproj" />
+  </Folder>
+</Solution>
