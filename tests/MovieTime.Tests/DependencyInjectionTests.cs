@@ -95,11 +95,23 @@ public class DependencyInjectionTests
         var parser1 = provider.GetRequiredService<MovieTime.Core.Parsing.IFilenameParserEngine>();
         var parser2 = provider.GetRequiredService<MovieTime.Core.Parsing.IFilenameParserEngine>();
 
+        var rootService1 = provider.GetRequiredService<MovieTime.Core.Library.IScanRootService>();
+        var rootService2 = provider.GetRequiredService<MovieTime.Core.Library.IScanRootService>();
+
+        var importService1 = provider.GetRequiredService<MovieTime.Core.Library.ILibraryImportService>();
+        var importService2 = provider.GetRequiredService<MovieTime.Core.Library.ILibraryImportService>();
+
+        var movieRepo1 = provider.GetRequiredService<MovieTime.Core.Database.Repositories.IMovieRepository>();
+        var movieRepo2 = provider.GetRequiredService<MovieTime.Core.Database.Repositories.IMovieRepository>();
+
         // Assert
         Assert.Same(storage1, storage2);
         Assert.Same(env1, env2);
         Assert.Same(db1, db2);
         Assert.Same(scanner1, scanner2);
         Assert.Same(parser1, parser2);
+        Assert.Same(rootService1, rootService2);
+        Assert.Same(importService1, importService2);
+        Assert.Same(movieRepo1, movieRepo2);
     }
 }

@@ -62,13 +62,13 @@ public sealed class DatabaseTests : IDisposable
         await dbService.InitializeAsync();
 
         Assert.True(dbService.IsInitialized);
-        Assert.Equal(1, dbService.CurrentSchemaVersion);
+        Assert.Equal(2, dbService.CurrentSchemaVersion);
         Assert.True(File.Exists(_databaseFilePath));
 
         // Verify SQLite PRAGMAs directly on connection
         var conn = dbService.GetConnection();
         var userVersion = await conn.ExecuteScalarAsync<int>("PRAGMA user_version;");
-        Assert.Equal(1, userVersion);
+        Assert.Equal(2, userVersion);
 
         var journalMode = await conn.ExecuteScalarAsync<string>("PRAGMA journal_mode;");
         Assert.Equal("wal", journalMode.ToLowerInvariant());
@@ -94,6 +94,7 @@ public sealed class DatabaseTests : IDisposable
         Assert.Contains("MediaFiles", tables);
         Assert.Contains("PlaybackProgress", tables);
         Assert.Contains("WatchHistory", tables);
+        Assert.Contains("ScanRoots", tables);
 
         // Query sqlite_master for custom compound indices
         var indices = await conn.QueryScalarsAsync<string>(
@@ -104,6 +105,8 @@ public sealed class DatabaseTests : IDisposable
         Assert.Contains("IX_Episodes_Series_Season_Number", indices);
         Assert.Contains("IX_MediaFiles_MovieId", indices);
         Assert.Contains("IX_MediaFiles_EpisodeId", indices);
+        Assert.Contains("IX_MediaFiles_IsMissing", indices);
+        Assert.Contains("IX_ScanRoots_NormalizedPath", indices);
     }
 
     [Fact]
@@ -116,7 +119,7 @@ public sealed class DatabaseTests : IDisposable
         await dbService.InitializeAsync();
 
         Assert.True(dbService.IsInitialized);
-        Assert.Equal(1, dbService.CurrentSchemaVersion);
+        Assert.Equal(2, dbService.CurrentSchemaVersion);
     }
 
     [Fact]
@@ -132,7 +135,7 @@ public sealed class DatabaseTests : IDisposable
         await Task.WhenAll(tasks);
 
         Assert.True(dbService.IsInitialized);
-        Assert.Equal(1, dbService.CurrentSchemaVersion);
+        Assert.Equal(2, dbService.CurrentSchemaVersion);
     }
 
     [Fact]
@@ -360,13 +363,63 @@ public sealed class DatabaseTests : IDisposable
             await dbService2.InitializeAsync();
 
             Assert.True(dbService2.IsInitialized);
-            Assert.Equal(1, dbService2.CurrentSchemaVersion);
+            Assert.Equal(2, dbService2.CurrentSchemaVersion);
 
             var movies = await dbService2.GetAllAsync<Movie>();
             Assert.Single(movies);
             Assert.Equal("Blade Runner 2049", movies[0].Title);
             Assert.Equal(2017, movies[0].ReleaseYear);
         }
+    }
+
+    [Fact]
+    public async Task Migration_FromVersion1ToVersion2_UpgradesCleanlyAndPreservesData()
+    {
+        var rawDbPath = Path.Combine(_tempDirectory, "v1_to_v2_migration.db");
+
+        // 1. Manually create an authentic version 1 schema (before ScanRoots and IsMissing existed)
+        SQLitePCL.Batteries_V2.Init();
+        var rawConn = new SQLiteAsyncConnection(rawDbPath, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create | SQLiteOpenFlags.FullMutex, storeDateTimeAsTicks: true);
+        
+        await rawConn.ExecuteAsync(@"
+            CREATE TABLE IF NOT EXISTS MediaFiles (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                MovieId INTEGER,
+                EpisodeId INTEGER,
+                FilePath TEXT NOT NULL UNIQUE,
+                FileName TEXT NOT NULL,
+                FileExtension TEXT NOT NULL,
+                SizeBytes INTEGER NOT NULL,
+                DurationTicks INTEGER NOT NULL DEFAULT 0,
+                LastScannedAt INTEGER NOT NULL
+            );");
+        await rawConn.ExecuteAsync("PRAGMA user_version = 1;");
+
+        // Insert a record into MediaFiles using raw SQL in authentic v1 state
+        await rawConn.ExecuteAsync(
+            "INSERT INTO MediaFiles (FilePath, FileName, FileExtension, SizeBytes, LastScannedAt) VALUES (?, ?, ?, ?, ?);",
+            @"C:\Movies\TestMovie.mkv", "TestMovie.mkv", ".mkv", 1024, DateTime.UtcNow.Ticks);
+
+        await rawConn.CloseAsync();
+
+        // 2. Open with DatabaseService, which will run SchemaVersion2Migration
+        await using var dbService = new DatabaseService(_storagePathService, _logger, rawDbPath);
+        await dbService.InitializeAsync();
+
+        // 3. Verify upgraded to version 2
+        Assert.Equal(2, dbService.CurrentSchemaVersion);
+
+        // Verify ScanRoots table now exists
+        var conn = dbService.GetConnection();
+        var tables = await conn.QueryScalarsAsync<string>("SELECT name FROM sqlite_master WHERE type='table' AND name='ScanRoots';");
+        Assert.Contains("ScanRoots", tables);
+
+        // Verify existing MediaFile record was preserved and defaulted properly
+        var mediaFiles = await dbService.GetAllAsync<MediaFile>();
+        Assert.Single(mediaFiles);
+        Assert.Equal(@"C:\Movies\TestMovie.mkv", mediaFiles[0].FilePath);
+        Assert.False(mediaFiles[0].IsMissing);
+        Assert.Null(mediaFiles[0].ScanRootId);
     }
 
     [Fact]

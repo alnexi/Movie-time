@@ -47,7 +47,8 @@ public sealed class DatabaseService : IDatabaseService
         // Register available migrations in ascending version order
         _migrations = new List<IDatabaseMigration>
         {
-            new InitialSchemaMigration()
+            new InitialSchemaMigration(),
+            new SchemaVersion2Migration()
         };
     }
 

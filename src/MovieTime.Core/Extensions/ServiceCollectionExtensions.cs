@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MovieTime.Core.Database;
+using MovieTime.Core.Database.Repositories;
+using MovieTime.Core.Library;
 using MovieTime.Core.Logging;
 using MovieTime.Core.Parsing;
 using MovieTime.Core.Scanning;
@@ -48,6 +50,19 @@ public static class ServiceCollectionExtensions
             var logger = loggerFactory?.CreateLogger<FilenameParserEngine>() ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<FilenameParserEngine>.Instance;
             return new FilenameParserEngine(logger, storage);
         });
+
+        // Repositories
+        services.AddSingleton<IMovieRepository, Database.Repositories.MovieRepository>();
+        services.AddSingleton<ISeriesRepository, Database.Repositories.SeriesRepository>();
+        services.AddSingleton<ISeasonRepository, Database.Repositories.SeasonRepository>();
+        services.AddSingleton<IEpisodeRepository, Database.Repositories.EpisodeRepository>();
+        services.AddSingleton<IMediaFileRepository, Database.Repositories.MediaFileRepository>();
+        services.AddSingleton<IScanRootRepository, Database.Repositories.ScanRootRepository>();
+
+        // Library synchronization and scan root services
+        services.AddSingleton<Library.IScanRootService, Library.ScanRootService>();
+        services.AddSingleton<Library.ILibraryImportService, Library.LibraryImportService>();
+
         return services;
     }
 

@@ -19,6 +19,9 @@ public class MediaFile
     [Indexed]
     public int? EpisodeId { get; set; }
 
+    [Indexed]
+    public int? ScanRootId { get; set; }
+
     [NotNull, MaxLength(2000), Indexed(Unique = true)]
     public string FilePath { get; set; } = string.Empty;
 
@@ -56,6 +59,9 @@ public class MediaFile
 
     [NotNull]
     public DateTime LastScannedAt { get; set; } = DateTime.UtcNow;
+
+    [NotNull, Indexed]
+    public bool IsMissing { get; set; }
 
     public double? QualityScore { get; set; }
 }
