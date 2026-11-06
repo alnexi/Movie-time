@@ -4,7 +4,7 @@
 
 [![.NET](https://img.shields.io/badge/.NET-10.0%20LTS%20(x64)-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![Windows App SDK](https://img.shields.io/badge/WinUI%203-Windows%20App%20SDK%201.6-0078D7?logo=windows)](https://learn.microsoft.com/en-us/windows/apps/winui/winui3/)
-[![Tests](https://img.shields.io/badge/Unit%20Tests-174%20Passed-brightgreen)](https://github.com/alnexi/Movie-time)
+[![Tests](https://img.shields.io/badge/Unit%20Tests-194%20Passed-brightgreen)](https://github.com/alnexi/Movie-time)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
@@ -87,6 +87,35 @@ Unlike cluttered streaming apps or heavy web-wrapped wrappers, Movie Time is bui
   - Implemented safe code-behind bitmap management and lifecycle subscriptions.
   - Generated native desktop shortcut (`Movie Time.lnk`) pointing to the x64 binary for quick launching.
 
+### 5. Native Cinematic Player & Liquid Glass (Phase 4)
+* **Embedded Hardware-Accelerated Playback (`LibVLCSharp.WinUI` + `VideoLAN.LibVLC.Windows`)**:
+  - Embedded playback pipeline rendered directly inside `LibVLCSharp.Platforms.Windows.VideoView`.
+  - Zero external popup windows, zero detached `vlc.exe` subprocesses.
+  - Hardware decoding acceleration (`--avcodec-hw=any`, `--directx-hw-yuv=1`) providing smooth 4K/UHD and HEVC/H.264 playback.
+  - Dynamic audio track and subtitle track selection and disabling.
+  - Automatic progress checkpointing to SQLite (`PlaybackProgress`) for resume across sessions.
+* **Apple TV Visual Player Layout**:
+  - **Top Context Line**: Episode/Edition info and technical format badges (`2023 • 4K UHD • HEVC`).
+  - **Cinematic Title Typography**: Prominent semi-bold movie title treatment.
+  - **Right-Aligned Header Controls**: Circular Liquid Glass buttons for Subtitles (`💬`), Audio Options (`(((|||)))`), and Fullscreen/PiP (`⤢`).
+  - **Full-Width Scrubber Bar**: Sleek timeline bar with played white highlight progress, draggable scrubber, elapsed time badge (`04:33 ⏸`), and negative remaining time (`-54:08`).
+  - **Bottom-Left Action Pills**: Liquid Glass pill buttons for `Info`, `InSight`, and `Continue Watching`.
+  - **InSight Media Card & Track Flyouts**: Liquid Glass flyouts for real-time track selection and media file technical details.
+  - **3.5s Inactivity Auto-Hide**: Controls smoothly fade out during active playback after 3.5 seconds of inactivity, waking instantaneously upon mouse movement or keyboard input.
+* **Liquid Glass Visual System**:
+  - Native WinUI 3 multi-layered acrylic and specular composition:
+    - Multi-layer translucent acrylic materials (`#30FFFFFF`, `#18FFFFFF`).
+    - Incident-angle specular rim gradient borders (`#B8FFFFFF` to `#15FFFFFF`).
+    - Subtle chromatic dispersion fringing (`#1870D0FF` cyan to `#18FFA850` amber).
+    - Atmospheric dark linear vignette gradient overlays ensuring ultra-sharp high-contrast typography while leaving the underlying video 100% unblurred and untouched.
+* **Complete Desktop Control & Shortcuts**:
+  - `Space` / `K`: Play / Pause toggle.
+  - `Left` / `Right` Arrow: Seek backward / forward 10 seconds.
+  - `Up` / `Down` Arrow: Volume up / down (5% increments).
+  - `M`: Mute / Unmute.
+  - `F` / `Alt+Enter`: Toggle edge-to-edge Fullscreen (`AppWindowPresenterKind.FullScreen`).
+  - `Esc` / `Backspace`: Exit player and return seamlessly to Movie Details / Library.
+
 ---
 
 ## 🏛️ System Architecture
@@ -99,26 +128,33 @@ MovieTime/
 │   ├── MovieTime.App/             # WinUI 3 Native Desktop Application
 │   │   ├── Common/                # MVVM ObservableObject & RelayCommand
 │   │   ├── Controls/              # HeroBanner, MediaCard, MoviePosterCard, MediaRow, SidebarNavigation
-│   │   ├── ViewModels/            # Presentation Models (HomeViewModel, MoviesViewModel, MovieDetailsViewModel, SettingsViewModel)
-│   │   ├── Views/                 # Full-screen views (HomeView, MoviesView, MovieDetailsView, SettingsView)
+│   │   ├── Services/              # VlcPlayerService (LibVLC WinUI DirectComposition adapter)
+│   │   ├── ViewModels/            # Presentation Models (HomeViewModel, MoviesViewModel, MovieDetailsViewModel, SettingsViewModel, PlayerViewModel)
+│   │   ├── Views/                 # Full-screen views (HomeView, MoviesView, MovieDetailsView, SettingsView, PlayerView)
 │   │   ├── MainWindow.xaml        # Edge-to-edge window host & navigation coordinator
 │   │   └── App.xaml               # Composition Root & DI configuration
 │   │
 │   └── MovieTime.Core/            # Core Domain & Platform-Agnostic Engine
 │       ├── Database/              # SQLite-net WAL database, migrations & repositories
-│       ├── Entities/              # Movie, Series, Season, Episode, MediaFile, ScanRoot
+│       ├── Entities/              # Movie, Series, Season, Episode, MediaFile, ScanRoot, PlaybackProgress
 │       ├── Library/               # MLibraryManagerService, LibraryImportService & ScanRootService
 │       ├── Logging/               # Serilog rolling local file logger (%LocalAppData%\MovieTime\Logs)
 │       ├── Parsing/               # FilenameParserEngine (heuristic classification & extraction)
+│       ├── Playback/              # IVlcPlayerService, PlayerState, PlayerTrackInfo
 │       ├── Scanning/              # MediaScannerService (recursive async filesystem scanner)
 │       └── Services/              # StoragePathService & AppEnvironment
 │
 └── tests/
-    └── MovieTime.Tests/           # Unit & Integration Tests (174 tests)
+    └── MovieTime.Tests/           # Unit & Integration Tests (194 tests)
 ```
 
 ### Key Components
 
+- **Native Video Player Engine (`IVlcPlayerService` & `VlcPlayerService`)**:
+  - Embedded hardware-accelerated playback adapter wrapping `LibVLCSharp.WinUI` and `VideoLAN.LibVLC.Windows`.
+  - Truly in-process DirectComposition video rendering; zero external popup windows or child processes.
+  - Live discovery and switching of embedded audio and subtitle tracks.
+  - Automatic progress tracking and resume in SQLite via `IPlaybackProgressRepository`.
 - **Multi-Drive MLibrary Manager (`MLibraryManagerService`)**:
   - Steam-inspired multi-drive storage management with automated Windows drive enumeration (`DriveInfo.GetDrives()`).
   - Strict scanning boundary: confines media discovery to `<Drive>:\MLibrary` folders, guaranteeing system roots and personal files are never touched.
@@ -149,7 +185,7 @@ MovieTime/
 # Restore dependencies and build the entire solution (x64 Debug)
 dotnet build MovieTime.sln -p:Platform=x64
 
-# Run all 170 automated unit tests
+# Run all 194 automated unit tests
 dotnet test MovieTime.sln -p:Platform=x64
 
 # Launch the application
@@ -160,7 +196,7 @@ dotnet run --project src\MovieTime.App\MovieTime.App.csproj -p:Platform=x64
 
 ## 🧪 Automated Test Suite
 
-The solution features **170 unit and integration tests** covering:
+The solution features **194 unit and integration tests** covering:
 - **Dependency Injection & Bootstrapping**: Service registration, lifetime scopes, and environment paths.
 - **Local Logging**: Serilog file sink rolling rules, log formatting, and output directory isolation.
 - **SQLite Engine & Migrations**: Schema creation, table constraints, indices, WAL mode, and migrations from v1 to v2.
@@ -172,6 +208,8 @@ The solution features **170 unit and integration tests** covering:
 - **Movies Presentation Layer**: Database loading, empty library state, live search query filtering, sorting by Title/Year/DateAdded, category filtering, and movie selection state.
 - **Movie Details Presentation Layer**: Real movie identification, year handling, missing artwork fallback flags, missing metadata omission, multiple editions/files selection, Play command target file binding, and local recommendations.
 - **Settings Presentation Layer**: Drive preview, registration confirmation dialog, status notification binding, and scanning triggers.
+- **Cinematic Player Presentation Layer**: Time formatting, seek offset math, volume clamping, mute toggling, edge-to-edge fullscreen presenter transitions, track enumeration/selection, InSight metadata binding, and auto-hide timer triggers.
+- **Playback Progress Persistence**: SQLite CRUD operations, position tick checkpoints, percentage calculations, completion flag thresholding, and play count increments.
 
 ---
 
@@ -186,7 +224,7 @@ The solution features **170 unit and integration tests** covering:
 - [x] **Phase 3B**: Apple TV-Inspired Movies Library Screen (Poster Grid, Category Filtering, Search, Quick Actions).
 - [x] **Phase 3C**: Real Library System & Multi-Drive MLibrary Manager (Fake Data Removal, Drive Registration, Settings UI).
 - [x] **Phase 3D**: Cinematic Movie Details Experience (Full-Width Hero, True Local Metadata, Editions Selector, Offline Recommendations).
-- [ ] **Phase 4**: Native In-App Hardware-Accelerated Video Player (LibVLC / WinUI MediaPlayer).
+- [x] **Phase 4**: Native In-App Hardware-Accelerated Video Player (LibVLCSharp / WinUI 3 VideoView) + Liquid Glass.
 - [ ] **Phase 5**: Embedded Artwork & Local Thumbnail Extraction.
 - [ ] **Phase 6**: TV Show & Season/Episode Detail Experience.
 

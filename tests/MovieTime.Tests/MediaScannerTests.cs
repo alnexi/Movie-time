@@ -305,7 +305,13 @@ public sealed class MediaScannerTests : IDisposable
         }
 
         var progressReports = new List<MediaScanProgress>();
-        var progress = new Progress<MediaScanProgress>(p => progressReports.Add(p));
+        var progress = new SynchronousProgress<MediaScanProgress>(p =>
+        {
+            lock (progressReports)
+            {
+                progressReports.Add(p);
+            }
+        });
 
         var options = new MediaScanOptions(_testRoot) { ProgressFileInterval = 1 };
 
@@ -313,13 +319,15 @@ public sealed class MediaScannerTests : IDisposable
 
         Assert.Equal(5, result.TotalFilesFound);
 
-        // Allow any background dispatched progress callbacks to flush
-        await Task.Delay(50);
-
         Assert.NotEmpty(progressReports);
         var lastReport = progressReports.Last();
         Assert.True(lastReport.IsComplete);
         Assert.Equal(5, lastReport.FilesFound);
+    }
+
+    private sealed class SynchronousProgress<T>(Action<T> handler) : IProgress<T>
+    {
+        public void Report(T value) => handler(value);
     }
 
     [Fact]

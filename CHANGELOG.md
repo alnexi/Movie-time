@@ -11,6 +11,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.6.0] - 2026-11-06 (Phase 4: Native Cinematic Player + Liquid Glass)
+
+### Added
+- **Native In-App Cinematic Player Engine**:
+  - Embedded hardware-accelerated playback utilizing `LibVLCSharp.WinUI` and `VideoLAN.LibVLC.Windows` (v3.0.24).
+  - True in-process playback hosted directly inside `LibVLCSharp.Platforms.Windows.VideoView`: zero external popup windows, zero detached `vlc.exe` subprocesses.
+  - Hardware acceleration options (`--avcodec-hw=any`, `--directx-hw-yuv=1`) for smooth 4K/UHD and HEVC/H.264 playback.
+  - Full playback lifecycle: Play, Pause, TogglePlayPause, Stop, Seek (+/- 10s skip and fine scrubbing), Volume (0-100%), and Mute.
+  - Fullscreen transitions utilizing native WinUI 3 `AppWindow.SetPresenter(AppWindowPresenterKind.FullScreen)` with ESC keyboard exit.
+  - Dynamic audio track and subtitle track discovery, switching, and disabling (`Track -1`).
+  - Resilient playback progress persistence: saves playback position ticks, duration, percentage, and completion status to local SQLite database via `IPlaybackProgressRepository`.
+  - Auto-resume prompt / automatic position restoration from previous playback sessions.
+
+- **Apple TV-Faithful Player Interface**:
+  - Pixel-accurate reproduction of user-supplied Apple TV player visual references:
+    - **Top Context Line**: Season/Episode or Edition context, technical tags (`4K UHD`, `HEVC`, `MKV`).
+    - **Large Title Typography**: Semi-bold cinematic movie title treatment.
+    - **Right-Aligned Header Controls**: Circular Liquid Glass buttons for Subtitles (`💬`), Audio Options (`(((|||)))`), and Fullscreen/PiP (`⤢`).
+    - **Full-Width Scrubber Bar**: Sleek timeline bar with played white highlight progress, draggable scrubber, elapsed time badge (`04:33 ⏸`), and negative remaining time (`-54:08`).
+    - **Bottom-Left Action Pills**: Liquid Glass pill buttons for `Info`, `InSight`, and `Continue Watching`.
+    - **InSight Media Card & Track Flyouts**: Liquid Glass flyouts for real-time track selection and media file technical details.
+    - **3.5s Inactivity Auto-Hide**: Controls smoothly fade out during active playback after 3.5 seconds of inactivity, waking instantaneously upon mouse movement or keyboard input.
+
+- **Liquid Glass Visual System**:
+  - Native WinUI 3 multi-layered acrylic and specular composition:
+    - Multi-layer translucent acrylic materials (`#30FFFFFF`, `#18FFFFFF`).
+    - Incident-angle specular rim gradient borders (`#B8FFFFFF` to `#15FFFFFF`).
+    - Subtle chromatic dispersion fringing (`#1870D0FF` cyan to `#18FFA850` amber).
+    - Atmospheric dark linear vignette gradient overlays ensuring ultra-sharp high-contrast typography while leaving the underlying video 100% unblurred and untouched.
+
+- **Automated Unit Tests**:
+  - Added 13 new unit tests in `PlaybackProgressRepositoryTests` and `PlayerViewModelTests` with mock/fake player service.
+  - Synchronous progress reporter refactoring in `MediaScannerTests` ensuring zero test flakiness under parallel runners.
+  - Test suite expanded to **194 passing unit tests** (0 failed, 0 skipped).
+
+---
+
 ## [0.5.1] - 2026-11-06 (Phase 3D Hotfix)
 
 ### Fixed

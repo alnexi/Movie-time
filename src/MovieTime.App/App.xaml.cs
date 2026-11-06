@@ -4,9 +4,11 @@ using System.Runtime.InteropServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
+using MovieTime.App.Services;
 using MovieTime.App.ViewModels;
 using MovieTime.Core;
 using MovieTime.Core.Extensions;
+using MovieTime.Core.Playback;
 using Serilog;
 
 namespace MovieTime.App;
@@ -66,10 +68,12 @@ public partial class App : Application
 #endif
 
         // 3. Presentation Services & Windows
+        services.AddSingleton<IVlcPlayerService, VlcPlayerService>();
         services.AddTransient<HomeViewModel>();
         services.AddTransient<MoviesViewModel>();
         services.AddTransient<MovieDetailsViewModel>();
         services.AddTransient<SettingsViewModel>();
+        services.AddTransient<PlayerViewModel>();
         services.AddTransient<MainWindow>();
 
         return services.BuildServiceProvider();
@@ -77,7 +81,7 @@ public partial class App : Application
 
     protected override async void OnLaunched(LaunchActivatedEventArgs args)
     {
-        _logger.LogInformation("Application launched. Initializing database and activating MainWindow.");
+        _logger.LogInformation("Application launched. Initializing database and activating MainWindow. CommandLine: {Cmd}", Environment.CommandLine);
 
         try
         {

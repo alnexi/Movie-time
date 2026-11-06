@@ -58,6 +58,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IEpisodeRepository, Database.Repositories.EpisodeRepository>();
         services.AddSingleton<IMediaFileRepository, Database.Repositories.MediaFileRepository>();
         services.AddSingleton<IScanRootRepository, Database.Repositories.ScanRootRepository>();
+        services.AddSingleton<IPlaybackProgressRepository, Database.Repositories.PlaybackProgressRepository>();
 
         // Library synchronization and scan root services
         services.AddSingleton<Library.IScanRootService, Library.ScanRootService>();

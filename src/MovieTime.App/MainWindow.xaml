@@ -24,5 +24,10 @@
         <views:MovieDetailsView x:Name="MainMovieDetailsView"
                                 ViewModel="{x:Bind MovieDetailsViewModel, Mode=OneWay}"
                                 Visibility="Collapsed" />
+
+        <!-- 5. Native Hardware-Accelerated Cinematic Player (Apple TV Specification) -->
+        <views:PlayerView x:Name="MainPlayerView"
+                          ViewModel="{x:Bind PlayerViewModel, Mode=OneWay}"
+                          Visibility="Collapsed" />
     </Grid>
 </Window>
