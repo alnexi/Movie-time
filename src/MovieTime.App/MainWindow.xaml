@@ -14,5 +14,10 @@
         <views:MoviesView x:Name="MainMoviesView"
                           ViewModel="{x:Bind MoviesViewModel, Mode=OneWay}"
                           Visibility="Collapsed" />
+
+        <!-- 3. Apple TV-Inspired Settings Screen (MLibrary Management) -->
+        <views:SettingsView x:Name="MainSettingsView"
+                            ViewModel="{x:Bind SettingsViewModel, Mode=OneWay}"
+                            Visibility="Collapsed" />
     </Grid>
 </Window>

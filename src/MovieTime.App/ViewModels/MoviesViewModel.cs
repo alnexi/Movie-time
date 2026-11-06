@@ -181,6 +181,7 @@ public sealed class MoviesViewModel : ObservableObject
     public ICommand GoToDetailsCommand { get; }
     public ICommand DismissQuickActionCommand { get; }
     public ICommand RefreshLibraryCommand { get; }
+    public ICommand ManageLibrariesCommand { get; }
 
     public MoviesViewModel(
         IDatabaseService databaseService,
@@ -210,6 +211,7 @@ public sealed class MoviesViewModel : ObservableObject
         GoToDetailsCommand = new RelayCommand(OnGoToMovieDetails);
         DismissQuickActionCommand = new RelayCommand(OnDismissQuickAction);
         RefreshLibraryCommand = new AsyncRelayCommand(RefreshLibraryAsync);
+        ManageLibrariesCommand = new RelayCommand(() => NavigationRequested?.Invoke("Settings"));
 
         InitializeCategories();
     }

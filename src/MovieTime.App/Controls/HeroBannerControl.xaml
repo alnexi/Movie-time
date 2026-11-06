@@ -58,18 +58,6 @@
         <!-- 2. Hero Content Overlay -->
         <Grid Margin="48,80,48,36">
             <StackPanel VerticalAlignment="Bottom" MaxWidth="560" Spacing="14" HorizontalAlignment="Left">
-                <!-- Preview / Sample Indicator -->
-                <Border Visibility="{x:Bind ViewModel.IsSample, Mode=OneWay}"
-                        HorizontalAlignment="Left"
-                        Background="#35FFFFFF"
-                        CornerRadius="4"
-                        Padding="8,3">
-                    <TextBlock Text="APPLE TV REFERENCE SHOWCASE"
-                               FontSize="10"
-                               FontWeight="Bold"
-                               Foreground="#E0E0E0" />
-                </Border>
-
                 <!-- Hero Title -->
                 <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}"
                            FontSize="40"

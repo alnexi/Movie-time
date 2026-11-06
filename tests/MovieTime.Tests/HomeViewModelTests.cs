@@ -93,27 +93,23 @@ public sealed class HomeViewModelTests : IDisposable
     }
 
     [Fact]
-    public async Task InitializeAsync_WhenLibraryEmpty_SetsShowcaseFallback()
+    public async Task InitializeAsync_WhenLibraryEmpty_SetsEmptyLibraryState()
     {
         var vm = CreateViewModel();
 
         await vm.InitializeAsync();
 
         Assert.True(vm.IsLibraryEmpty);
+        Assert.False(vm.HasActualLibraryData);
         Assert.NotNull(vm.Hero);
-        Assert.Equal("KILLERS OF THE FLOWER MOON", vm.Hero.Title);
-        Assert.Equal("Crime", vm.Hero.Genre);
-        Assert.Equal("R", vm.Hero.RatingBadge);
-        Assert.Equal("Go to Movie", vm.Hero.ActionButtonText);
-        Assert.True(vm.Hero.IsSample);
+        Assert.Equal("MOVIE TIME", vm.Hero.Title);
+        Assert.Equal("Local Media Library", vm.Hero.Genre);
+        Assert.Equal("Offline", vm.Hero.RatingBadge);
+        Assert.Equal("Manage Libraries", vm.Hero.ActionButtonText);
+        Assert.False(vm.Hero.IsSample);
 
-        Assert.NotEmpty(vm.Rows);
-        var continueWatchingRow = vm.Rows.FirstOrDefault(r => r.Title == "Continue Watching");
-        Assert.NotNull(continueWatchingRow);
-        Assert.NotEmpty(continueWatchingRow.Items);
-
-        var firstItem = continueWatchingRow.Items.First();
-        Assert.True(firstItem.IsSample);
+        // Entirely empty rows: zero fake cards or rows seeded
+        Assert.Empty(vm.Rows);
     }
 
     [Fact]

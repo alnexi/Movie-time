@@ -4,7 +4,7 @@
 
 [![.NET](https://img.shields.io/badge/.NET-10.0%20LTS%20(x64)-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![Windows App SDK](https://img.shields.io/badge/WinUI%203-Windows%20App%20SDK%201.6-0078D7?logo=windows)](https://learn.microsoft.com/en-us/windows/apps/winui/winui3/)
-[![Tests](https://img.shields.io/badge/Unit%20Tests-152%20Passed-brightgreen)](https://github.com/alnexi/Movie-time)
+[![Tests](https://img.shields.io/badge/Unit%20Tests-160%20Passed-brightgreen)](https://github.com/alnexi/Movie-time)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
@@ -51,6 +51,21 @@ Unlike cluttered streaming apps or heavy web-wrapped wrappers, Movie Time is bui
   - When the SQLite database contains 0 movies, renders an elegant empty state explaining that the local library is empty, with a white pill "Scan Library Now" button.
   - Never fabricates fake movies into the user's database.
 
+### 3. Multi-Drive MLibrary Management & Settings (Phase 3C)
+* **Complete Removal of Demo Content**:
+  - Zero hardcoded mock movies, fake titles, or simulated video assets.
+  - Completely clean, honest empty states that guide the user to configure real local drives.
+* **Steam-Inspired Multi-Drive Storage (`MLibrary`)**:
+  - Automatically enumerates available Windows drives (`C:`, `D:`, `E:`, etc.) with volume labels and storage capacities.
+  - Standardizes on a dedicated, isolated `MLibrary` folder per drive (e.g. `D:\MLibrary`).
+  - Strict scanning boundary: Movie Time scans **ONLY** inside registered `MLibrary` directories; never touches root disks or lateral personal folders.
+* **Apple TV-Inspired Settings UI**:
+  - Top-left `( ⚙️ Settings )` pill button matching the signature navigation aesthetic.
+  - Drive status badges with real-time health: `Available` (Green), `Folder Missing` (Orange), `Drive Disconnected` (Red), `Disabled` (Gray).
+  - Add Drive Dialog: Select drive, preview `MLibrary` target path, and require explicit confirmation checkbox before creating folders on disk.
+  - Scan controls per library and global "Scan All Libraries" orchestration.
+  - Non-destructive library removal: unregisters the library folder without modifying or deleting media files on disk.
+
 ---
 
 ## 🏛️ System Architecture
@@ -63,26 +78,30 @@ MovieTime/
 │   ├── MovieTime.App/             # WinUI 3 Native Desktop Application
 │   │   ├── Common/                # MVVM ObservableObject & RelayCommand
 │   │   ├── Controls/              # HeroBanner, MediaCard, MoviePosterCard, MediaRow, SidebarNavigation
-│   │   ├── ViewModels/            # Presentation Models (HomeViewModel, MoviesViewModel, etc.)
-│   │   ├── Views/                 # Full-screen views (HomeView, MoviesView)
+│   │   ├── ViewModels/            # Presentation Models (HomeViewModel, MoviesViewModel, SettingsViewModel, etc.)
+│   │   ├── Views/                 # Full-screen views (HomeView, MoviesView, SettingsView)
 │   │   ├── MainWindow.xaml        # Edge-to-edge window host & navigation coordinator
 │   │   └── App.xaml               # Composition Root & DI configuration
 │   │
 │   └── MovieTime.Core/            # Core Domain & Platform-Agnostic Engine
 │       ├── Database/              # SQLite-net WAL database, migrations & repositories
 │       ├── Entities/              # Movie, Series, Season, Episode, MediaFile, ScanRoot
-│       ├── Library/               # LibraryImportService & ScanRootService
+│       ├── Library/               # MLibraryManagerService, LibraryImportService & ScanRootService
 │       ├── Logging/               # Serilog rolling local file logger (%LocalAppData%\MovieTime\Logs)
 │       ├── Parsing/               # FilenameParserEngine (heuristic classification & extraction)
 │       ├── Scanning/              # MediaScannerService (recursive async filesystem scanner)
 │       └── Services/              # StoragePathService & AppEnvironment
 │
 └── tests/
-    └── MovieTime.Tests/           # Unit & Integration Tests (152 tests)
+    └── MovieTime.Tests/           # Unit & Integration Tests (160 tests)
 ```
 
 ### Key Components
 
+- **Multi-Drive MLibrary Manager (`MLibraryManagerService`)**:
+  - Steam-inspired multi-drive storage management with automated Windows drive enumeration (`DriveInfo.GetDrives()`).
+  - Strict scanning boundary: confines media discovery to `<Drive>:\MLibrary` folders, guaranteeing system roots and personal files are never touched.
+  - Interactive drive registration with disk preview, folder existence verification, and mandatory confirmation before creating directories.
 - **Database Layer (`sqlite-net-pcl` & `SQLitePCLRaw.bundle_e_sqlite3`)**:
   - Local SQLite database stored at `%LocalAppData%\MovieTime\Database\movietime.db`.
   - Configured with Write-Ahead Logging (`WAL`), `NORMAL` synchronous mode, and automatic schema migrations (Version 1 & 2).
@@ -109,7 +128,7 @@ MovieTime/
 # Restore dependencies and build the entire solution (x64 Debug)
 dotnet build MovieTime.sln -p:Platform=x64
 
-# Run all 152 automated unit tests
+# Run all 160 automated unit tests
 dotnet test MovieTime.sln -p:Platform=x64
 
 # Launch the application
@@ -120,15 +139,17 @@ dotnet run --project src\MovieTime.App\MovieTime.App.csproj -p:Platform=x64
 
 ## 🧪 Automated Test Suite
 
-The solution features **152 unit and integration tests** covering:
+The solution features **160 unit and integration tests** covering:
 - **Dependency Injection & Bootstrapping**: Service registration, lifetime scopes, and environment paths.
 - **Local Logging**: Serilog file sink rolling rules, log formatting, and output directory isolation.
 - **SQLite Engine & Migrations**: Schema creation, table constraints, indices, WAL mode, and migrations from v1 to v2.
 - **Filesystem Scanner**: File extensions, hidden directory exclusions, symlink safety, and progress reporting.
 - **Filename Parsing**: Over 50 real-world filename fixtures spanning complex scene naming conventions, foreign characters, and anime tags.
 - **Library Synchronization**: In-memory import cycles, cancellation tokens, missing file detection, and entity deduplication.
-- **Home Presentation Layer**: Showcase fallback initialization, sidebar category navigation, active category toggles, and card progress bar width math.
+- **Multi-Drive MLibrary Management**: Drive enumeration, path formatting, duplicate registration prevention, explicit directory creation confirmation, library removal, and strict scanning scope isolation.
+- **Home Presentation Layer**: Pure zero-sample empty library state, neutral hero banner, sidebar category navigation, active category toggles, and card progress bar width math.
 - **Movies Presentation Layer**: Database loading, empty library state, live search query filtering, sorting by Title/Year/DateAdded, category filtering, and movie selection state.
+- **Settings Presentation Layer**: Drive preview, registration confirmation dialog, status notification binding, and scanning triggers.
 
 ---
 
@@ -141,10 +162,10 @@ The solution features **152 unit and integration tests** covering:
 - [x] **Phase 2C**: Scanner, Parser & Database Synchronization Service.
 - [x] **Phase 3A**: Apple TV-Inspired Home UI Canvas, Billboard Hero Section, and Floating Sidebar.
 - [x] **Phase 3B**: Apple TV-Inspired Movies Library Screen (Poster Grid, Category Filtering, Search, Quick Actions).
-- [ ] **Phase 3C**: Cinematic Movie & TV Show Detail Screens.
+- [x] **Phase 3C**: Real Library System & Multi-Drive MLibrary Manager (Fake Data Removal, Drive Registration, Settings UI).
 - [ ] **Phase 4**: Native In-App Hardware-Accelerated Video Player (LibVLC / WinUI MediaPlayer).
 - [ ] **Phase 5**: Embedded Artwork & Local Thumbnail Extraction.
-- [ ] **Phase 6**: Library Settings & Folder Management UI.
+- [ ] **Phase 6**: Cinematic Movie & TV Show Detail Screens.
 
 ---
 

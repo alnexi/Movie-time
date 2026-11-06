@@ -262,20 +262,34 @@
                         </Grid>
                     </Button>
 
-                    <!-- Scan Library Button -->
+                    <!-- Library Management Buttons -->
                     <Border Margin="0,20,0,0" BorderBrush="#15FFFFFF" BorderThickness="0,1,0,0" Padding="0,12,0,0">
-                        <Button Command="{x:Bind ViewModel.RefreshLibraryCommand}"
-                                HorizontalAlignment="Stretch"
-                                HorizontalContentAlignment="Left"
-                                Background="#18FFFFFF"
-                                BorderThickness="0"
-                                CornerRadius="12"
-                                Padding="12,8">
-                            <StackPanel Orientation="Horizontal" Spacing="10">
-                                <FontIcon Glyph="&#xE777;" FontSize="13" Foreground="#FFFFFF" />
-                                <TextBlock Text="Scan &amp; Refresh" FontSize="12" Foreground="#FFFFFF" FontWeight="Medium" />
-                            </StackPanel>
-                        </Button>
+                        <StackPanel Spacing="6">
+                            <Button Command="{x:Bind ViewModel.ManageLibrariesCommand}"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Left"
+                                    Background="#18FFFFFF"
+                                    BorderThickness="0"
+                                    CornerRadius="12"
+                                    Padding="12,8">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <FontIcon Glyph="&#xE713;" FontSize="13" Foreground="#FFFFFF" />
+                                    <TextBlock Text="Manage Libraries" FontSize="12" Foreground="#FFFFFF" FontWeight="Medium" />
+                                </StackPanel>
+                            </Button>
+                            <Button Command="{x:Bind ViewModel.RefreshLibraryCommand}"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Left"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    CornerRadius="12"
+                                    Padding="12,8">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <FontIcon Glyph="&#xE777;" FontSize="13" Foreground="#B0B0B8" />
+                                    <TextBlock Text="Scan &amp; Refresh" FontSize="12" Foreground="#CCCCCC" FontWeight="Normal" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
                     </Border>
                 </StackPanel>
             </ScrollViewer>
@@ -305,28 +319,41 @@
                                    Foreground="#FFFFFF"
                                    HorizontalAlignment="Center" />
 
-                        <TextBlock Text="Movie Time scans your local folders to catalog your personal film collection. Configure your media folders and scan to populate your library."
+                        <TextBlock Text="Movie Time scans strictly inside designated MLibrary folders on your registered storage drives. Configure your drives in Settings to catalog your movies."
                                    FontSize="13"
                                    Foreground="#8E8E93"
                                    TextWrapping="Wrap"
                                    TextAlignment="Center"
-                                   MaxWidth="420"
+                                   MaxWidth="440"
                                    HorizontalAlignment="Center" />
 
-                        <Button Command="{x:Bind ViewModel.RefreshLibraryCommand}"
-                                HorizontalAlignment="Center"
-                                Background="#FFFFFF"
-                                Foreground="#000000"
-                                CornerRadius="18"
-                                Padding="20,9"
-                                FontWeight="SemiBold"
-                                FontSize="13"
-                                Margin="0,8,0,0">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <FontIcon Glyph="&#xE777;" FontSize="12" />
-                                <TextBlock Text="Scan Library Now" />
-                            </StackPanel>
-                        </Button>
+                        <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center" Margin="0,8,0,0">
+                            <Button Command="{x:Bind ViewModel.ManageLibrariesCommand}"
+                                    Background="#FFFFFF"
+                                    Foreground="#000000"
+                                    CornerRadius="18"
+                                    Padding="22,10"
+                                    FontWeight="SemiBold"
+                                    FontSize="13">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE713;" FontSize="13" />
+                                    <TextBlock Text="Manage Libraries" />
+                                </StackPanel>
+                            </Button>
+
+                            <Button Command="{x:Bind ViewModel.RefreshLibraryCommand}"
+                                    Background="#25FFFFFF"
+                                    Foreground="#FFFFFF"
+                                    CornerRadius="18"
+                                    Padding="18,10"
+                                    FontWeight="Medium"
+                                    FontSize="13">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE777;" FontSize="13" />
+                                    <TextBlock Text="Scan Now" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
                     </StackPanel>
                 </Grid>
 

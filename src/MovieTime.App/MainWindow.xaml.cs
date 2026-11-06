@@ -5,23 +5,28 @@ using MovieTime.App.ViewModels;
 namespace MovieTime.App;
 
 /// <summary>
-/// Main window hosting the cinematic Apple TV-inspired Home and Movies Library experiences.
-/// Coordinates top-level navigation between HomeView and MoviesView.
+/// Main window hosting the cinematic Apple TV-inspired Home, Movies Library, and Settings experiences.
+/// Coordinates top-level navigation between HomeView, MoviesView, and SettingsView.
 /// </summary>
 public sealed partial class MainWindow : Window
 {
     public HomeViewModel HomeViewModel { get; }
     public MoviesViewModel MoviesViewModel { get; }
+    public SettingsViewModel SettingsViewModel { get; }
 
     /// <summary>
     /// Legacy alias for backward compatibility.
     /// </summary>
     public HomeViewModel ViewModel => HomeViewModel;
 
-    public MainWindow(HomeViewModel homeViewModel, MoviesViewModel moviesViewModel)
+    public MainWindow(
+        HomeViewModel homeViewModel,
+        MoviesViewModel moviesViewModel,
+        SettingsViewModel settingsViewModel)
     {
         HomeViewModel = homeViewModel ?? throw new ArgumentNullException(nameof(homeViewModel));
         MoviesViewModel = moviesViewModel ?? throw new ArgumentNullException(nameof(moviesViewModel));
+        SettingsViewModel = settingsViewModel ?? throw new ArgumentNullException(nameof(settingsViewModel));
 
         this.InitializeComponent();
 
@@ -41,6 +46,7 @@ public sealed partial class MainWindow : Window
         // Subscribe to navigation events
         HomeViewModel.NavigationRequested += OnNavigationRequested;
         MoviesViewModel.NavigationRequested += OnNavigationRequested;
+        SettingsViewModel.NavigationRequested += OnNavigationRequested;
 
         _ = HomeViewModel.InitializeAsync();
     }
@@ -56,11 +62,16 @@ public sealed partial class MainWindow : Window
         {
             NavigateToHome();
         }
+        else if (string.Equals(target, "Settings", StringComparison.OrdinalIgnoreCase))
+        {
+            NavigateToSettings();
+        }
     }
 
     public void NavigateToMovies()
     {
         MainHomeView.Visibility = Visibility.Collapsed;
+        MainSettingsView.Visibility = Visibility.Collapsed;
         MainMoviesView.Visibility = Visibility.Visible;
         _ = MoviesViewModel.InitializeAsync();
     }
@@ -68,7 +79,16 @@ public sealed partial class MainWindow : Window
     public void NavigateToHome()
     {
         MainMoviesView.Visibility = Visibility.Collapsed;
+        MainSettingsView.Visibility = Visibility.Collapsed;
         MainHomeView.Visibility = Visibility.Visible;
         _ = HomeViewModel.InitializeAsync();
+    }
+
+    public void NavigateToSettings()
+    {
+        MainHomeView.Visibility = Visibility.Collapsed;
+        MainMoviesView.Visibility = Visibility.Collapsed;
+        MainSettingsView.Visibility = Visibility.Visible;
+        _ = SettingsViewModel.InitializeAsync();
     }
 }

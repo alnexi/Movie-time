@@ -75,20 +75,6 @@
                                    Foreground="#F0F0F0" />
                     </Border>
 
-                    <!-- Preview / Sample tag -->
-                    <Border Visibility="{x:Bind ViewModel.IsSample, Mode=OneWay}"
-                            HorizontalAlignment="Left"
-                            VerticalAlignment="Top"
-                            Background="#60000000"
-                            CornerRadius="4"
-                            Padding="5,2"
-                            Margin="8,8,0,0">
-                        <TextBlock Text="PREVIEW"
-                                   FontSize="9"
-                                   FontWeight="Bold"
-                                   Foreground="#A0A0A0" />
-                    </Border>
-
                     <!-- Continue Watching Progress Bar -->
                     <Grid Visibility="{x:Bind ViewModel.HasProgress, Mode=OneWay}"
                           VerticalAlignment="Bottom"

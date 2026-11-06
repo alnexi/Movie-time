@@ -97,6 +97,7 @@ public sealed class HomeViewModel : ObservableObject
     public ICommand CloseSidebarCommand { get; }
     public ICommand RefreshLibraryCommand { get; }
     public ICommand SelectCategoryCommand { get; }
+    public ICommand ManageLibrariesCommand { get; }
 
     public HomeViewModel(
         IDatabaseService databaseService,
@@ -124,9 +125,10 @@ public sealed class HomeViewModel : ObservableObject
         CloseSidebarCommand = new RelayCommand(() => IsSidebarOpen = false);
         RefreshLibraryCommand = new AsyncRelayCommand(RefreshLibraryAsync);
         SelectCategoryCommand = new RelayCommand<string>(OnSelectCategory);
+        ManageLibrariesCommand = new RelayCommand(() => OnSelectCategory("Settings"));
 
         InitializeSidebarItems();
-        InitializeSampleShowcase();
+        SetupEmptyLibraryState();
     }
 
     private void InitializeSidebarItems()
@@ -167,6 +169,13 @@ public sealed class HomeViewModel : ObservableObject
             Title = "Library",
             IconGlyph = "\uE838",
             Command = new RelayCommand(() => OnSelectCategory("Library"))
+        });
+
+        SidebarItems.Add(new SidebarItemViewModel
+        {
+            Title = "Settings",
+            IconGlyph = "\uE713",
+            Command = new RelayCommand(() => OnSelectCategory("Settings"))
         });
     }
 
@@ -214,13 +223,13 @@ public sealed class HomeViewModel : ObservableObject
             {
                 HasActualLibraryData = false;
                 IsLibraryEmpty = true;
-                InitializeSampleShowcase();
+                SetupEmptyLibraryState();
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to load library data for HomeViewModel.");
-            InitializeSampleShowcase();
+            SetupEmptyLibraryState();
         }
     }
 
@@ -247,6 +256,7 @@ public sealed class HomeViewModel : ObservableObject
                 BackdropPath = featuredMovie.BackdropPath ?? featuredMovie.PosterPath,
                 ActionButtonText = "Play Movie",
                 TargetMovieId = featuredMovie.Id,
+                ActionCommand = new RelayCommand(() => NavigationRequested?.Invoke("Movies")),
                 IsSample = false
             };
         }
@@ -323,124 +333,24 @@ public sealed class HomeViewModel : ObservableObject
         }
     }
 
-    public void InitializeSampleShowcase()
+    public void SetupEmptyLibraryState()
     {
         Rows.Clear();
 
-        // 1. Hero Billboard: Killers of the Flower Moon (matching Reference Screenshot 1 & 2)
         Hero = new HeroBannerViewModel
         {
-            Title = "KILLERS OF THE FLOWER MOON",
-            Genre = "Crime",
-            RatingBadge = "R",
-            QualityBadge = "4K HDR",
-            Description = "Leonardo DiCaprio. Robert De Niro. Lily Gladstone. A film by Martin Scorsese.",
-            ActionButtonText = "Go to Movie",
-            IsSample = true
+            Title = "MOVIE TIME",
+            Genre = "Local Media Library",
+            RatingBadge = "Offline",
+            QualityBadge = "Ready",
+            Description = "Connect your storage drives and add an MLibrary folder in Settings to start cataloging and enjoying your local media collection.",
+            ActionButtonText = "Manage Libraries",
+            ActionCommand = ManageLibrariesCommand,
+            IsSample = false
         };
 
-        // 2. Continue Watching Row (Reference Screenshot 1 & 2)
-        var continueRow = new MediaRowViewModel { Title = "Continue Watching" };
-        continueRow.Items.Add(new MediaCardViewModel
-        {
-            Title = "Slow Horses",
-            Subtitle = "Recently Added",
-            QualityTag = "tv+",
-            IsSample = true
-        });
-        continueRow.Items.Add(new MediaCardViewModel
-        {
-            Title = "Snowpiercer",
-            Subtitle = "Recently Added",
-            QualityTag = "STARZ",
-            IsSample = true
-        });
-        continueRow.Items.Add(new MediaCardViewModel
-        {
-            Title = "Dark Matter",
-            Subtitle = "Continue • S1, E7",
-            ProgressPercentage = 0.65,
-            IsSample = true
-        });
-        continueRow.Items.Add(new MediaCardViewModel
-        {
-            Title = "The Walking Dead: Daryl Dixon",
-            Subtitle = "Recently Added",
-            QualityTag = "STARZ ON",
-            IsSample = true
-        });
-        continueRow.Items.Add(new MediaCardViewModel
-        {
-            Title = "The Penguin",
-            Subtitle = "Recently Added",
-            QualityTag = "HBO",
-            IsSample = true
-        });
-        Rows.Add(continueRow);
-
-        // 3. Top Movies Row (Reference Screenshot 3)
-        var topMoviesRow = new MediaRowViewModel { Title = "Top Movies" };
-        topMoviesRow.Items.Add(new MediaCardViewModel
-        {
-            Title = "Pokémon Detective Pikachu",
-            Subtitle = "4K HDR • Action",
-            QualityTag = "4K HDR",
-            IsSample = true
-        });
-        topMoviesRow.Items.Add(new MediaCardViewModel
-        {
-            Title = "Spider-Man: Into the Spider-Verse",
-            Subtitle = "Animation • Action",
-            IsSample = true
-        });
-        topMoviesRow.Items.Add(new MediaCardViewModel
-        {
-            Title = "VICE",
-            Subtitle = "Drama • Biography",
-            IsSample = true
-        });
-        topMoviesRow.Items.Add(new MediaCardViewModel
-        {
-            Title = "Ocean's 8",
-            Subtitle = "Comedy • Crime",
-            IsSample = true
-        });
-        topMoviesRow.Items.Add(new MediaCardViewModel
-        {
-            Title = "Dune: Part Two",
-            Subtitle = "Recently Added",
-            IsSample = true
-        });
-        Rows.Add(topMoviesRow);
-
-        // 4. Weekly Spotlight Row
-        var spotlightRow = new MediaRowViewModel { Title = "Weekly Spotlight" };
-        spotlightRow.Items.Add(new MediaCardViewModel
-        {
-            Title = "Hijack",
-            Subtitle = "Continue • S1, E1",
-            ProgressPercentage = 0.35,
-            IsSample = true
-        });
-        spotlightRow.Items.Add(new MediaCardViewModel
-        {
-            Title = "Severance",
-            Subtitle = "Sci-Fi • Thriller",
-            IsSample = true
-        });
-        spotlightRow.Items.Add(new MediaCardViewModel
-        {
-            Title = "Ted Lasso",
-            Subtitle = "Comedy • Sport",
-            IsSample = true
-        });
-        spotlightRow.Items.Add(new MediaCardViewModel
-        {
-            Title = "The Morning Show",
-            Subtitle = "Drama",
-            IsSample = true
-        });
-        Rows.Add(spotlightRow);
+        HasActualLibraryData = false;
+        IsLibraryEmpty = true;
     }
 
     private async Task RefreshLibraryAsync()
