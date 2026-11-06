@@ -6,8 +6,13 @@
     Title="Movie Time">
 
     <Grid Background="#0A0A0C">
-        <!-- Main Apple TV Inspired Home Experience View -->
+        <!-- 1. Apple TV-Inspired Home Screen -->
         <views:HomeView x:Name="MainHomeView"
-                        ViewModel="{x:Bind ViewModel, Mode=OneWay}" />
+                        ViewModel="{x:Bind HomeViewModel, Mode=OneWay}" />
+
+        <!-- 2. Apple TV-Inspired Movies Library Screen -->
+        <views:MoviesView x:Name="MainMoviesView"
+                          ViewModel="{x:Bind MoviesViewModel, Mode=OneWay}"
+                          Visibility="Collapsed" />
     </Grid>
 </Window>

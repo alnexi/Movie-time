@@ -4,7 +4,7 @@
 
 [![.NET](https://img.shields.io/badge/.NET-10.0%20LTS%20(x64)-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![Windows App SDK](https://img.shields.io/badge/WinUI%203-Windows%20App%20SDK%201.6-0078D7?logo=windows)](https://learn.microsoft.com/en-us/windows/apps/winui/winui3/)
-[![Tests](https://img.shields.io/badge/Unit%20Tests-146%20Passed-brightgreen)](https://github.com/alnexi/Movie-time)
+[![Tests](https://img.shields.io/badge/Unit%20Tests-152%20Passed-brightgreen)](https://github.com/alnexi/Movie-time)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
@@ -17,31 +17,39 @@ Unlike cluttered streaming apps or heavy web-wrapped wrappers, Movie Time is bui
 
 ---
 
-## 📺 Apple TV Visual Design System (Phase 3A)
+## 📺 Apple TV Visual Design System
 
-The Phase 3A user interface reproduces the signature design principles of modern Apple TV:
+### 1. Home Screen (Phase 3A)
+* **Ambient Billboard Hero Section**: Edge-to-edge cinematic banner with dark radial and linear vignette gradients that blend into content rows below.
+* **Apple TV Typography & Badges**: Stylized bold titles, genre indicators, and rating badges (e.g. `[R]`, `4K HDR`).
+* **White Capsule Action Pill**: Apple TV-signature white pill button (`Go to Movie` / `Play Movie`) with dark iconography.
+* **Centered Carousel Dots**: Elongated active white pill dot with subtle inactive dots.
+* **Top-Left Floating Trigger**: Floating translucent capsule button (`( 🏠 Home )`) positioned in the upper-left margin to open the sidebar.
+* **"Continue Watching" Row**: Horizontal scrollable container hosting 16:9 aspect ratio media cards with playback progress indicators.
+* **Showcase Fallback**: Built-in Apple TV preview showcase displayed when launching with an empty library.
 
-1. **Ambient Billboard Hero Section**
-   - High-impact cinematic banner with atmospheric dark gradient canvas.
-   - Stylized typography, genre tags, and rating badges (e.g. `[R]`, `4K HDR`).
-   - Signature white capsule action button (`Go to Movie` / `Play Movie`).
-   - Centered horizontal pagination dots.
-
-2. **16:9 Cinematic Media Card Rows**
-   - True 16:9 widescreen thumbnails (`260x146`).
-   - Smooth focus and hover state: scale lift (`1.06x`), crisp white highlight stroke, and elevation drop shadow.
-   - Integrated playback progress indicators for "Continue Watching" items.
-   - Typographical gradient fallbacks when poster artwork is absent.
-
-3. **Floating Frosted Acrylic Sidebar**
-   - Collapsible floating sidebar with translucent frosted glass styling (`#E8141418` acrylic base with border stroke).
-   - Profile avatar header with live clock.
-   - Quick navigation categories: `Home`, `Movies`, `TV Shows`, and `Library`.
-   - Top-left floating trigger capsule (`( 🏠 Home )`) and dimming canvas backdrop.
-   - Instant "Scan & Refresh" action button.
-
-4. **Apple TV Reference Showcase Fallback**
-   - When launching with an empty library or before configuring folders, Movie Time renders an authentic Apple TV preview showcase (featuring titles like *Killers of the Flower Moon*, *Slow Horses*, *Dark Matter*, *Dune: Part Two*, and *The Penguin*) so the user immediately experiences the intended look and feel.
+### 2. Movies Library (Phase 3B)
+* **Top-Left Navigation Capsule**: Distinctive capsule pill button `( 🗂️ Library )` / `( 🏠 Home )` providing fluid one-click transitions between Home and the Movies Library.
+* **Embedded Category & Genre Filter List**:
+  - Filter categories: `All Movies`, `Recently Added`, `4K & High Definition`.
+  - Apple TV Section Header: `GENRES` (`Action & Adventure`, `Comedy`, `Drama`, `Kids & Family`, `Sci-Fi & Fantasy`).
+  - Active category highlighted as a solid white capsule with dark iconography; inactive categories styled with clean typography.
+* **Apple TV 2:3 Vertical Poster Grid**:
+  - Standard 2:3 theatrical movie poster dimensions (`170x255`) with rounded corners (`14px`).
+  - Smooth focus and hover animation: **1.06x scale lift**, bright white selection border (**3px**), and elevation drop shadow.
+  - Sophisticated dark gradient fallback artwork for local movies without embedded or cached posters.
+  - Quality badges (`4K HDR`, `1080p HD`) positioned on each card based on probed media file properties.
+* **Apple TV Quick Action Context Dialog**:
+  - Selecting a movie poster opens an Apple TV-inspired quick-action capsule dialog right over the card.
+  - Actions: `Play` (with play triangle glyph) and `Go to Movie` (active white pill with `(i)` info glyph).
+  - Background cards smoothly dim to focus user attention on the selected title.
+* **Instant Local Title Search & Sorting**:
+  - Built-in pill search box with real-time title filtering.
+  - Multi-criteria sorting: `Title (A-Z)`, `Release Year (Newest)`, and `Recently Added`.
+  - Empty search state feedback with one-click "Clear Search" recovery.
+* **Polished Empty State**:
+  - When the SQLite database contains 0 movies, renders an elegant empty state explaining that the local library is empty, with a white pill "Scan Library Now" button.
+  - Never fabricates fake movies into the user's database.
 
 ---
 
@@ -54,10 +62,10 @@ MovieTime/
 ├── src/
 │   ├── MovieTime.App/             # WinUI 3 Native Desktop Application
 │   │   ├── Common/                # MVVM ObservableObject & RelayCommand
-│   │   ├── Controls/              # HeroBanner, MediaCard, MediaRow, SidebarNavigation
-│   │   ├── ViewModels/            # Presentation Models (HomeViewModel, MediaCardViewModel, etc.)
-│   │   ├── Views/                 # Full-screen views (HomeView)
-│   │   ├── MainWindow.xaml        # Edge-to-edge window host
+│   │   ├── Controls/              # HeroBanner, MediaCard, MoviePosterCard, MediaRow, SidebarNavigation
+│   │   ├── ViewModels/            # Presentation Models (HomeViewModel, MoviesViewModel, etc.)
+│   │   ├── Views/                 # Full-screen views (HomeView, MoviesView)
+│   │   ├── MainWindow.xaml        # Edge-to-edge window host & navigation coordinator
 │   │   └── App.xaml               # Composition Root & DI configuration
 │   │
 │   └── MovieTime.Core/            # Core Domain & Platform-Agnostic Engine
@@ -70,7 +78,7 @@ MovieTime/
 │       └── Services/              # StoragePathService & AppEnvironment
 │
 └── tests/
-    └── MovieTime.Tests/           # Unit & Integration Tests (146 tests)
+    └── MovieTime.Tests/           # Unit & Integration Tests (152 tests)
 ```
 
 ### Key Components
@@ -101,7 +109,7 @@ MovieTime/
 # Restore dependencies and build the entire solution (x64 Debug)
 dotnet build MovieTime.sln -p:Platform=x64
 
-# Run all 146 automated unit tests
+# Run all 152 automated unit tests
 dotnet test MovieTime.sln -p:Platform=x64
 
 # Launch the application
@@ -112,14 +120,15 @@ dotnet run --project src\MovieTime.App\MovieTime.App.csproj -p:Platform=x64
 
 ## 🧪 Automated Test Suite
 
-The solution features 146 unit and integration tests covering:
+The solution features **152 unit and integration tests** covering:
 - **Dependency Injection & Bootstrapping**: Service registration, lifetime scopes, and environment paths.
 - **Local Logging**: Serilog file sink rolling rules, log formatting, and output directory isolation.
 - **SQLite Engine & Migrations**: Schema creation, table constraints, indices, WAL mode, and migrations from v1 to v2.
 - **Filesystem Scanner**: File extensions, hidden directory exclusions, symlink safety, and progress reporting.
 - **Filename Parsing**: Over 50 real-world filename fixtures spanning complex scene naming conventions, foreign characters, and anime tags.
 - **Library Synchronization**: In-memory import cycles, cancellation tokens, missing file detection, and entity deduplication.
-- **Presentation Layer**: Showcase fallback initialization, sidebar category navigation, active category toggles, and card progress bar width math.
+- **Home Presentation Layer**: Showcase fallback initialization, sidebar category navigation, active category toggles, and card progress bar width math.
+- **Movies Presentation Layer**: Database loading, empty library state, live search query filtering, sorting by Title/Year/DateAdded, category filtering, and movie selection state.
 
 ---
 
@@ -131,7 +140,8 @@ The solution features 146 unit and integration tests covering:
 - [x] **Phase 2B**: Heuristic Filename & Metadata Parser Engine.
 - [x] **Phase 2C**: Scanner, Parser & Database Synchronization Service.
 - [x] **Phase 3A**: Apple TV-Inspired Home UI Canvas, Billboard Hero Section, and Floating Sidebar.
-- [ ] **Phase 3B**: Cinematic Movie & TV Show Detail Screens.
+- [x] **Phase 3B**: Apple TV-Inspired Movies Library Screen (Poster Grid, Category Filtering, Search, Quick Actions).
+- [ ] **Phase 3C**: Cinematic Movie & TV Show Detail Screens.
 - [ ] **Phase 4**: Native In-App Hardware-Accelerated Video Player (LibVLC / WinUI MediaPlayer).
 - [ ] **Phase 5**: Embedded Artwork & Local Thumbnail Extraction.
 - [ ] **Phase 6**: Library Settings & Folder Management UI.

@@ -39,6 +39,8 @@ public sealed class HomeViewModel : ObservableObject
     private string _activeCategory = "Home";
     private int _heroDotIndex = 0;
 
+    public event Action<string>? NavigationRequested;
+
     public HeroBannerViewModel Hero
     {
         get => _hero;
@@ -180,6 +182,8 @@ public sealed class HomeViewModel : ObservableObject
 
         // Close sidebar on item selection
         IsSidebarOpen = false;
+
+        NavigationRequested?.Invoke(category);
     }
 
     public async Task InitializeAsync()

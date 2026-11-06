@@ -67,6 +67,7 @@ public partial class App : Application
 
         // 3. Presentation Services & Windows
         services.AddTransient<HomeViewModel>();
+        services.AddTransient<MoviesViewModel>();
         services.AddTransient<MainWindow>();
 
         return services.BuildServiceProvider();
