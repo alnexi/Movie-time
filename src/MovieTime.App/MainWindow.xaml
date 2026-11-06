@@ -19,5 +19,10 @@
         <views:SettingsView x:Name="MainSettingsView"
                             ViewModel="{x:Bind SettingsViewModel, Mode=OneWay}"
                             Visibility="Collapsed" />
+
+        <!-- 4. Apple TV-Inspired Movie Details Screen -->
+        <views:MovieDetailsView x:Name="MainMovieDetailsView"
+                                ViewModel="{x:Bind MovieDetailsViewModel, Mode=OneWay}"
+                                Visibility="Collapsed" />
     </Grid>
 </Window>

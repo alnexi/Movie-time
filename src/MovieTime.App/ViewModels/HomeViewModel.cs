@@ -256,7 +256,7 @@ public sealed class HomeViewModel : ObservableObject
                 BackdropPath = featuredMovie.BackdropPath ?? featuredMovie.PosterPath,
                 ActionButtonText = "Play Movie",
                 TargetMovieId = featuredMovie.Id,
-                ActionCommand = new RelayCommand(() => NavigationRequested?.Invoke("Movies")),
+                ActionCommand = new RelayCommand(() => NavigationRequested?.Invoke($"MovieDetails:{featuredMovie.Id}")),
                 IsSample = false
             };
         }

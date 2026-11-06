@@ -4,7 +4,7 @@
 
 [![.NET](https://img.shields.io/badge/.NET-10.0%20LTS%20(x64)-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![Windows App SDK](https://img.shields.io/badge/WinUI%203-Windows%20App%20SDK%201.6-0078D7?logo=windows)](https://learn.microsoft.com/en-us/windows/apps/winui/winui3/)
-[![Tests](https://img.shields.io/badge/Unit%20Tests-160%20Passed-brightgreen)](https://github.com/alnexi/Movie-time)
+[![Tests](https://img.shields.io/badge/Unit%20Tests-170%20Passed-brightgreen)](https://github.com/alnexi/Movie-time)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
@@ -66,6 +66,23 @@ Unlike cluttered streaming apps or heavy web-wrapped wrappers, Movie Time is bui
   - Scan controls per library and global "Scan All Libraries" orchestration.
   - Non-destructive library removal: unregisters the library folder without modifying or deleting media files on disk.
 
+### 4. Cinematic Movie Details Experience (Phase 3D)
+* **Design References Inspired Layout**:
+  - Full-width hero canvas rendering genuine local backdrops when available on disk, combined with left and bottom dark vignette overlays for crisp typography.
+  - Atmospheric ambient lighting fallback when no backdrop file is present on disk (zero web-scraping or fabricated artwork).
+  - Prominent Apple TV-signature title typography with release year and edition badges (e.g. *Director's Cut*, *Extended Edition*).
+* **Genuinely Available Metadata Only**:
+  - Strictly presents verified technical properties: resolution (`4K UHD`, `1080p HD`), video codec (`HEVC`, `AVC`), audio format, container format (`MKV`, `MP4`), and actual file size.
+  - Zero fabricated information: omitted fields disappear naturally rather than displaying synthetic ratings, false genres, or fabricated cast.
+* **Apple TV White Capsule Play Button**:
+  - Prominent `▶ Play Movie` white pill button directly connected to the active local physical video file path, with feedback banner and integration boundary for Phase 4 VLC playback.
+* **Multiple Local Media Editions / Files**:
+  - Displays all local video files cataloged for a movie and allows the user to switch between editions with instant metadata updates.
+* **Offline Library Recommendations ("More from your library")**:
+  - Horizontal recommendation row populated strictly with other real movies from the user's local SQLite database. Omitted cleanly if no other movies exist.
+* **Bi-Directional Navigation**:
+  - Smooth navigation from Movies Library → Movie Details → Movies Library, preserving search filters and category selection state.
+
 ---
 
 ## 🏛️ System Architecture
@@ -78,8 +95,8 @@ MovieTime/
 │   ├── MovieTime.App/             # WinUI 3 Native Desktop Application
 │   │   ├── Common/                # MVVM ObservableObject & RelayCommand
 │   │   ├── Controls/              # HeroBanner, MediaCard, MoviePosterCard, MediaRow, SidebarNavigation
-│   │   ├── ViewModels/            # Presentation Models (HomeViewModel, MoviesViewModel, SettingsViewModel, etc.)
-│   │   ├── Views/                 # Full-screen views (HomeView, MoviesView, SettingsView)
+│   │   ├── ViewModels/            # Presentation Models (HomeViewModel, MoviesViewModel, MovieDetailsViewModel, SettingsViewModel)
+│   │   ├── Views/                 # Full-screen views (HomeView, MoviesView, MovieDetailsView, SettingsView)
 │   │   ├── MainWindow.xaml        # Edge-to-edge window host & navigation coordinator
 │   │   └── App.xaml               # Composition Root & DI configuration
 │   │
@@ -93,7 +110,7 @@ MovieTime/
 │       └── Services/              # StoragePathService & AppEnvironment
 │
 └── tests/
-    └── MovieTime.Tests/           # Unit & Integration Tests (160 tests)
+    └── MovieTime.Tests/           # Unit & Integration Tests (170 tests)
 ```
 
 ### Key Components
@@ -128,7 +145,7 @@ MovieTime/
 # Restore dependencies and build the entire solution (x64 Debug)
 dotnet build MovieTime.sln -p:Platform=x64
 
-# Run all 160 automated unit tests
+# Run all 170 automated unit tests
 dotnet test MovieTime.sln -p:Platform=x64
 
 # Launch the application
@@ -139,7 +156,7 @@ dotnet run --project src\MovieTime.App\MovieTime.App.csproj -p:Platform=x64
 
 ## 🧪 Automated Test Suite
 
-The solution features **160 unit and integration tests** covering:
+The solution features **170 unit and integration tests** covering:
 - **Dependency Injection & Bootstrapping**: Service registration, lifetime scopes, and environment paths.
 - **Local Logging**: Serilog file sink rolling rules, log formatting, and output directory isolation.
 - **SQLite Engine & Migrations**: Schema creation, table constraints, indices, WAL mode, and migrations from v1 to v2.
@@ -149,6 +166,7 @@ The solution features **160 unit and integration tests** covering:
 - **Multi-Drive MLibrary Management**: Drive enumeration, path formatting, duplicate registration prevention, explicit directory creation confirmation, library removal, and strict scanning scope isolation.
 - **Home Presentation Layer**: Pure zero-sample empty library state, neutral hero banner, sidebar category navigation, active category toggles, and card progress bar width math.
 - **Movies Presentation Layer**: Database loading, empty library state, live search query filtering, sorting by Title/Year/DateAdded, category filtering, and movie selection state.
+- **Movie Details Presentation Layer**: Real movie identification, year handling, missing artwork fallback flags, missing metadata omission, multiple editions/files selection, Play command target file binding, and local recommendations.
 - **Settings Presentation Layer**: Drive preview, registration confirmation dialog, status notification binding, and scanning triggers.
 
 ---
@@ -163,9 +181,10 @@ The solution features **160 unit and integration tests** covering:
 - [x] **Phase 3A**: Apple TV-Inspired Home UI Canvas, Billboard Hero Section, and Floating Sidebar.
 - [x] **Phase 3B**: Apple TV-Inspired Movies Library Screen (Poster Grid, Category Filtering, Search, Quick Actions).
 - [x] **Phase 3C**: Real Library System & Multi-Drive MLibrary Manager (Fake Data Removal, Drive Registration, Settings UI).
+- [x] **Phase 3D**: Cinematic Movie Details Experience (Full-Width Hero, True Local Metadata, Editions Selector, Offline Recommendations).
 - [ ] **Phase 4**: Native In-App Hardware-Accelerated Video Player (LibVLC / WinUI MediaPlayer).
 - [ ] **Phase 5**: Embedded Artwork & Local Thumbnail Extraction.
-- [ ] **Phase 6**: Cinematic Movie & TV Show Detail Screens.
+- [ ] **Phase 6**: TV Show & Season/Episode Detail Experience.
 
 ---
 

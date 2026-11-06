@@ -1,0 +1,425 @@
+<UserControl
+    x:Class="MovieTime.App.Views.MovieDetailsView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:MovieTime.App.Controls"
+    xmlns:vm="using:MovieTime.App.ViewModels"
+    mc:Ignorable="d"
+    d:DataContext="{d:DesignInstance Type=vm:MovieDetailsViewModel}">
+
+    <Grid Background="#0A0A0C">
+        <!-- Main Scrollable Content Container -->
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto"
+                      VerticalScrollMode="Enabled">
+            <StackPanel Padding="0,0,0,60">
+
+                <!-- ================= 1. CINEMATIC HERO SECTION ================= -->
+                <Grid Height="480">
+                    <!-- A. Background Artwork / Fallback Canvas -->
+                    <Grid>
+                        <!-- Genuine Local Backdrop Image (if exists) -->
+                        <Image Source="{x:Bind ViewModel.BackdropPath, Mode=OneWay}"
+                               Stretch="UniformToFill"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               Visibility="{x:Bind ViewModel.HasBackdrop, Mode=OneWay}" />
+
+                        <!-- Ambient Fallback Background (when no local backdrop exists) -->
+                        <Border Visibility="{x:Bind ViewModel.NeedsBackdropFallback, Mode=OneWay}"
+                                Background="#101018">
+                            <Grid>
+                                <!-- Atmospheric radial glow -->
+                                <Border>
+                                    <Border.Background>
+                                        <RadialGradientBrush Center="0.7,0.35" RadiusX="0.9" RadiusY="0.8">
+                                            <GradientStop Color="#2A1B28" Offset="0" />
+                                            <GradientStop Color="#14141E" Offset="0.6" />
+                                            <GradientStop Color="#0A0A0C" Offset="1" />
+                                        </RadialGradientBrush>
+                                    </Border.Background>
+                                </Border>
+
+                                <!-- Subtle film icon in hero fallback canvas -->
+                                <FontIcon Glyph="&#xE714;"
+                                          FontSize="160"
+                                          Foreground="#12121C"
+                                          HorizontalAlignment="Right"
+                                          VerticalAlignment="Center"
+                                          Margin="0,0,80,0" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Left Vignette Gradient: Guarantees title readability (Reference 1 & 2) -->
+                        <Border>
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                    <GradientStop Color="#F00A0A0C" Offset="0" />
+                                    <GradientStop Color="#B80A0A0C" Offset="0.45" />
+                                    <GradientStop Color="#300A0A0C" Offset="0.8" />
+                                    <GradientStop Color="#000A0A0C" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                        </Border>
+
+                        <!-- Bottom Vignette Gradient: Seamless fade into content below (Reference 3) -->
+                        <Border>
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#000A0A0C" Offset="0.5" />
+                                    <GradientStop Color="#B00A0A0C" Offset="0.85" />
+                                    <GradientStop Color="#FF0A0A0C" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                        </Border>
+                    </Grid>
+
+                    <!-- B. Top Floating Back Button: ( ‹ Movies ) -->
+                    <Button Command="{x:Bind ViewModel.BackCommand, Mode=OneWay}"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Top"
+                            Margin="36,28,0,0"
+                            Background="#60181820"
+                            BorderBrush="#30FFFFFF"
+                            BorderThickness="1"
+                            CornerRadius="18"
+                            Padding="12,6,16,6">
+                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <FontIcon Glyph="&#xE72B;" FontSize="11" Foreground="#C0C0C8" />
+                            <TextBlock Text="Movies" FontSize="13" FontWeight="SemiBold" Foreground="#FFFFFF" />
+                        </StackPanel>
+                    </Button>
+
+                    <!-- C. Hero Metadata & Action Composition (Bottom-Left) -->
+                    <Grid Margin="48,80,48,32" VerticalAlignment="Bottom">
+                        <StackPanel MaxWidth="620" Spacing="14" HorizontalAlignment="Left">
+
+                            <!-- Edition Capsule Badge (e.g. Director's Cut / Extended) -->
+                            <Border Visibility="{x:Bind ViewModel.HasEdition, Mode=OneWay}"
+                                    HorizontalAlignment="Left"
+                                    Background="#30FFFFFF"
+                                    BorderBrush="#40FFFFFF"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Padding="8,3">
+                                <TextBlock Text="{x:Bind ViewModel.Edition, Mode=OneWay}"
+                                           FontSize="11"
+                                           FontWeight="Bold"
+                                           Foreground="#E0E0FF" />
+                            </Border>
+
+                            <!-- Movie Title -->
+                            <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}"
+                                       FontSize="38"
+                                       FontWeight="Black"
+                                       Foreground="#FFFFFF"
+                                       TextWrapping="Wrap"
+                                       MaxLines="2"
+                                       LineHeight="44" />
+
+                            <!-- Genuine Metadata Badges Row (Reference 2) -->
+                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <!-- Year Badge -->
+                                <Border Visibility="{x:Bind ViewModel.HasYear, Mode=OneWay}"
+                                        Background="#25FFFFFF"
+                                        CornerRadius="4"
+                                        Padding="7,2">
+                                    <TextBlock Text="{x:Bind ViewModel.YearDisplay, Mode=OneWay}"
+                                               FontSize="12"
+                                               FontWeight="SemiBold"
+                                               Foreground="#FFFFFF" />
+                                </Border>
+
+                                <!-- Quality Badge (e.g. 4K UHD, 1080p HD) -->
+                                <Border Visibility="{x:Bind ViewModel.HasQualityBadge, Mode=OneWay}"
+                                        Background="#25FFFFFF"
+                                        CornerRadius="4"
+                                        Padding="7,2">
+                                    <TextBlock Text="{x:Bind ViewModel.QualityBadge, Mode=OneWay}"
+                                               FontSize="12"
+                                               FontWeight="SemiBold"
+                                               Foreground="#FFFFFF" />
+                                </Border>
+
+                                <!-- Video Codec -->
+                                <Border Visibility="{x:Bind ViewModel.HasVideoCodec, Mode=OneWay}"
+                                        BorderBrush="#40FFFFFF"
+                                        BorderThickness="1"
+                                        CornerRadius="4"
+                                        Padding="6,1">
+                                    <TextBlock Text="{x:Bind ViewModel.VideoCodecDisplay, Mode=OneWay}"
+                                               FontSize="11"
+                                               FontWeight="Medium"
+                                               Foreground="#CCCCCC" />
+                                </Border>
+
+                                <!-- Audio Codec -->
+                                <Border Visibility="{x:Bind ViewModel.HasAudioCodec, Mode=OneWay}"
+                                        BorderBrush="#40FFFFFF"
+                                        BorderThickness="1"
+                                        CornerRadius="4"
+                                        Padding="6,1">
+                                    <TextBlock Text="{x:Bind ViewModel.AudioCodecDisplay, Mode=OneWay}"
+                                               FontSize="11"
+                                               FontWeight="Medium"
+                                               Foreground="#CCCCCC" />
+                                </Border>
+
+                                <!-- Container Format (e.g. MKV) -->
+                                <Border Visibility="{x:Bind ViewModel.HasFormat, Mode=OneWay}"
+                                        BorderBrush="#40FFFFFF"
+                                        BorderThickness="1"
+                                        CornerRadius="4"
+                                        Padding="6,1">
+                                    <TextBlock Text="{x:Bind ViewModel.FormatDisplay, Mode=OneWay}"
+                                               FontSize="11"
+                                               FontWeight="Medium"
+                                               Foreground="#CCCCCC" />
+                                </Border>
+
+                                <!-- File Size -->
+                                <Border Visibility="{x:Bind ViewModel.HasFileSize, Mode=OneWay}"
+                                        BorderBrush="#30FFFFFF"
+                                        BorderThickness="1"
+                                        CornerRadius="4"
+                                        Padding="6,1">
+                                    <TextBlock Text="{x:Bind ViewModel.FileSizeDisplay, Mode=OneWay}"
+                                               FontSize="11"
+                                               FontWeight="Normal"
+                                               Foreground="#AAAAAA" />
+                                </Border>
+                            </StackPanel>
+
+                            <!-- Action Buttons Row (Reference 1, 2, 3) -->
+                            <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,6,0,0">
+                                <!-- Primary Action: Signature Apple TV White Play Capsule -->
+                                <Button Command="{x:Bind ViewModel.PlayCommand, Mode=OneWay}"
+                                        Background="#FFFFFF"
+                                        Foreground="#000000"
+                                        CornerRadius="18"
+                                        Padding="26,10"
+                                        FontWeight="SemiBold"
+                                        FontSize="14"
+                                        BorderThickness="0">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE768;" FontSize="13" Foreground="#000000" />
+                                        <TextBlock Text="Play Movie" />
+                                    </StackPanel>
+                                </Button>
+
+                                <!-- Secondary Action: Back to Movies -->
+                                <Button Command="{x:Bind ViewModel.BackCommand, Mode=OneWay}"
+                                        Background="#20FFFFFF"
+                                        Foreground="#FFFFFF"
+                                        CornerRadius="18"
+                                        Padding="18,10"
+                                        FontWeight="Medium"
+                                        FontSize="13"
+                                        BorderThickness="0">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE72B;" FontSize="11" />
+                                        <TextBlock Text="Back to Movies" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+
+                            <!-- Playback Notification / Integration Status Banner -->
+                            <Border Visibility="{x:Bind ViewModel.HasPlaybackStatus, Mode=OneWay}"
+                                    Background="#2530D158"
+                                    BorderBrush="#4030D158"
+                                    BorderThickness="1"
+                                    CornerRadius="10"
+                                    Padding="14,10"
+                                    Margin="0,4,0,0">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <FontIcon Glyph="&#xE768;" FontSize="14" Foreground="#30D158" VerticalAlignment="Center" />
+                                    <TextBlock Text="{x:Bind ViewModel.PlaybackStatusMessage, Mode=OneWay}"
+                                               FontSize="12"
+                                               FontWeight="Medium"
+                                               Foreground="#30D158"
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
+
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+
+                <!-- ================= 2. TECHNICAL & FILE SPECIFICATIONS ================= -->
+                <Grid Margin="48,24,48,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MaxWidth="580" />
+                        <ColumnDefinition Width="28" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Left Column: File Specifications Card -->
+                    <StackPanel Grid.Column="0" Spacing="12">
+                        <TextBlock Text="FILE &amp; STREAM SPECIFICATIONS"
+                                   FontSize="11"
+                                   FontWeight="Bold"
+                                   Foreground="#6E6E78"
+                                   CharacterSpacing="80" />
+
+                        <Border Background="#14141C"
+                                BorderBrush="#20FFFFFF"
+                                BorderThickness="1"
+                                CornerRadius="14"
+                                Padding="20,16">
+                            <StackPanel Spacing="12">
+                                <!-- Resolution -->
+                                <Grid Visibility="{x:Bind ViewModel.HasResolution, Mode=OneWay}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="130" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Resolution" FontSize="12" Foreground="#8E8E93" />
+                                    <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.ResolutionDisplay, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" Foreground="#FFFFFF" />
+                                </Grid>
+
+                                <!-- Video Codec -->
+                                <Grid Visibility="{x:Bind ViewModel.HasVideoCodec, Mode=OneWay}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="130" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Video Codec" FontSize="12" Foreground="#8E8E93" />
+                                    <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.VideoCodecDisplay, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" Foreground="#FFFFFF" />
+                                </Grid>
+
+                                <!-- Audio Codec -->
+                                <Grid Visibility="{x:Bind ViewModel.HasAudioCodec, Mode=OneWay}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="130" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Audio Codec" FontSize="12" Foreground="#8E8E93" />
+                                    <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.AudioCodecDisplay, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" Foreground="#FFFFFF" />
+                                </Grid>
+
+                                <!-- Container Format -->
+                                <Grid Visibility="{x:Bind ViewModel.HasFormat, Mode=OneWay}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="130" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Container" FontSize="12" Foreground="#8E8E93" />
+                                    <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.FormatDisplay, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" Foreground="#FFFFFF" />
+                                </Grid>
+
+                                <!-- File Size -->
+                                <Grid Visibility="{x:Bind ViewModel.HasFileSize, Mode=OneWay}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="130" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="File Size" FontSize="12" Foreground="#8E8E93" />
+                                    <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.FileSizeDisplay, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" Foreground="#FFFFFF" />
+                                </Grid>
+
+                                <!-- Physical File Location -->
+                                <Grid Visibility="{x:Bind ViewModel.HasLocalFile, Mode=OneWay}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="130" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="File Location" FontSize="12" Foreground="#8E8E93" />
+                                    <TextBlock Grid.Column="1"
+                                               Text="{x:Bind ViewModel.LocalFilePath, Mode=OneWay}"
+                                               FontSize="11"
+                                               FontFamily="Consolas, Segoe UI"
+                                               Foreground="#A0A0B0"
+                                               TextWrapping="Wrap" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Right Column: Multiple Media Files / Editions (when present) -->
+                    <StackPanel Grid.Column="2"
+                                Spacing="12"
+                                Visibility="{x:Bind ViewModel.HasMultipleFiles, Mode=OneWay}">
+                        <TextBlock Text="AVAILABLE EDITIONS / FILES"
+                                   FontSize="11"
+                                   FontWeight="Bold"
+                                   Foreground="#6E6E78"
+                                   CharacterSpacing="80" />
+
+                        <ItemsControl ItemsSource="{x:Bind ViewModel.MediaFiles, Mode=OneWay}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:LocalMediaFileItemViewModel">
+                                    <Button Command="{x:Bind SelectCommand}"
+                                            HorizontalAlignment="Stretch"
+                                            HorizontalContentAlignment="Stretch"
+                                            Background="#14141C"
+                                            BorderBrush="#35FFFFFF"
+                                            BorderThickness="1"
+                                            CornerRadius="12"
+                                            Padding="14,12"
+                                            Margin="0,0,0,8">
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <!-- Selection radio/check icon -->
+                                            <FontIcon Grid.Column="0"
+                                                      Glyph="&#xE73E;"
+                                                      FontSize="13"
+                                                      Foreground="#30D158"
+                                                      Margin="0,0,12,0"
+                                                      Visibility="{x:Bind IsSelected, Mode=OneWay}" />
+
+                                            <!-- File Summary -->
+                                            <StackPanel Grid.Column="1" Spacing="2">
+                                                <TextBlock Text="{x:Bind FileName}" FontSize="12" FontWeight="SemiBold" Foreground="#FFFFFF" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{x:Bind FormatSummary}" FontSize="11" Foreground="#8E8E93" />
+                                            </StackPanel>
+
+                                            <!-- File Size -->
+                                            <TextBlock Grid.Column="2" Text="{x:Bind FileSizeDisplay}" FontSize="11" Foreground="#A0A0A0" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Grid>
+
+                <!-- ================= 3. MORE FROM YOUR LIBRARY (Reference 3) ================= -->
+                <StackPanel Margin="48,36,48,0"
+                            Spacing="12"
+                            Visibility="{x:Bind ViewModel.HasRecommendations, Mode=OneWay}">
+                    <TextBlock Text="MORE FROM YOUR LIBRARY"
+                               FontSize="11"
+                               FontWeight="Bold"
+                               Foreground="#6E6E78"
+                               CharacterSpacing="80" />
+
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                  HorizontalScrollMode="Enabled"
+                                  VerticalScrollBarVisibility="Disabled"
+                                  VerticalScrollMode="Disabled">
+                        <ItemsControl ItemsSource="{x:Bind ViewModel.RecommendedMovies, Mode=OneWay}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" Spacing="16" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:MoviePosterItemViewModel">
+                                    <Button Command="{x:Bind SelectCommand}"
+                                            CommandParameter="{x:Bind}"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Padding="0">
+                                        <controls:MoviePosterCardControl ViewModel="{x:Bind}" />
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </StackPanel>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

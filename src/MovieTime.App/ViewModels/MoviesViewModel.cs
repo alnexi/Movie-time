@@ -493,7 +493,8 @@ public sealed class MoviesViewModel : ObservableObject
     {
         if (SelectedMovie != null)
         {
-            StatusMessage = $"Selected '{SelectedMovie.Title}' ({SelectedMovie.YearDisplay}). Movie Details view prepared for Phase 3B.";
+            IsQuickActionOpen = false;
+            NavigationRequested?.Invoke($"MovieDetails:{SelectedMovie.Id}");
         }
     }
 
