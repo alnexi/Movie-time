@@ -21,7 +21,7 @@
                     <!-- A. Background Artwork / Fallback Canvas -->
                     <Grid>
                         <!-- Genuine Local Backdrop Image (if exists) -->
-                        <Image Source="{x:Bind ViewModel.BackdropPath, Mode=OneWay}"
+                        <Image x:Name="HeroBackdropImage"
                                Stretch="UniformToFill"
                                HorizontalAlignment="Center"
                                VerticalAlignment="Center"

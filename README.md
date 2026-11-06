@@ -4,7 +4,7 @@
 
 [![.NET](https://img.shields.io/badge/.NET-10.0%20LTS%20(x64)-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![Windows App SDK](https://img.shields.io/badge/WinUI%203-Windows%20App%20SDK%201.6-0078D7?logo=windows)](https://learn.microsoft.com/en-us/windows/apps/winui/winui3/)
-[![Tests](https://img.shields.io/badge/Unit%20Tests-170%20Passed-brightgreen)](https://github.com/alnexi/Movie-time)
+[![Tests](https://img.shields.io/badge/Unit%20Tests-174%20Passed-brightgreen)](https://github.com/alnexi/Movie-time)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
@@ -82,6 +82,10 @@ Unlike cluttered streaming apps or heavy web-wrapped wrappers, Movie Time is bui
   - Horizontal recommendation row populated strictly with other real movies from the user's local SQLite database. Omitted cleanly if no other movies exist.
 * **Bi-Directional Navigation**:
   - Smooth navigation from Movies Library → Movie Details → Movies Library, preserving search filters and category selection state.
+* **Phase 3D Hotfix (v0.5.1)**:
+  - Resolved WinUI 3 XAML binding engine crash (`ArgumentException: The parameter is incorrect.`) during navigation when local backdrops are missing or null.
+  - Implemented safe code-behind bitmap management and lifecycle subscriptions.
+  - Generated native desktop shortcut (`Movie Time.lnk`) pointing to the x64 binary for quick launching.
 
 ---
 
@@ -110,7 +114,7 @@ MovieTime/
 │       └── Services/              # StoragePathService & AppEnvironment
 │
 └── tests/
-    └── MovieTime.Tests/           # Unit & Integration Tests (170 tests)
+    └── MovieTime.Tests/           # Unit & Integration Tests (174 tests)
 ```
 
 ### Key Components

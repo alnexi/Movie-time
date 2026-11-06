@@ -367,4 +367,48 @@ public sealed class MovieDetailsViewModelTests : IDisposable
         Assert.Empty(vm.MediaFiles);
         Assert.Empty(vm.RecommendedMovies);
     }
+
+    [Fact]
+    public async Task LoadMovieAsync_WithNullBackdrop_SafelyKeepsFallbackAndNeverThrows()
+    {
+        var movie = new Movie
+        {
+            Title = "Null Backdrop Movie",
+            ReleaseYear = 2024,
+            BackdropPath = null,
+            PosterPath = null
+        };
+        await _movieRepository.InsertAsync(movie);
+
+        var vm = CreateViewModel();
+        await vm.LoadMovieAsync(movie.Id);
+
+        Assert.True(vm.IsMovieFound);
+        Assert.Null(vm.BackdropPath);
+        Assert.False(vm.HasBackdrop);
+        Assert.True(vm.NeedsBackdropFallback);
+        Assert.False(vm.HasPoster);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(@"Z:\InvalidPath\NonExistent\artwork.jpg")]
+    public async Task LoadMovieAsync_WithMissingOrInvalidBackdropPaths_SafelyKeepsFallbackAndNeverThrows(string? path)
+    {
+        var movie = new Movie
+        {
+            Title = "Path Edge Cases",
+            ReleaseYear = 2025,
+            BackdropPath = path
+        };
+        await _movieRepository.InsertAsync(movie);
+
+        var vm = CreateViewModel();
+        await vm.LoadMovieAsync(movie.Id);
+
+        Assert.True(vm.IsMovieFound);
+        Assert.False(vm.HasBackdrop);
+        Assert.True(vm.NeedsBackdropFallback);
+    }
 }

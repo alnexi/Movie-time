@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.1] - 2026-11-06 (Phase 3D Hotfix)
+
+### Fixed
+- **Movie Details Navigation Crash**: Resolved fatal `System.ArgumentException: The parameter is incorrect.` (`IXamlBindingHelperStaticsMethods.ConvertValue`) thrown during WinUI 3 XAML binding evaluation when navigating to `MovieDetailsView`.
+  - Replaced direct string `{x:Bind}` on `<Image Source="...">` in `MovieDetailsView.xaml` with safe code-behind bitmap management in `MovieDetailsView.xaml.cs`.
+  - Added robust null/whitespace/existence validation and safe URI decoding with fallback handling when local artwork is missing or invalid.
+  - Zero crashes when viewing movies without local backdrops or posters.
+
+### Added
+- **Windows Desktop Shortcut**: Created a native `.lnk` shortcut named `Movie Time` on the user's Windows Desktop (`C:\Users\Ali\Desktop\Movie Time.lnk`) pointing directly to the compiled x64 application executable (`MovieTime.App.exe`).
+- **Regression Unit Tests**: Added tests in `MovieDetailsViewModelTests` covering `null`, empty string, whitespace, and non-existent file paths to guarantee robustness and zero regressions (test suite now at 174 passing unit tests).
+
+---
+
 ## [0.5.0] - 2026-11-06 (Phase 3D)
 
 ### Added
