@@ -24,6 +24,8 @@ public sealed class VlcPlayerService : IVlcPlayerService
     private MediaPlayer? _mediaPlayer;
     private Media? _currentMedia;
     private VideoView? _attachedVideoView;
+    private TaskCompletionSource<bool>? _swapChainReadyTcs;
+    private string[]? _swapChainOptions;
 
     private PlayerState _state = PlayerState.Idle;
     private long _positionMs;
@@ -100,15 +102,49 @@ public sealed class VlcPlayerService : IVlcPlayerService
 
     /// <summary>
     /// Attaches the native WinUI 3 VideoView swap chain surface to the underlying LibVLC player.
+    /// Captures the Direct3D11 swap chain options required for single-window in-app composition.
     /// </summary>
     public void AttachVideoView(VideoView videoView)
     {
         lock (_lock)
         {
+            if (_attachedVideoView == videoView) return;
+
             _attachedVideoView = videoView ?? throw new ArgumentNullException(nameof(videoView));
-            EnsureInitialized();
-            _attachedVideoView.MediaPlayer = _mediaPlayer;
-            _logger.LogInformation("Attached VideoView to LibVLC MediaPlayer instance.");
+
+            // Check if VideoView is already loaded and has swap chain options ready
+            try
+            {
+                var options = _attachedVideoView.SwapChainOptions;
+                if (options != null && options.Length > 0)
+                {
+                    _swapChainOptions = options;
+                    EnsureInitializedWithSwapChain(options);
+                    _swapChainReadyTcs?.TrySetResult(true);
+                    _logger.LogInformation("Attached pre-loaded VideoView with active SwapChainOptions.");
+                    return;
+                }
+            }
+            catch
+            {
+                // Not yet loaded into visual tree; Initialized event will fire upon layout
+            }
+
+            _swapChainReadyTcs ??= new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            _attachedVideoView.Initialized -= OnVideoViewInitialized;
+            _attachedVideoView.Initialized += OnVideoViewInitialized;
+            _logger.LogInformation("Attached VideoView to VlcPlayerService; subscribed to Initialized event for swapchain options.");
+        }
+    }
+
+    private void OnVideoViewInitialized(object? sender, InitializedEventArgs e)
+    {
+        lock (_lock)
+        {
+            _logger.LogInformation("VideoView.Initialized event received with native WinUI swapchain options.");
+            _swapChainOptions = e.SwapChainOptions;
+            EnsureInitializedWithSwapChain(e.SwapChainOptions);
+            _swapChainReadyTcs?.TrySetResult(true);
         }
     }
 
@@ -116,6 +152,15 @@ public sealed class VlcPlayerService : IVlcPlayerService
     /// Ensures native LibVLC core is initialized and engine instances are allocated.
     /// </summary>
     public void EnsureInitialized()
+    {
+        EnsureInitializedWithSwapChain(_swapChainOptions);
+    }
+
+    /// <summary>
+    /// Allocates LibVLC and MediaPlayer with native Direct3D11 swapchain options so video
+    /// renders directly inside WinUI 3 SwapChainPanel with zero external popup windows.
+    /// </summary>
+    public void EnsureInitializedWithSwapChain(string[]? swapChainOptions)
     {
         lock (_lock)
         {
@@ -126,6 +171,10 @@ public sealed class VlcPlayerService : IVlcPlayerService
 
             if (_libVlc != null && _mediaPlayer != null)
             {
+                if (_attachedVideoView != null && _attachedVideoView.MediaPlayer != _mediaPlayer)
+                {
+                    _attachedVideoView.MediaPlayer = _mediaPlayer;
+                }
                 return;
             }
 
@@ -135,7 +184,7 @@ public sealed class VlcPlayerService : IVlcPlayerService
                 LibVLCSharp.Shared.Core.Initialize();
 
                 // 2. Strict local-only parameters: disable OSD title overlay, bypass remote telemetry, optimize for local file playback
-                var options = new[]
+                var optionsList = new List<string>
                 {
                     "--no-osd",
                     "--no-video-title-show",
@@ -147,7 +196,17 @@ public sealed class VlcPlayerService : IVlcPlayerService
                     "--skip-frames"
                 };
 
-                _libVlc = new LibVLC(options);
+                if (swapChainOptions != null && swapChainOptions.Length > 0)
+                {
+                    optionsList.AddRange(swapChainOptions);
+                    _logger.LogInformation("Configured LibVLC with WinUI 3 Direct3D11 swapchain parameters: {Options}", string.Join(" ", swapChainOptions));
+                }
+                else
+                {
+                    _logger.LogWarning("Initializing LibVLC without WinUI swapchain options. (VideoView may not yet be loaded).");
+                }
+
+                _libVlc = new LibVLC(optionsList.ToArray());
                 _mediaPlayer = new MediaPlayer(_libVlc);
 
                 // Configure default volume
@@ -161,11 +220,11 @@ public sealed class VlcPlayerService : IVlcPlayerService
                     _attachedVideoView.MediaPlayer = _mediaPlayer;
                 }
 
-                _logger.LogInformation("LibVLC playback engine initialized successfully (x64 hardware decoding enabled).");
+                _logger.LogInformation("LibVLC playback engine initialized successfully (single-window DirectComposition swapchain active).");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to initialize LibVLC native engine.");
+                _logger.LogError(ex, "Failed to initialize LibVLC native engine with SwapChain.");
                 State = PlayerState.Error;
                 PlaybackError?.Invoke($"Failed to initialize VLC playback engine: {ex.Message}");
             }
@@ -217,9 +276,20 @@ public sealed class VlcPlayerService : IVlcPlayerService
 
         try
         {
-            EnsureInitialized();
             if (_libVlc == null || _mediaPlayer == null)
             {
+                if (_swapChainReadyTcs != null && !_swapChainReadyTcs.Task.IsCompleted)
+                {
+                    _logger.LogInformation("OpenMediaAsync waiting for WinUI VideoView SwapChain surface to initialize...");
+                    await Task.WhenAny(_swapChainReadyTcs.Task, Task.Delay(2500)).ConfigureAwait(false);
+                }
+
+                EnsureInitialized();
+            }
+
+            if (_libVlc == null || _mediaPlayer == null)
+            {
+                _logger.LogError("LibVLC engine failed to initialize prior to opening media.");
                 return false;
             }
 

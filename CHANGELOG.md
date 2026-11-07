@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.6.2] - 2026-11-07 (Phase 4.2: Single-Window Player Architecture & Integrated Playback UI)
+
+### Fixed
+- **Resolved Disconnected / External VLC Popup Window Defect**:
+  - **Root Cause**: `LibVLC` on Windows requires explicit Direct3D11 swap chain options (`--winrt-d3dcontext=0x...` and `--winrt-swapchain=0x...`) passed into the `LibVLC` constructor for it to render into a WinUI 3 `SwapChainPanel`. Previously, `VlcPlayerService` allocated `LibVLC` with general options before `VideoView` had completed layout and allocated its swapchain. Lacking swapchain parameters, LibVLC's native Direct3D11 video output module automatically fell back to spawning an external top-level Win32 window (`VLC (Direct3D11 output)`), visually detaching video playback from the Movie Time window and separating it from the player controls.
+  - **Resolution**:
+    - Synchronized `VlcPlayerService` with `VideoView.Initialized` to receive the native Direct3D11 swap chain options (`e.SwapChainOptions`).
+    - Allocated `LibVLC` with `--winrt-d3dcontext` and `--winrt-swapchain` parameters, routing all hardware decoding frames directly into the in-tree `SwapChainPanel`.
+    - Added asynchronous synchronization in `OpenMediaAsync` ensuring the DirectComposition swapchain is established before media playback starts.
+    - Verified with Win32 window enumeration that exactly ONE application window (`WinUIDesktopWin32WindowClass`, "Movie Time") exists throughout playback, with zero external or secondary windows.
+- **Integrated Apple TV Cinematic Player Layout & Z-Order**:
+  - Restored clean declarative `<lvs:VideoView x:Name="LibVlcVideoView">` in `PlayerView.xaml` with early `LibVLCSharp.Shared.Core.Initialize()` execution in `App.xaml.cs`.
+  - Enforced strict Z-order composition inside `PlayerRootGrid`: `LibVlcVideoView` serves as the underlying background surface, beneath atmospheric cinematic vignette gradients and Apple TV Liquid Glass transport controls, timeline playhead, and back button.
+  - Interactive hit testing: All control buttons, sliders, and flyout menus reliably capture input while transparent overlay regions pass pointer events through to manage auto-hiding (3.5s inactivity timer).
+  - Single-window fullscreen transitions: Fullscreen toggles `AppWindow.SetPresenter(AppWindowPresenterKind.FullScreen)` on the active `MainWindow` with Esc / Back key returning seamlessly to Movie Details.
+
+---
+
 ## [0.6.1] - 2026-11-07 (Phase 4.1 Critical Hotfix: Application Startup Failure)
 
 ### Fixed

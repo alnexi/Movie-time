@@ -120,6 +120,10 @@ Unlike cluttered streaming apps or heavy web-wrapped wrappers, Movie Time is bui
   - Aligned `Microsoft.WindowsAppSDK` to `1.7.250909003` to resolve DirectComposition swapchain ABI mismatches.
   - Implemented `IDispatcherService` and `WinUiDispatcherService` to marshal all unmanaged LibVLC background events to the UI thread, resolving `0x8001010E (RPC_E_WRONG_THREAD)` exceptions.
   - Verified clean launch via Desktop shortcut and direct binary execution.
+* **Phase 4.2 Single-Window Player Architecture (v0.6.2)**:
+  - Eliminated external/disconnected VLC popup windows by passing native Direct3D11 swapchain options (`--winrt-d3dcontext`, `--winrt-swapchain`) from `VideoView.Initialized` to `LibVLC`.
+  - Enforced single-window architecture: video renders directly inside `PlayerView`'s in-tree `SwapChainPanel` beneath interactive Liquid Glass transport controls, timeline playhead, and back navigation.
+  - Ensured single-window fullscreen transitions (`AppWindowPresenterKind.FullScreen`) and Esc/Back navigation to Movie Details without creating secondary windows.
 
 ---
 

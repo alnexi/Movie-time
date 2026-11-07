@@ -40,6 +40,16 @@ public partial class App : Application
 
     public App()
     {
+        // 0. Initialize native LibVLC runtime binaries before XAML tree composition
+        try
+        {
+            LibVLCSharp.Shared.Core.Initialize();
+        }
+        catch
+        {
+            // Fallback handled by player service
+        }
+
         // 1. Initialize DI and Logging immediately
         Services = ConfigureServices();
         _logger = Services.GetRequiredService<Microsoft.Extensions.Logging.ILogger<App>>();

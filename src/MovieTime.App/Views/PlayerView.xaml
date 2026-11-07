@@ -44,9 +44,9 @@
     <Grid x:Name="PlayerRootGrid">
 
         <!-- ================= 1. NATIVE HARDWARE VIDEO SURFACE ================= -->
-        <Grid x:Name="VideoViewContainer"
-              HorizontalAlignment="Stretch"
-              VerticalAlignment="Stretch" />
+        <lvs:VideoView x:Name="LibVlcVideoView"
+                       HorizontalAlignment="Stretch"
+                       VerticalAlignment="Stretch" />
 
         <!-- ================= 2. ATMOSPHERIC CINEMATIC VIGNETTE OVERLAYS ================= -->
         <!-- Top Gradient (Back button readability) -->
