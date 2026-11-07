@@ -376,151 +376,382 @@
         <Border x:Name="SubtitleMenuPanel"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Bottom"
-                Margin="0,0,100,140"
-                Width="280"
+                Margin="0,0,100,130"
+                Width="320"
+                MaxHeight="500"
                 CornerRadius="16"
                 Background="{StaticResource LiquidGlassFlyoutSurfaceBrush}"
                 BorderBrush="{StaticResource LiquidGlassBorderBrush}"
                 BorderThickness="1"
                 Padding="16"
                 Visibility="{x:Bind ViewModel.IsSubtitleMenuOpen, Mode=OneWay}">
-            <StackPanel Spacing="12">
-                <Grid>
-                    <TextBlock Text="Subtitles" FontSize="14" FontWeight="Bold" Foreground="#FFFFFF" />
-                    <Button HorizontalAlignment="Right"
-                            Command="{x:Bind ViewModel.ToggleSubtitleMenuCommand, Mode=OneWay}"
-                            Padding="4" Background="Transparent" BorderThickness="0">
-                        <FontIcon Glyph="&#xE711;" FontSize="12" Foreground="#8A8A98" />
-                    </Button>
-                </Grid>
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Spacing="12">
+                    <Grid>
+                        <TextBlock Text="Subtitles" FontSize="14" FontWeight="Bold" Foreground="#FFFFFF" />
+                        <Button HorizontalAlignment="Right"
+                                Command="{x:Bind ViewModel.ToggleSubtitleMenuCommand, Mode=OneWay}"
+                                Padding="4" Background="Transparent" BorderThickness="0">
+                            <FontIcon Glyph="&#xE711;" FontSize="12" Foreground="#8A8A98" />
+                        </Button>
+                    </Grid>
 
-                <ItemsControl ItemsSource="{x:Bind ViewModel.SubtitleTracks, Mode=OneWay}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="CorePlayback:PlayerTrackInfo"
-                                      xmlns:CorePlayback="using:MovieTime.Core.Playback">
-                            <Button HorizontalAlignment="Stretch"
-                                    HorizontalContentAlignment="Left"
-                                    Padding="10,8"
-                                    Margin="0,2"
-                                    Background="Transparent"
-                                    BorderThickness="0"
-                                    CornerRadius="8"
-                                    Click="OnSubtitleTrackItemClicked">
-                                <Grid HorizontalAlignment="Stretch">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{x:Bind Name}" FontSize="12" Foreground="#E0E0E0" TextTrimming="CharacterEllipsis" />
-                                    <FontIcon Grid.Column="1" Glyph="&#xE73E;" FontSize="12" Foreground="#FFFFFF"
-                                              Visibility="{x:Bind IsSelected}" />
-                                </Grid>
+                    <!-- Subtitle Tracks List -->
+                    <ItemsControl ItemsSource="{x:Bind ViewModel.SubtitleTracks, Mode=OneWay}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="CorePlayback:PlayerTrackInfo"
+                                          xmlns:CorePlayback="using:MovieTime.Core.Playback">
+                                <Button HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Left"
+                                        Padding="10,8"
+                                        Margin="0,2"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        CornerRadius="8"
+                                        Click="OnSubtitleTrackItemClicked">
+                                    <Grid HorizontalAlignment="Stretch">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{x:Bind Name}" FontSize="12" Foreground="#E0E0E0" TextTrimming="CharacterEllipsis" />
+                                        <FontIcon Grid.Column="1" Glyph="&#xE73E;" FontSize="12" Foreground="#FFFFFF"
+                                                  Visibility="{x:Bind IsSelected}" />
+                                    </Grid>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Rectangle Height="1" Fill="#20FFFFFF" />
+
+                    <!-- External Subtitle Section -->
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="External Subtitle" FontSize="11" FontWeight="SemiBold" Foreground="#8E8E93" />
+                        <Grid>
+                            <TextBlock Text="{x:Bind ViewModel.ExternalSubtitleFileName, Mode=OneWay}"
+                                       FontSize="12" Foreground="#E0E0E0" TextTrimming="CharacterEllipsis"
+                                       VerticalAlignment="Center" />
+                            <Button HorizontalAlignment="Right"
+                                    Visibility="{x:Bind ViewModel.HasExternalSubtitle, Mode=OneWay}"
+                                    Command="{x:Bind ViewModel.RemoveExternalSubtitleCommand, Mode=OneWay}"
+                                    Padding="8,4" Background="#30FF4D4D" BorderThickness="0" CornerRadius="6">
+                                <TextBlock Text="Remove" FontSize="11" Foreground="#FF6B6B" />
                             </Button>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </StackPanel>
+                        </Grid>
+                        <Button HorizontalAlignment="Stretch"
+                                Command="{x:Bind ViewModel.LoadExternalSubtitleCommand, Mode=OneWay}"
+                                Background="{StaticResource LiquidGlassSurfaceBrush}"
+                                BorderBrush="{StaticResource LiquidGlassBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="12,6">
+                            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                                <FontIcon Glyph="&#xE8F4;" FontSize="12" Foreground="#FFFFFF" />
+                                <TextBlock Text="Load Subtitle File (SRT, ASS, VTT)..." FontSize="11" FontWeight="SemiBold" Foreground="#FFFFFF" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <Rectangle Height="1" Fill="#20FFFFFF" />
+
+                    <!-- Subtitle Appearance Customization Section -->
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="Subtitle Appearance" FontSize="11" FontWeight="SemiBold" Foreground="#8E8E93" />
+
+                        <!-- Size Preset Buttons -->
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Size" FontSize="10" Foreground="#A0A0A8" />
+                            <Grid HorizontalAlignment="Stretch">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Content="Small" Click="OnSubtitleSizeSmallClicked"
+                                        FontSize="10" Padding="0,4" Margin="1" HorizontalAlignment="Stretch" CornerRadius="6"
+                                        Background="{StaticResource LiquidGlassSurfaceBrush}" BorderThickness="0" Foreground="#E0E0E0" />
+                                <Button Grid.Column="1" Content="Medium" Click="OnSubtitleSizeMediumClicked"
+                                        FontSize="10" Padding="0,4" Margin="1" HorizontalAlignment="Stretch" CornerRadius="6"
+                                        Background="{StaticResource LiquidGlassSurfaceBrush}" BorderThickness="0" Foreground="#E0E0E0" />
+                                <Button Grid.Column="2" Content="Large" Click="OnSubtitleSizeLargeClicked"
+                                        FontSize="10" Padding="0,4" Margin="1" HorizontalAlignment="Stretch" CornerRadius="6"
+                                        Background="{StaticResource LiquidGlassSurfaceBrush}" BorderThickness="0" Foreground="#E0E0E0" />
+                                <Button Grid.Column="3" Content="XL" Click="OnSubtitleSizeExtraLargeClicked"
+                                        FontSize="10" Padding="0,4" Margin="1" HorizontalAlignment="Stretch" CornerRadius="6"
+                                        Background="{StaticResource LiquidGlassSurfaceBrush}" BorderThickness="0" Foreground="#E0E0E0" />
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Color Preset Buttons -->
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Color" FontSize="10" Foreground="#A0A0A8" />
+                            <Grid HorizontalAlignment="Stretch">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Content="White" Click="OnSubtitleColorWhiteClicked"
+                                        FontSize="10" Padding="0,4" Margin="1" HorizontalAlignment="Stretch" CornerRadius="6"
+                                        Background="#20FFFFFF" BorderThickness="0" Foreground="#FFFFFF" />
+                                <Button Grid.Column="1" Content="Yellow" Click="OnSubtitleColorYellowClicked"
+                                        FontSize="10" Padding="0,4" Margin="1" HorizontalAlignment="Stretch" CornerRadius="6"
+                                        Background="#20FFE500" BorderThickness="0" Foreground="#FFE500" />
+                                <Button Grid.Column="2" Content="Cyan" Click="OnSubtitleColorCyanClicked"
+                                        FontSize="10" Padding="0,4" Margin="1" HorizontalAlignment="Stretch" CornerRadius="6"
+                                        Background="#2000E5FF" BorderThickness="0" Foreground="#00E5FF" />
+                                <Button Grid.Column="3" Content="Green" Click="OnSubtitleColorGreenClicked"
+                                        FontSize="10" Padding="0,4" Margin="1" HorizontalAlignment="Stretch" CornerRadius="6"
+                                        Background="#2000E676" BorderThickness="0" Foreground="#00E676" />
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Outline Preset Buttons -->
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Outline" FontSize="10" Foreground="#A0A0A8" />
+                            <Grid HorizontalAlignment="Stretch">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Content="Off" Click="OnSubtitleOutlineOffClicked"
+                                        FontSize="10" Padding="0,4" Margin="1" HorizontalAlignment="Stretch" CornerRadius="6"
+                                        Background="{StaticResource LiquidGlassSurfaceBrush}" BorderThickness="0" Foreground="#E0E0E0" />
+                                <Button Grid.Column="1" Content="Thin" Click="OnSubtitleOutlineThinClicked"
+                                        FontSize="10" Padding="0,4" Margin="1" HorizontalAlignment="Stretch" CornerRadius="6"
+                                        Background="{StaticResource LiquidGlassSurfaceBrush}" BorderThickness="0" Foreground="#E0E0E0" />
+                                <Button Grid.Column="2" Content="Medium" Click="OnSubtitleOutlineMediumClicked"
+                                        FontSize="10" Padding="0,4" Margin="1" HorizontalAlignment="Stretch" CornerRadius="6"
+                                        Background="{StaticResource LiquidGlassSurfaceBrush}" BorderThickness="0" Foreground="#E0E0E0" />
+                                <Button Grid.Column="3" Content="Thick" Click="OnSubtitleOutlineThickClicked"
+                                        FontSize="10" Padding="0,4" Margin="1" HorizontalAlignment="Stretch" CornerRadius="6"
+                                        Background="{StaticResource LiquidGlassSurfaceBrush}" BorderThickness="0" Foreground="#E0E0E0" />
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Background Preset Buttons -->
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Background" FontSize="10" Foreground="#A0A0A8" />
+                            <Grid HorizontalAlignment="Stretch">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Content="Off" Click="OnSubtitleBgOffClicked"
+                                        FontSize="10" Padding="0,4" Margin="1" HorizontalAlignment="Stretch" CornerRadius="6"
+                                        Background="{StaticResource LiquidGlassSurfaceBrush}" BorderThickness="0" Foreground="#E0E0E0" />
+                                <Button Grid.Column="1" Content="Subtle" Click="OnSubtitleBgSubtleClicked"
+                                        FontSize="10" Padding="0,4" Margin="1" HorizontalAlignment="Stretch" CornerRadius="6"
+                                        Background="{StaticResource LiquidGlassSurfaceBrush}" BorderThickness="0" Foreground="#E0E0E0" />
+                                <Button Grid.Column="2" Content="Dark" Click="OnSubtitleBgDarkClicked"
+                                        FontSize="10" Padding="0,4" Margin="1" HorizontalAlignment="Stretch" CornerRadius="6"
+                                        Background="{StaticResource LiquidGlassSurfaceBrush}" BorderThickness="0" Foreground="#E0E0E0" />
+                            </Grid>
+                        </StackPanel>
+
+                        <TextBlock Text="Styling applies to text subtitles (SRT/VTT). Embedded ASS/SSA styles are preserved."
+                                   FontSize="9" Foreground="#7E7E88" TextWrapping="Wrap" Margin="0,2,0,0" />
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
         </Border>
 
         <!-- B. Audio Options Popover Menu -->
         <Border x:Name="AudioMenuPanel"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Bottom"
-                Margin="0,0,60,140"
-                Width="280"
+                Margin="0,0,60,130"
+                Width="320"
+                MaxHeight="500"
                 CornerRadius="16"
                 Background="{StaticResource LiquidGlassFlyoutSurfaceBrush}"
                 BorderBrush="{StaticResource LiquidGlassBorderBrush}"
                 BorderThickness="1"
                 Padding="16"
                 Visibility="{x:Bind ViewModel.IsAudioMenuOpen, Mode=OneWay}">
-            <StackPanel Spacing="12">
-                <Grid>
-                    <TextBlock Text="Audio" FontSize="14" FontWeight="Bold" Foreground="#FFFFFF" />
-                    <Button HorizontalAlignment="Right"
-                            Command="{x:Bind ViewModel.ToggleAudioMenuCommand, Mode=OneWay}"
-                            Padding="4" Background="Transparent" BorderThickness="0">
-                        <FontIcon Glyph="&#xE711;" FontSize="12" Foreground="#8A8A98" />
-                    </Button>
-                </Grid>
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Spacing="12">
+                    <Grid>
+                        <TextBlock Text="Audio Tracks" FontSize="14" FontWeight="Bold" Foreground="#FFFFFF" />
+                        <Button HorizontalAlignment="Right"
+                                Command="{x:Bind ViewModel.ToggleAudioMenuCommand, Mode=OneWay}"
+                                Padding="4" Background="Transparent" BorderThickness="0">
+                            <FontIcon Glyph="&#xE711;" FontSize="12" Foreground="#8A8A98" />
+                        </Button>
+                    </Grid>
 
-                <ItemsControl ItemsSource="{x:Bind ViewModel.AudioTracks, Mode=OneWay}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="CorePlayback:PlayerTrackInfo"
-                                      xmlns:CorePlayback="using:MovieTime.Core.Playback">
-                            <Button HorizontalAlignment="Stretch"
-                                    HorizontalContentAlignment="Left"
-                                    Padding="10,8"
-                                    Margin="0,2"
-                                    Background="Transparent"
-                                    BorderThickness="0"
-                                    CornerRadius="8"
-                                    Click="OnAudioTrackItemClicked">
-                                <Grid HorizontalAlignment="Stretch">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{x:Bind Name}" FontSize="12" Foreground="#E0E0E0" TextTrimming="CharacterEllipsis" />
-                                    <FontIcon Grid.Column="1" Glyph="&#xE73E;" FontSize="12" Foreground="#FFFFFF"
-                                              Visibility="{x:Bind IsSelected}" />
-                                </Grid>
+                    <ItemsControl ItemsSource="{x:Bind ViewModel.AudioTracks, Mode=OneWay}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="CorePlayback:PlayerTrackInfo"
+                                          xmlns:CorePlayback="using:MovieTime.Core.Playback">
+                                <Button HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Left"
+                                        Padding="10,8"
+                                        Margin="0,2"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        CornerRadius="8"
+                                        Click="OnAudioTrackItemClicked">
+                                    <Grid HorizontalAlignment="Stretch">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{x:Bind Name}" FontSize="12" Foreground="#E0E0E0" TextTrimming="CharacterEllipsis" />
+                                        <FontIcon Grid.Column="1" Glyph="&#xE73E;" FontSize="12" Foreground="#FFFFFF"
+                                                  Visibility="{x:Bind IsSelected}" />
+                                    </Grid>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Rectangle Height="1" Fill="#20FFFFFF" />
+
+                    <!-- External Audio / Dubbed Audio Section -->
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="External Dubbed Audio" FontSize="11" FontWeight="SemiBold" Foreground="#8E8E93" />
+                        <Grid>
+                            <TextBlock Text="{x:Bind ViewModel.ExternalAudioFileName, Mode=OneWay}"
+                                       FontSize="12" Foreground="#E0E0E0" TextTrimming="CharacterEllipsis"
+                                       VerticalAlignment="Center" />
+                            <Button HorizontalAlignment="Right"
+                                    Visibility="{x:Bind ViewModel.HasExternalAudio, Mode=OneWay}"
+                                    Command="{x:Bind ViewModel.RemoveExternalAudioCommand, Mode=OneWay}"
+                                    Padding="8,4" Background="#30FF4D4D" BorderThickness="0" CornerRadius="6">
+                                <TextBlock Text="Remove" FontSize="11" Foreground="#FF6B6B" />
                             </Button>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </StackPanel>
+                        </Grid>
+                        <Button HorizontalAlignment="Stretch"
+                                Command="{x:Bind ViewModel.LoadExternalAudioCommand, Mode=OneWay}"
+                                Background="{StaticResource LiquidGlassSurfaceBrush}"
+                                BorderBrush="{StaticResource LiquidGlassBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="12,6">
+                            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                                <FontIcon Glyph="&#xEC4F;" FontSize="12" Foreground="#FFFFFF" />
+                                <TextBlock Text="Load Audio File (MKA, AC3, MP3)..." FontSize="11" FontWeight="SemiBold" Foreground="#FFFFFF" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <Rectangle Height="1" Fill="#20FFFFFF" />
+
+                    <!-- Audio Delay / Synchronization Section -->
+                    <StackPanel Spacing="8">
+                        <Grid>
+                            <TextBlock Text="Audio Synchronization" FontSize="11" FontWeight="SemiBold" Foreground="#8E8E93" />
+                            <TextBlock Text="{x:Bind ViewModel.AudioDelayDisplay, Mode=OneWay}"
+                                       FontSize="11" FontWeight="Bold" Foreground="#00E5FF" HorizontalAlignment="Right" />
+                        </Grid>
+
+                        <Grid HorizontalAlignment="Stretch">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" Content="- 100 ms" Click="OnAudioDelayMinusClicked"
+                                    FontSize="11" Padding="0,6" Margin="2" HorizontalAlignment="Stretch" CornerRadius="6"
+                                    Background="{StaticResource LiquidGlassSurfaceBrush}" BorderThickness="0" Foreground="#E0E0E0" />
+                            <Button Grid.Column="1" Content="+ 100 ms" Click="OnAudioDelayPlusClicked"
+                                    FontSize="11" Padding="0,6" Margin="2" HorizontalAlignment="Stretch" CornerRadius="6"
+                                    Background="{StaticResource LiquidGlassSurfaceBrush}" BorderThickness="0" Foreground="#E0E0E0" />
+                            <Button Grid.Column="2" Content="Reset (0ms)" Click="OnAudioDelayResetClicked"
+                                    FontSize="11" Padding="0,6" Margin="2" HorizontalAlignment="Stretch" CornerRadius="6"
+                                    Background="{StaticResource LiquidGlassSurfaceBrush}" BorderThickness="0" Foreground="#A0A0A8" />
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
         </Border>
 
-        <!-- C. InSight / Media Information Popover Card -->
+        <!-- C. InSight / Media Information & Shortcuts Popover Card -->
         <Border x:Name="InfoPanel"
                 HorizontalAlignment="Left"
                 VerticalAlignment="Bottom"
                 Margin="60,0,0,120"
-                Width="380"
+                Width="420"
+                MaxHeight="520"
                 CornerRadius="18"
                 Background="{StaticResource LiquidGlassFlyoutSurfaceBrush}"
                 BorderBrush="{StaticResource LiquidGlassBorderBrush}"
                 BorderThickness="1"
                 Padding="20"
                 Visibility="{x:Bind ViewModel.IsInfoOpen, Mode=OneWay}">
-            <StackPanel Spacing="14">
-                <Grid>
-                    <TextBlock Text="Media InSight" FontSize="15" FontWeight="Bold" Foreground="#FFFFFF" />
-                    <Button HorizontalAlignment="Right"
-                            Command="{x:Bind ViewModel.ToggleInfoCommand, Mode=OneWay}"
-                            Padding="4" Background="Transparent" BorderThickness="0">
-                        <FontIcon Glyph="&#xE711;" FontSize="12" Foreground="#8A8A98" />
-                    </Button>
-                </Grid>
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Spacing="14">
+                    <Grid>
+                        <TextBlock Text="Media InSight &amp; Shortcuts" FontSize="15" FontWeight="Bold" Foreground="#FFFFFF" />
+                        <Button HorizontalAlignment="Right"
+                                Command="{x:Bind ViewModel.ToggleInfoCommand, Mode=OneWay}"
+                                Padding="4" Background="Transparent" BorderThickness="0">
+                            <FontIcon Glyph="&#xE711;" FontSize="12" Foreground="#8A8A98" />
+                        </Button>
+                    </Grid>
 
-                <StackPanel Spacing="8">
-                    <Grid>
-                        <TextBlock Text="Title" FontSize="11" Foreground="#8E8E93" />
-                        <TextBlock Text="{x:Bind ViewModel.MovieTitle, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" Foreground="#FFFFFF" HorizontalAlignment="Right" />
-                    </Grid>
-                    <Grid>
-                        <TextBlock Text="Resolution" FontSize="11" Foreground="#8E8E93" />
-                        <TextBlock Text="{x:Bind ViewModel.ResolutionDisplay, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" Foreground="#FFFFFF" HorizontalAlignment="Right" />
-                    </Grid>
-                    <Grid>
-                        <TextBlock Text="Video Codec" FontSize="11" Foreground="#8E8E93" />
-                        <TextBlock Text="{x:Bind ViewModel.VideoCodecDisplay, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" Foreground="#FFFFFF" HorizontalAlignment="Right" />
-                    </Grid>
-                    <Grid>
-                        <TextBlock Text="Audio Codec" FontSize="11" Foreground="#8E8E93" />
-                        <TextBlock Text="{x:Bind ViewModel.AudioCodecDisplay, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" Foreground="#FFFFFF" HorizontalAlignment="Right" />
-                    </Grid>
-                    <Grid>
-                        <TextBlock Text="Format" FontSize="11" Foreground="#8E8E93" />
-                        <TextBlock Text="{x:Bind ViewModel.FormatDisplay, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" Foreground="#FFFFFF" HorizontalAlignment="Right" />
-                    </Grid>
-                    <Grid>
-                        <TextBlock Text="File Size" FontSize="11" Foreground="#8E8E93" />
-                        <TextBlock Text="{x:Bind ViewModel.FileSizeDisplay, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" Foreground="#FFFFFF" HorizontalAlignment="Right" />
-                    </Grid>
+                    <!-- Technical Metadata -->
+                    <StackPanel Spacing="8">
+                        <Grid>
+                            <TextBlock Text="Title" FontSize="11" Foreground="#8E8E93" />
+                            <TextBlock Text="{x:Bind ViewModel.MovieTitle, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" Foreground="#FFFFFF" HorizontalAlignment="Right" />
+                        </Grid>
+                        <Grid>
+                            <TextBlock Text="Resolution" FontSize="11" Foreground="#8E8E93" />
+                            <TextBlock Text="{x:Bind ViewModel.ResolutionDisplay, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" Foreground="#FFFFFF" HorizontalAlignment="Right" />
+                        </Grid>
+                        <Grid>
+                            <TextBlock Text="Video Codec" FontSize="11" Foreground="#8E8E93" />
+                            <TextBlock Text="{x:Bind ViewModel.VideoCodecDisplay, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" Foreground="#FFFFFF" HorizontalAlignment="Right" />
+                        </Grid>
+                        <Grid>
+                            <TextBlock Text="Audio Codec" FontSize="11" Foreground="#8E8E93" />
+                            <TextBlock Text="{x:Bind ViewModel.AudioCodecDisplay, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" Foreground="#FFFFFF" HorizontalAlignment="Right" />
+                        </Grid>
+                        <Grid>
+                            <TextBlock Text="Format" FontSize="11" Foreground="#8E8E93" />
+                            <TextBlock Text="{x:Bind ViewModel.FormatDisplay, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" Foreground="#FFFFFF" HorizontalAlignment="Right" />
+                        </Grid>
+                        <Grid>
+                            <TextBlock Text="File Size" FontSize="11" Foreground="#8E8E93" />
+                            <TextBlock Text="{x:Bind ViewModel.FileSizeDisplay, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" Foreground="#FFFFFF" HorizontalAlignment="Right" />
+                        </Grid>
+                    </StackPanel>
+
+                    <Rectangle Height="1" Fill="#20FFFFFF" />
+
+                    <!-- YouTube-Style Shortcuts Reference -->
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="Keyboard Shortcuts (YouTube-Style)" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF" />
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Spacing="6">
+                                <TextBlock Text="Space / K  •  Play / Pause" FontSize="11" Foreground="#C0C0C8" />
+                                <TextBlock Text="J / L  •  Seek 10s" FontSize="11" Foreground="#C0C0C8" />
+                                <TextBlock Text="← / →  •  Seek 5s" FontSize="11" Foreground="#C0C0C8" />
+                                <TextBlock Text="0 - 9  •  Seek 0% - 90%" FontSize="11" Foreground="#C0C0C8" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Spacing="6">
+                                <TextBlock Text="F  •  Toggle Fullscreen" FontSize="11" Foreground="#C0C0C8" />
+                                <TextBlock Text="M  •  Toggle Mute" FontSize="11" Foreground="#C0C0C8" />
+                                <TextBlock Text="↑ / ↓  •  Volume ±5%" FontSize="11" Foreground="#C0C0C8" />
+                                <TextBlock Text="Esc  •  Back / Exit Fullscreen" FontSize="11" Foreground="#C0C0C8" />
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
                 </StackPanel>
-            </StackPanel>
+            </ScrollViewer>
         </Border>
 
         <!-- ================= 7. ERROR STATE OVERLAY ================= -->

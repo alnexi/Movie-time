@@ -24,6 +24,11 @@ public interface IVlcPlayerService : IDisposable
     int CurrentAudioTrackId { get; }
     int CurrentSubtitleTrackId { get; }
 
+    string? ExternalAudioPath { get; }
+    string? ExternalSubtitlePath { get; }
+    long AudioDelayMs { get; }
+    SubtitleSettings CurrentSubtitleSettings { get; }
+
     Task<bool> OpenMediaAsync(string filePath, long startPositionMs = 0);
     void Play();
     void Pause();
@@ -36,10 +41,21 @@ public interface IVlcPlayerService : IDisposable
     bool SetAudioTrack(int trackId);
     bool SetSubtitleTrack(int trackId);
 
+    Task<bool> AddExternalAudioAsync(string audioFilePath);
+    Task<bool> RemoveExternalAudioAsync();
+    void SetAudioDelay(long delayMs);
+    void AdjustAudioDelay(long deltaMs);
+
+    Task<bool> AddExternalSubtitleAsync(string subtitleFilePath);
+    Task<bool> RemoveExternalSubtitleAsync();
+    Task ApplySubtitleSettingsAsync(SubtitleSettings settings);
+
     event Action<PlayerState>? StateChanged;
     event Action<long, float>? PositionChanged;
     event Action<long>? DurationChanged;
     event Action? TracksChanged;
     event Action<string>? PlaybackError;
     event Action? MediaEnded;
+    event Action<long>? AudioDelayChanged;
+    event Action? SubtitleSettingsChanged;
 }

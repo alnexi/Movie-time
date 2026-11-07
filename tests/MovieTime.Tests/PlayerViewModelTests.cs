@@ -428,6 +428,11 @@ internal sealed class FakeVlcPlayerService : IVlcPlayerService
     public int CurrentAudioTrackId => LastAudioTrackId;
     public int CurrentSubtitleTrackId => LastSubtitleTrackId;
 
+    public string? ExternalAudioPath { get; set; }
+    public string? ExternalSubtitlePath { get; set; }
+    public long AudioDelayMs { get; set; }
+    public SubtitleSettings CurrentSubtitleSettings { get; set; } = new();
+
 #pragma warning disable CS0067
     public event Action<PlayerState>? StateChanged;
     public event Action<long, float>? PositionChanged;
@@ -435,7 +440,51 @@ internal sealed class FakeVlcPlayerService : IVlcPlayerService
     public event Action? TracksChanged;
     public event Action<string>? PlaybackError;
     public event Action? MediaEnded;
+    public event Action<long>? AudioDelayChanged;
+    public event Action? SubtitleSettingsChanged;
 #pragma warning restore CS0067
+
+    public Task<bool> AddExternalAudioAsync(string audioFilePath)
+    {
+        ExternalAudioPath = audioFilePath;
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> RemoveExternalAudioAsync()
+    {
+        ExternalAudioPath = null;
+        return Task.FromResult(true);
+    }
+
+    public void SetAudioDelay(long delayMs)
+    {
+        AudioDelayMs = Math.Clamp(delayMs, -10000, 10000);
+        AudioDelayChanged?.Invoke(AudioDelayMs);
+    }
+
+    public void AdjustAudioDelay(long deltaMs)
+    {
+        SetAudioDelay(AudioDelayMs + deltaMs);
+    }
+
+    public Task<bool> AddExternalSubtitleAsync(string subtitleFilePath)
+    {
+        ExternalSubtitlePath = subtitleFilePath;
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> RemoveExternalSubtitleAsync()
+    {
+        ExternalSubtitlePath = null;
+        return Task.FromResult(true);
+    }
+
+    public Task ApplySubtitleSettingsAsync(SubtitleSettings settings)
+    {
+        CurrentSubtitleSettings = settings;
+        SubtitleSettingsChanged?.Invoke();
+        return Task.CompletedTask;
+    }
 
     public Task<bool> OpenMediaAsync(string filePath, long startPositionMs = 0)
     {

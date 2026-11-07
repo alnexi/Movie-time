@@ -10,6 +10,7 @@ using MovieTime.App.ViewModels;
 using MovieTime.Core;
 using MovieTime.Core.Extensions;
 using MovieTime.Core.Playback;
+using MovieTime.Core.Services;
 using Serilog;
 
 namespace MovieTime.App;
@@ -32,6 +33,11 @@ public partial class App : Application
     /// Gets the current <see cref="App"/> instance in use.
     /// </summary>
     public static new App Current => (App)Application.Current;
+
+    /// <summary>
+    /// Gets the primary MainWindow instance.
+    /// </summary>
+    public Window? MainWindow => _window;
 
     /// <summary>
     /// Gets the application service provider (composition root).
@@ -92,6 +98,7 @@ public partial class App : Application
 
         // 3. Presentation Services & Windows
         services.AddSingleton<IDispatcherService, WinUiDispatcherService>();
+        services.AddSingleton<IFilePickerService, WinUiFilePickerService>();
         services.AddSingleton<IVlcPlayerService, VlcPlayerService>();
         services.AddTransient<HomeViewModel>();
         services.AddTransient<MoviesViewModel>();

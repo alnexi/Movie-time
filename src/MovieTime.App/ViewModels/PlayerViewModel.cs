@@ -10,6 +10,7 @@ using MovieTime.App.Common;
 using MovieTime.Core.Database.Repositories;
 using MovieTime.Core.Entities;
 using MovieTime.Core.Playback;
+using MovieTime.Core.Services;
 
 namespace MovieTime.App.ViewModels;
 
@@ -23,6 +24,7 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
     private readonly IMovieRepository _movieRepository;
     private readonly IMediaFileRepository _mediaFileRepository;
     private readonly IPlaybackProgressRepository _progressRepository;
+    private readonly IFilePickerService? _filePickerService;
     private readonly ILogger<PlayerViewModel> _logger;
     private readonly IDispatcherService? _dispatcher;
 
@@ -49,6 +51,12 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
     private string? _errorMessage;
     private bool _isDraggingSlider;
     private bool _isUpdatingFromPlayer;
+    private string? _externalAudioPath;
+    private string? _externalSubtitlePath;
+    private long _audioDelayMs;
+    private SubtitleSettings _subtitleSettings = new();
+    private bool _isSubtitleAppearanceOpen;
+    private bool _isKeyboardShortcutsOpen;
 
     public bool IsDraggingSlider => _isDraggingSlider;
     public bool IsUpdatingFromPlayer => _isUpdatingFromPlayer;
@@ -266,9 +274,77 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
     public ObservableCollection<PlayerTrackInfo> AudioTracks { get; } = new();
     public ObservableCollection<PlayerTrackInfo> SubtitleTracks { get; } = new();
 
+    public string? ExternalAudioPath
+    {
+        get => _externalAudioPath;
+        private set
+        {
+            if (SetProperty(ref _externalAudioPath, value))
+            {
+                OnPropertyChanged(nameof(ExternalAudioFileName));
+                OnPropertyChanged(nameof(HasExternalAudio));
+            }
+        }
+    }
+
+    public string ExternalAudioFileName => !string.IsNullOrEmpty(_externalAudioPath) ? Path.GetFileName(_externalAudioPath) : "None";
+    public bool HasExternalAudio => !string.IsNullOrEmpty(_externalAudioPath);
+
+    public string? ExternalSubtitlePath
+    {
+        get => _externalSubtitlePath;
+        private set
+        {
+            if (SetProperty(ref _externalSubtitlePath, value))
+            {
+                OnPropertyChanged(nameof(ExternalSubtitleFileName));
+                OnPropertyChanged(nameof(HasExternalSubtitle));
+            }
+        }
+    }
+
+    public string ExternalSubtitleFileName => !string.IsNullOrEmpty(_externalSubtitlePath) ? Path.GetFileName(_externalSubtitlePath) : "None";
+    public bool HasExternalSubtitle => !string.IsNullOrEmpty(_externalSubtitlePath);
+
+    public long AudioDelayMs
+    {
+        get => _audioDelayMs;
+        private set
+        {
+            if (SetProperty(ref _audioDelayMs, value))
+            {
+                OnPropertyChanged(nameof(AudioDelayDisplay));
+            }
+        }
+    }
+
+    public string AudioDelayDisplay => _audioDelayMs == 0 ? "0 ms" : _audioDelayMs > 0 ? $"+{_audioDelayMs} ms" : $"{_audioDelayMs} ms";
+
+    public SubtitleSettings SubtitleSettings => _subtitleSettings;
+    public SubtitleFontSize SubtitleFontSize => _subtitleSettings.FontSize;
+    public SubtitleColor SubtitleColor => _subtitleSettings.Color;
+    public SubtitleOutline SubtitleOutline => _subtitleSettings.Outline;
+    public SubtitleBackground SubtitleBackground => _subtitleSettings.Background;
+    public SubtitlePosition SubtitlePosition => _subtitleSettings.Position;
+
+    public bool IsSubtitleAppearanceOpen
+    {
+        get => _isSubtitleAppearanceOpen;
+        set => SetProperty(ref _isSubtitleAppearanceOpen, value);
+    }
+
+    public bool IsKeyboardShortcutsOpen
+    {
+        get => _isKeyboardShortcutsOpen;
+        set => SetProperty(ref _isKeyboardShortcutsOpen, value);
+    }
+
     public ICommand PlayPauseCommand { get; }
     public ICommand SeekForwardCommand { get; }
     public ICommand SeekBackwardCommand { get; }
+    public ICommand SeekForward5sCommand { get; }
+    public ICommand SeekBackward5sCommand { get; }
+    public ICommand SeekToPercentageCommand { get; }
     public ICommand ToggleMuteCommand { get; }
     public ICommand ToggleFullscreenCommand { get; }
     public ICommand ToggleAudioMenuCommand { get; }
@@ -277,6 +353,20 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
     public ICommand BackCommand { get; }
     public ICommand SelectAudioTrackCommand { get; }
     public ICommand SelectSubtitleTrackCommand { get; }
+    public ICommand AdjustAudioDelayCommand { get; }
+    public ICommand ResetAudioDelayCommand { get; }
+    public ICommand LoadExternalAudioCommand { get; }
+    public ICommand RemoveExternalAudioCommand { get; }
+    public ICommand LoadExternalSubtitleCommand { get; }
+    public ICommand RemoveExternalSubtitleCommand { get; }
+    public ICommand ToggleSubtitleAppearanceCommand { get; }
+    public ICommand ToggleKeyboardShortcutsCommand { get; }
+    public ICommand SetSubtitleFontSizeCommand { get; }
+    public ICommand SetSubtitleColorCommand { get; }
+    public ICommand SetSubtitleOutlineCommand { get; }
+    public ICommand SetSubtitleBackgroundCommand { get; }
+    public ICommand SetSubtitlePositionCommand { get; }
+    public ICommand ResetSubtitleSettingsCommand { get; }
 
     public PlayerViewModel(
         IVlcPlayerService playerService,
@@ -284,7 +374,8 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
         IMediaFileRepository mediaFileRepository,
         IPlaybackProgressRepository progressRepository,
         ILogger<PlayerViewModel>? logger = null,
-        IDispatcherService? dispatcher = null)
+        IDispatcherService? dispatcher = null,
+        IFilePickerService? filePickerService = null)
     {
         _playerService = playerService ?? throw new ArgumentNullException(nameof(playerService));
         _movieRepository = movieRepository ?? throw new ArgumentNullException(nameof(movieRepository));
@@ -292,10 +383,15 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
         _progressRepository = progressRepository ?? throw new ArgumentNullException(nameof(progressRepository));
         _logger = logger ?? NullLogger<PlayerViewModel>.Instance;
         _dispatcher = dispatcher;
+        _filePickerService = filePickerService;
+        _subtitleSettings = _playerService.CurrentSubtitleSettings ?? new SubtitleSettings();
 
         PlayPauseCommand = new RelayCommand(OnPlayPause);
         SeekForwardCommand = new RelayCommand(() => SeekRelative(10000));
         SeekBackwardCommand = new RelayCommand(() => SeekRelative(-10000));
+        SeekForward5sCommand = new RelayCommand(() => SeekRelative(5000));
+        SeekBackward5sCommand = new RelayCommand(() => SeekRelative(-5000));
+        SeekToPercentageCommand = new RelayCommand<int>(SeekToPercentage);
         ToggleMuteCommand = new RelayCommand(OnToggleMute);
         ToggleFullscreenCommand = new RelayCommand(OnToggleFullscreen);
         ToggleAudioMenuCommand = new RelayCommand(() => IsAudioMenuOpen = !IsAudioMenuOpen);
@@ -304,6 +400,22 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
         BackCommand = new RelayCommand(OnBack);
         SelectAudioTrackCommand = new RelayCommand<PlayerTrackInfo>(SelectAudioTrack);
         SelectSubtitleTrackCommand = new RelayCommand<PlayerTrackInfo>(SelectSubtitleTrack);
+
+        AdjustAudioDelayCommand = new RelayCommand<long>(delta => AdjustAudioDelay(delta));
+        ResetAudioDelayCommand = new RelayCommand(() => SetAudioDelay(0));
+        LoadExternalAudioCommand = new RelayCommand(async () => await LoadExternalAudioAsync());
+        RemoveExternalAudioCommand = new RelayCommand(async () => await RemoveExternalAudioAsync());
+        LoadExternalSubtitleCommand = new RelayCommand(async () => await LoadExternalSubtitleAsync());
+        RemoveExternalSubtitleCommand = new RelayCommand(async () => await RemoveExternalSubtitleAsync());
+        ToggleSubtitleAppearanceCommand = new RelayCommand(() => IsSubtitleAppearanceOpen = !IsSubtitleAppearanceOpen);
+        ToggleKeyboardShortcutsCommand = new RelayCommand(() => IsKeyboardShortcutsOpen = !IsKeyboardShortcutsOpen);
+
+        SetSubtitleFontSizeCommand = new RelayCommand<SubtitleFontSize>(async s => await SetSubtitleFontSizeAsync(s));
+        SetSubtitleColorCommand = new RelayCommand<SubtitleColor>(async c => await SetSubtitleColorAsync(c));
+        SetSubtitleOutlineCommand = new RelayCommand<SubtitleOutline>(async o => await SetSubtitleOutlineAsync(o));
+        SetSubtitleBackgroundCommand = new RelayCommand<SubtitleBackground>(async b => await SetSubtitleBackgroundAsync(b));
+        SetSubtitlePositionCommand = new RelayCommand<SubtitlePosition>(async p => await SetSubtitlePositionAsync(p));
+        ResetSubtitleSettingsCommand = new RelayCommand(async () => await ResetSubtitleSettingsAsync());
 
         HookPlayerEvents();
     }
@@ -316,6 +428,8 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
         _playerService.TracksChanged += OnPlayerTracksChanged;
         _playerService.PlaybackError += OnPlayerPlaybackError;
         _playerService.MediaEnded += OnPlayerMediaEnded;
+        _playerService.AudioDelayChanged += OnPlayerAudioDelayChanged;
+        _playerService.SubtitleSettingsChanged += OnPlayerSubtitleSettingsChanged;
     }
 
     private void UnhookPlayerEvents()
@@ -326,6 +440,8 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
         _playerService.TracksChanged -= OnPlayerTracksChanged;
         _playerService.PlaybackError -= OnPlayerPlaybackError;
         _playerService.MediaEnded -= OnPlayerMediaEnded;
+        _playerService.AudioDelayChanged -= OnPlayerAudioDelayChanged;
+        _playerService.SubtitleSettingsChanged -= OnPlayerSubtitleSettingsChanged;
     }
 
     public async Task InitializeAsync(string filePath, int? movieId = null)
@@ -524,6 +640,155 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
         Volume = _playerService.Volume;
         IsMuted = _playerService.IsMuted;
         TriggerInteraction();
+    }
+
+    public void SeekToPercentage(int percent)
+    {
+        percent = Math.Clamp(percent, 0, 100);
+        SeekToRatio(percent / 100.0);
+    }
+
+    public void SetAudioDelay(long delayMs)
+    {
+        _playerService.SetAudioDelay(delayMs);
+        AudioDelayMs = _playerService.AudioDelayMs;
+        TriggerInteraction();
+    }
+
+    public void AdjustAudioDelay(long deltaMs)
+    {
+        _playerService.AdjustAudioDelay(deltaMs);
+        AudioDelayMs = _playerService.AudioDelayMs;
+        TriggerInteraction();
+    }
+
+    public async Task LoadExternalAudioAsync()
+    {
+        if (_filePickerService == null) return;
+
+        var extensions = new[] { ".mka", ".mkv", ".aac", ".ac3", ".mp3", ".m4a", ".wav", ".flac", ".ogg", ".opus" };
+        var pickedPath = await _filePickerService.PickOpenFileAsync("Select External Audio File", extensions);
+        if (!string.IsNullOrEmpty(pickedPath))
+        {
+            var success = await _playerService.AddExternalAudioAsync(pickedPath);
+            if (success)
+            {
+                ExternalAudioPath = pickedPath;
+                TriggerInteraction();
+            }
+        }
+    }
+
+    public async Task RemoveExternalAudioAsync()
+    {
+        var success = await _playerService.RemoveExternalAudioAsync();
+        if (success)
+        {
+            ExternalAudioPath = null;
+            TriggerInteraction();
+        }
+    }
+
+    public async Task LoadExternalSubtitleAsync()
+    {
+        if (_filePickerService == null) return;
+
+        var extensions = new[] { ".srt", ".ass", ".ssa", ".vtt", ".sub" };
+        var pickedPath = await _filePickerService.PickOpenFileAsync("Select Subtitle File", extensions);
+        if (!string.IsNullOrEmpty(pickedPath))
+        {
+            var success = await _playerService.AddExternalSubtitleAsync(pickedPath);
+            if (success)
+            {
+                ExternalSubtitlePath = pickedPath;
+                TriggerInteraction();
+            }
+        }
+    }
+
+    public async Task RemoveExternalSubtitleAsync()
+    {
+        var success = await _playerService.RemoveExternalSubtitleAsync();
+        if (success)
+        {
+            ExternalSubtitlePath = null;
+            TriggerInteraction();
+        }
+    }
+
+    public async Task SetSubtitleFontSizeAsync(SubtitleFontSize size)
+    {
+        _subtitleSettings.FontSize = size;
+        NotifySubtitleSettingsChanged();
+        await _playerService.ApplySubtitleSettingsAsync(_subtitleSettings);
+        TriggerInteraction();
+    }
+
+    public async Task SetSubtitleColorAsync(SubtitleColor color)
+    {
+        _subtitleSettings.Color = color;
+        NotifySubtitleSettingsChanged();
+        await _playerService.ApplySubtitleSettingsAsync(_subtitleSettings);
+        TriggerInteraction();
+    }
+
+    public async Task SetSubtitleOutlineAsync(SubtitleOutline outline)
+    {
+        _subtitleSettings.Outline = outline;
+        NotifySubtitleSettingsChanged();
+        await _playerService.ApplySubtitleSettingsAsync(_subtitleSettings);
+        TriggerInteraction();
+    }
+
+    public async Task SetSubtitleBackgroundAsync(SubtitleBackground background)
+    {
+        _subtitleSettings.Background = background;
+        NotifySubtitleSettingsChanged();
+        await _playerService.ApplySubtitleSettingsAsync(_subtitleSettings);
+        TriggerInteraction();
+    }
+
+    public async Task SetSubtitlePositionAsync(SubtitlePosition position)
+    {
+        _subtitleSettings.Position = position;
+        NotifySubtitleSettingsChanged();
+        await _playerService.ApplySubtitleSettingsAsync(_subtitleSettings);
+        TriggerInteraction();
+    }
+
+    public async Task ResetSubtitleSettingsAsync()
+    {
+        _subtitleSettings = new SubtitleSettings();
+        NotifySubtitleSettingsChanged();
+        await _playerService.ApplySubtitleSettingsAsync(_subtitleSettings);
+        TriggerInteraction();
+    }
+
+    private void OnPlayerAudioDelayChanged(long delayMs)
+    {
+        RunOnUi(() =>
+        {
+            AudioDelayMs = delayMs;
+        });
+    }
+
+    private void OnPlayerSubtitleSettingsChanged()
+    {
+        RunOnUi(() =>
+        {
+            _subtitleSettings = _playerService.CurrentSubtitleSettings;
+            NotifySubtitleSettingsChanged();
+        });
+    }
+
+    private void NotifySubtitleSettingsChanged()
+    {
+        OnPropertyChanged(nameof(SubtitleSettings));
+        OnPropertyChanged(nameof(SubtitleFontSize));
+        OnPropertyChanged(nameof(SubtitleColor));
+        OnPropertyChanged(nameof(SubtitleOutline));
+        OnPropertyChanged(nameof(SubtitleBackground));
+        OnPropertyChanged(nameof(SubtitlePosition));
     }
 
     public void OnToggleFullscreen()

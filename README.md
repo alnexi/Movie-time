@@ -109,8 +109,10 @@ Unlike cluttered streaming apps or heavy web-wrapped wrappers, Movie Time is bui
     - Subtle chromatic dispersion fringing (`#1870D0FF` cyan to `#18FFA850` amber).
     - Atmospheric dark linear vignette gradient overlays ensuring ultra-sharp high-contrast typography while leaving the underlying video 100% unblurred and untouched.
 * **Complete Desktop Control & Shortcuts**:
-  - `Space` / `K`: Play / Pause toggle.
-  - `Left` / `Right` Arrow: Seek backward / forward 10 seconds.
+  - `Space` / `K`: Play / Pause toggle without focus interference.
+  - `J` / `L`: Seek backward / forward 10 seconds.
+  - `Left` / `Right` Arrow: Seek backward / forward 5 seconds.
+  - `0` to `9`: Seek to 0%, 10%, 20%, 30%, 40%, 50%, 60%, 70%, 80%, 90% of duration.
   - `Up` / `Down` Arrow: Volume up / down (5% increments).
   - `M`: Mute / Unmute.
   - `F` / `Alt+Enter`: Toggle edge-to-edge Fullscreen (`AppWindowPresenterKind.FullScreen`).
@@ -130,6 +132,13 @@ Unlike cluttered streaming apps or heavy web-wrapped wrappers, Movie Time is bui
   - **Direct Timeline Tap-to-Seek**: Wired universal pointer capture handlers (`handledEventsToo: true`) on `TimelineSlider` and `TimelineContainer`, allowing immediate jump-to-position upon clicking anywhere along the timeline bar.
   - **Feedback Loop Elimination**: Introduced scrubbing lifecycle guards (`IsDraggingSlider`, `IsUpdatingFromPlayer`) preventing automatic player position ticks from triggering redundant seeks.
   - **Safe Clamping & State Preservation**: Applied strict bounds clamping `[0, duration - 250ms]` and timestamp rounding, preserving paused/playing states across seek operations.
+* **Phase 4.4 YouTube Shortcuts, External Audio/Subtitles & Subtitle Customization (v0.6.4)**:
+  - **YouTube-Style Keyboard Shortcuts**: Full suite (`Space`, `K`, `J`, `L`, `←`, `→`, `0`-`9`, `F`, `M`, `Esc`) with text-input focus guards and in-app quick reference.
+  - **External Audio & Audio Delay Sync**: Load external audio files (`.mka`, `.mkv`, `.aac`, `.ac3`, `.mp3`, etc.) with `±100ms` step adjustments and `0ms` reset to fix out-of-sync dubbed tracks.
+  - **External Subtitles Support**: Attach and manage external subtitle files (`.srt`, `.ass`, `.ssa`, `.vtt`, `.sub`) with instantaneous track switching.
+  - **Subtitle Customization & Persistence**: User-configurable font sizes (22pt to 52pt), high-visibility colors (White, Yellow, Cyan, Green), outline thickness, background opacities, and vertical position offsets persisted across sessions.
+  - **Apple TV Liquid Glass Flyouts**: Refined overlay menus with frosted acrylic surfaces, high-contrast typography, and zero playback interruptions.
+  - **Expanded Test Suite**: 217 automated unit tests validating playback logic, seeking math, external slave loading, and preference serialization.
 
 ---
 

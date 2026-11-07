@@ -121,6 +121,96 @@ public sealed partial class PlayerView : UserControl
         }
     }
 
+    private void OnAudioDelayMinusClicked(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.AdjustAudioDelayCommand.Execute(-100L);
+    }
+
+    private void OnAudioDelayPlusClicked(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.AdjustAudioDelayCommand.Execute(100L);
+    }
+
+    private void OnAudioDelayResetClicked(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.ResetAudioDelayCommand.Execute(null);
+    }
+
+    private void OnSubtitleSizeSmallClicked(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.SetSubtitleFontSizeCommand.Execute(SubtitleFontSize.Small);
+    }
+
+    private void OnSubtitleSizeMediumClicked(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.SetSubtitleFontSizeCommand.Execute(SubtitleFontSize.Medium);
+    }
+
+    private void OnSubtitleSizeLargeClicked(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.SetSubtitleFontSizeCommand.Execute(SubtitleFontSize.Large);
+    }
+
+    private void OnSubtitleSizeExtraLargeClicked(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.SetSubtitleFontSizeCommand.Execute(SubtitleFontSize.ExtraLarge);
+    }
+
+    private void OnSubtitleColorWhiteClicked(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.SetSubtitleColorCommand.Execute(SubtitleColor.White);
+    }
+
+    private void OnSubtitleColorYellowClicked(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.SetSubtitleColorCommand.Execute(SubtitleColor.Yellow);
+    }
+
+    private void OnSubtitleColorCyanClicked(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.SetSubtitleColorCommand.Execute(SubtitleColor.Cyan);
+    }
+
+    private void OnSubtitleColorGreenClicked(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.SetSubtitleColorCommand.Execute(SubtitleColor.Green);
+    }
+
+    private void OnSubtitleOutlineOffClicked(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.SetSubtitleOutlineCommand.Execute(SubtitleOutline.Off);
+    }
+
+    private void OnSubtitleOutlineThinClicked(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.SetSubtitleOutlineCommand.Execute(SubtitleOutline.Thin);
+    }
+
+    private void OnSubtitleOutlineMediumClicked(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.SetSubtitleOutlineCommand.Execute(SubtitleOutline.Medium);
+    }
+
+    private void OnSubtitleOutlineThickClicked(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.SetSubtitleOutlineCommand.Execute(SubtitleOutline.Thick);
+    }
+
+    private void OnSubtitleBgOffClicked(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.SetSubtitleBackgroundCommand.Execute(SubtitleBackground.Off);
+    }
+
+    private void OnSubtitleBgSubtleClicked(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.SetSubtitleBackgroundCommand.Execute(SubtitleBackground.Subtle);
+    }
+
+    private void OnSubtitleBgDarkClicked(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.SetSubtitleBackgroundCommand.Execute(SubtitleBackground.Dark);
+    }
+
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         if (this.Visibility == Visibility.Visible)
@@ -148,6 +238,13 @@ public sealed partial class PlayerView : UserControl
 
     private void OnKeyDown(object sender, KeyRoutedEventArgs e)
     {
+        // Guard: Do not intercept keyboard shortcuts if user is typing in a text input control
+        var focused = FocusManager.GetFocusedElement(this.XamlRoot);
+        if (focused is TextBox || focused is AutoSuggestBox || focused is PasswordBox || focused is RichEditBox)
+        {
+            return;
+        }
+
         ResetInactivityTimer();
         var vm = ViewModel;
         if (vm == null) return;
@@ -155,17 +252,28 @@ public sealed partial class PlayerView : UserControl
         switch (e.Key)
         {
             case VirtualKey.Space:
+            case VirtualKey.K:
                 vm.PlayPauseCommand.Execute(null);
                 e.Handled = true;
                 break;
 
+            case VirtualKey.J:
+                vm.SeekBackwardCommand.Execute(null); // 10s backward
+                e.Handled = true;
+                break;
+
+            case VirtualKey.L:
+                vm.SeekForwardCommand.Execute(null); // 10s forward
+                e.Handled = true;
+                break;
+
             case VirtualKey.Left:
-                vm.SeekBackwardCommand.Execute(null);
+                vm.SeekBackward5sCommand.Execute(null); // 5s backward (YouTube standard)
                 e.Handled = true;
                 break;
 
             case VirtualKey.Right:
-                vm.SeekForwardCommand.Execute(null);
+                vm.SeekForward5sCommand.Execute(null); // 5s forward (YouTube standard)
                 e.Handled = true;
                 break;
 
@@ -186,6 +294,67 @@ public sealed partial class PlayerView : UserControl
 
             case VirtualKey.F:
                 vm.ToggleFullscreenCommand.Execute(null);
+                e.Handled = true;
+                break;
+
+            // Numeric Jump Shortcuts (0% through 90%)
+            case VirtualKey.Number0:
+            case VirtualKey.NumberPad0:
+                vm.SeekToPercentage(0);
+                e.Handled = true;
+                break;
+
+            case VirtualKey.Number1:
+            case VirtualKey.NumberPad1:
+                vm.SeekToPercentage(10);
+                e.Handled = true;
+                break;
+
+            case VirtualKey.Number2:
+            case VirtualKey.NumberPad2:
+                vm.SeekToPercentage(20);
+                e.Handled = true;
+                break;
+
+            case VirtualKey.Number3:
+            case VirtualKey.NumberPad3:
+                vm.SeekToPercentage(30);
+                e.Handled = true;
+                break;
+
+            case VirtualKey.Number4:
+            case VirtualKey.NumberPad4:
+                vm.SeekToPercentage(40);
+                e.Handled = true;
+                break;
+
+            case VirtualKey.Number5:
+            case VirtualKey.NumberPad5:
+                vm.SeekToPercentage(50);
+                e.Handled = true;
+                break;
+
+            case VirtualKey.Number6:
+            case VirtualKey.NumberPad6:
+                vm.SeekToPercentage(60);
+                e.Handled = true;
+                break;
+
+            case VirtualKey.Number7:
+            case VirtualKey.NumberPad7:
+                vm.SeekToPercentage(70);
+                e.Handled = true;
+                break;
+
+            case VirtualKey.Number8:
+            case VirtualKey.NumberPad8:
+                vm.SeekToPercentage(80);
+                e.Handled = true;
+                break;
+
+            case VirtualKey.Number9:
+            case VirtualKey.NumberPad9:
+                vm.SeekToPercentage(90);
                 e.Handled = true;
                 break;
 

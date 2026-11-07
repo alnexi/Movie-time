@@ -65,6 +65,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<Library.ILibraryImportService, Library.LibraryImportService>();
         services.AddSingleton<Library.IMLibraryManagerService, Library.MLibraryManagerService>();
 
+        // Subtitle customization settings persistence
+        services.AddSingleton<Playback.ISubtitleSettingsService, Playback.SubtitleSettingsService>();
+
         return services;
     }
 

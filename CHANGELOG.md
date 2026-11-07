@@ -11,6 +11,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.6.4] - 2026-11-07 (Phase 4.4: YouTube-Style Shortcuts, External Audio, External Subtitles & Subtitle Customization)
+
+### Added
+- **YouTube-Style Keyboard Shortcuts**:
+  - `K` / `Space`: Toggle Play/Pause without stealing keyboard focus or triggering unwanted button clicks.
+  - `J` / `L`: Seek backward / forward by 10 seconds.
+  - `Left Arrow` / `Right Arrow`: Seek backward / forward by 5 seconds.
+  - `0` to `9`: Seek to 0%, 10%, 20%, 30%, 40%, 50%, 60%, 70%, 80%, 90% of actual media duration.
+  - `F`: Toggle edge-to-edge Fullscreen.
+  - `M`: Toggle Audio Mute.
+  - `Esc` / `Backspace`: Return cleanly to Movie Details.
+  - Text-input focus guard to prevent shortcut interception when entering text in search/input boxes.
+  - Interactive Keyboard Shortcuts reference card embedded directly inside the InSight flyout.
+- **External Audio & Dubbed Track Synchronization**:
+  - Added native LibVLC audio slave support (`.mka`, `.mkv`, `.aac`, `.ac3`, `.mp3`, `.m4a`, `.wav`, `.flac`, `.ogg`, `.opus`) alongside running video.
+  - Audible and selectable from the Apple TV Audio Options menu with immediate playback switching.
+  - Audio Delay Synchronization controls with `±100ms` nudging and `0ms` instant reset via native LibVLC microsecond delay APIs.
+  - Option to remove external audio and restore embedded audio tracks.
+- **External Subtitles Support**:
+  - Added support for loading external subtitle files (`.srt`, `.ass`, `.ssa`, `.vtt`, `.sub`) using LibVLC's native `AddSlave(MediaSlaveType.Subtitle, ...)`.
+  - Integrated into the Subtitles flyout menu with embedded tracks, external tracks, track disabling ("Off"), and detach option.
+- **Subtitle Appearance Customization**:
+  - Font Size: Small (22pt), Medium (30pt default), Large (40pt), Extra Large (52pt).
+  - Text Color: White (`#FFFFFF`), Yellow (`#FFE500`), Cyan (`#00E5FF`), Green (`#00E676`).
+  - Text Outline / Stroke: Off (0), Thin (1px), Medium (2px), Thick (3px).
+  - Background Opacity: Off (transparent), Subtle (35% black tint), Dark (75% solid black).
+  - Position: Default, Higher (45px margin), Lower (10px margin).
+  - One-click "Reset to Default" command.
+  - Persistent storage in `%LocalAppData%\MovieTime\Settings\subtitle_settings.json` across application sessions.
+  - Preserves ASS/SSA embedded script typography while styling text subtitle formats (SRT/VTT).
+- **Apple TV Liquid Glass Menus**:
+  - Implemented sleek Liquid Glass flyout panels for Audio Options, Subtitles, Subtitle Appearance, and InSight.
+- **Comprehensive Unit Testing**:
+  - Expanded test suite from 201 to **217 passing unit tests**, validating all keyboard shortcuts, percentage seeking algorithms, audio delay adjustment, external track attachment, and subtitle settings persistence.
+
+---
+
 ## [0.6.3] - 2026-11-07 (Phase 4.3: Critical Player Seek Stability Hotfix)
 
 ### Fixed

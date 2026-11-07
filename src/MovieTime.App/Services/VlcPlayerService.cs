@@ -18,6 +18,7 @@ namespace MovieTime.App.Services;
 public sealed class VlcPlayerService : IVlcPlayerService
 {
     private readonly ILogger<VlcPlayerService> _logger;
+    private readonly ISubtitleSettingsService? _subtitleSettingsService;
     private readonly object _lock = new();
     private readonly object _seekLock = new();
     private long _pendingSeekTimeMs = -1;
@@ -29,6 +30,11 @@ public sealed class VlcPlayerService : IVlcPlayerService
     private VideoView? _attachedVideoView;
     private TaskCompletionSource<bool>? _swapChainReadyTcs;
     private string[]? _swapChainOptions;
+    private string? _currentFilePath;
+    private string? _externalAudioPath;
+    private string? _externalSubtitlePath;
+    private long _audioDelayMs;
+    private SubtitleSettings _subtitleSettings;
 
     private PlayerState _state = PlayerState.Idle;
     private long _positionMs;
@@ -91,15 +97,26 @@ public sealed class VlcPlayerService : IVlcPlayerService
     public int CurrentAudioTrackId => _mediaPlayer?.AudioTrack ?? -1;
     public int CurrentSubtitleTrackId => _mediaPlayer?.Spu ?? -1;
 
+    public string? ExternalAudioPath => _externalAudioPath;
+    public string? ExternalSubtitlePath => _externalSubtitlePath;
+    public long AudioDelayMs => _mediaPlayer != null ? _mediaPlayer.AudioDelay / 1000 : _audioDelayMs;
+    public SubtitleSettings CurrentSubtitleSettings => _subtitleSettings.Clone();
+
     public event Action<PlayerState>? StateChanged;
     public event Action<long, float>? PositionChanged;
     public event Action<long>? DurationChanged;
     public event Action? TracksChanged;
     public event Action<string>? PlaybackError;
     public event Action? MediaEnded;
+    public event Action<long>? AudioDelayChanged;
+    public event Action? SubtitleSettingsChanged;
 
-    public VlcPlayerService(ILogger<VlcPlayerService>? logger = null)
+    public VlcPlayerService(
+        ISubtitleSettingsService? subtitleSettingsService = null,
+        ILogger<VlcPlayerService>? logger = null)
     {
+        _subtitleSettingsService = subtitleSettingsService;
+        _subtitleSettings = _subtitleSettingsService?.GetSettings() ?? new SubtitleSettings();
         _logger = logger ?? NullLogger<VlcPlayerService>.Instance;
     }
 
@@ -208,6 +225,16 @@ public sealed class VlcPlayerService : IVlcPlayerService
                 {
                     _logger.LogWarning("Initializing LibVLC without WinUI swapchain options. (VideoView may not yet be loaded).");
                 }
+
+                // 3. Subtitle appearance parameters (freetype)
+                _subtitleSettings = _subtitleSettingsService?.GetSettings() ?? _subtitleSettings ?? new SubtitleSettings();
+                optionsList.Add($"--freetype-fontsize={_subtitleSettings.GetFontSizePoints()}");
+                optionsList.Add($"--freetype-color={_subtitleSettings.GetColorRgb()}");
+                optionsList.Add($"--freetype-outline-thickness={_subtitleSettings.GetOutlineThickness()}");
+                optionsList.Add("--freetype-outline-color=0");
+                optionsList.Add($"--freetype-background-opacity={_subtitleSettings.GetBackgroundOpacity()}");
+                optionsList.Add("--freetype-background-color=0");
+                optionsList.Add($"--sub-margin={_subtitleSettings.GetSubMarginPixels()}");
 
                 _libVlc = new LibVLC(optionsList.ToArray());
                 _mediaPlayer = new MediaPlayer(_libVlc);
@@ -320,6 +347,7 @@ public sealed class VlcPlayerService : IVlcPlayerService
                 _logger.LogInformation("Configured start-time offset: {Seconds}s for {File}", startSec, Path.GetFileName(filePath));
             }
 
+            _currentFilePath = filePath;
             _currentMedia = media;
             _mediaPlayer.Media = _currentMedia;
 
@@ -345,6 +373,11 @@ public sealed class VlcPlayerService : IVlcPlayerService
                 State = PlayerState.Error;
                 PlaybackError?.Invoke("Failed to start playback for this media file.");
                 return false;
+            }
+
+            if (_audioDelayMs != 0)
+            {
+                _mediaPlayer.SetAudioDelay(_audioDelayMs * 1000);
             }
 
             _logger.LogInformation("Playback initiated for file: {Path}", filePath);
@@ -513,6 +546,176 @@ public sealed class VlcPlayerService : IVlcPlayerService
         return result;
     }
 
+    public Task<bool> AddExternalAudioAsync(string audioFilePath)
+    {
+        if (string.IsNullOrWhiteSpace(audioFilePath) || !File.Exists(audioFilePath))
+        {
+            _logger.LogWarning("External audio file does not exist: {Path}", audioFilePath);
+            return Task.FromResult(false);
+        }
+
+        if (_mediaPlayer == null) return Task.FromResult(false);
+
+        try
+        {
+            _externalAudioPath = audioFilePath;
+            var fileUri = new Uri(audioFilePath).AbsoluteUri;
+
+            var success = _mediaPlayer.AddSlave(MediaSlaveType.Audio, fileUri, select: true);
+            _logger.LogInformation("Attached external audio slave {Path}, success: {Result}", audioFilePath, success);
+
+            RefreshTracks();
+            return Task.FromResult(success);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to attach external audio file {Path}", audioFilePath);
+            return Task.FromResult(false);
+        }
+    }
+
+    public async Task<bool> RemoveExternalAudioAsync()
+    {
+        if (string.IsNullOrEmpty(_externalAudioPath)) return true;
+
+        _externalAudioPath = null;
+        if (!string.IsNullOrEmpty(_currentFilePath) && File.Exists(_currentFilePath))
+        {
+            var pos = _positionMs;
+            var wasPlaying = IsPlaying;
+            var opened = await OpenMediaAsync(_currentFilePath, pos).ConfigureAwait(false);
+            if (opened && !wasPlaying)
+            {
+                Pause();
+            }
+            return opened;
+        }
+
+        RefreshTracks();
+        return true;
+    }
+
+    public void SetAudioDelay(long delayMs)
+    {
+        _audioDelayMs = Math.Clamp(delayMs, -10000, 10000);
+        if (_mediaPlayer != null)
+        {
+            _mediaPlayer.SetAudioDelay(_audioDelayMs * 1000);
+            _logger.LogInformation("Applied audio delay: {DelayMs} ms", _audioDelayMs);
+        }
+        AudioDelayChanged?.Invoke(_audioDelayMs);
+    }
+
+    public void AdjustAudioDelay(long deltaMs)
+    {
+        SetAudioDelay(AudioDelayMs + deltaMs);
+    }
+
+    public Task<bool> AddExternalSubtitleAsync(string subtitleFilePath)
+    {
+        if (string.IsNullOrWhiteSpace(subtitleFilePath) || !File.Exists(subtitleFilePath))
+        {
+            _logger.LogWarning("External subtitle file does not exist: {Path}", subtitleFilePath);
+            return Task.FromResult(false);
+        }
+
+        if (_mediaPlayer == null) return Task.FromResult(false);
+
+        try
+        {
+            _externalSubtitlePath = subtitleFilePath;
+            var fileUri = new Uri(subtitleFilePath).AbsoluteUri;
+
+            var success = _mediaPlayer.AddSlave(MediaSlaveType.Subtitle, fileUri, select: true);
+            _logger.LogInformation("Attached external subtitle slave {Path}, success: {Result}", subtitleFilePath, success);
+
+            RefreshTracks();
+            return Task.FromResult(success);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to attach external subtitle file {Path}", subtitleFilePath);
+            return Task.FromResult(false);
+        }
+    }
+
+    public Task<bool> RemoveExternalSubtitleAsync()
+    {
+        _externalSubtitlePath = null;
+        SetSubtitleTrack(-1);
+        RefreshTracks();
+        return Task.FromResult(true);
+    }
+
+    public async Task ApplySubtitleSettingsAsync(SubtitleSettings settings)
+    {
+        if (settings == null) throw new ArgumentNullException(nameof(settings));
+        _subtitleSettings = settings.Clone();
+
+        if (_subtitleSettingsService != null)
+        {
+            await _subtitleSettingsService.SaveSettingsAsync(settings).ConfigureAwait(false);
+        }
+
+        // Reconfigure LibVLC with updated freetype parameters while preserving state
+        if (!string.IsNullOrEmpty(_currentFilePath) && File.Exists(_currentFilePath))
+        {
+            var pos = _positionMs;
+            var wasPlaying = IsPlaying;
+            var audioTrack = CurrentAudioTrackId;
+            var subTrack = CurrentSubtitleTrackId;
+            var extAudio = _externalAudioPath;
+            var extSub = _externalSubtitlePath;
+
+            lock (_lock)
+            {
+                if (_mediaPlayer != null)
+                {
+                    UnhookMediaPlayerEvents(_mediaPlayer);
+                    if (_mediaPlayer.IsPlaying)
+                    {
+                        _mediaPlayer.Stop();
+                    }
+                    _mediaPlayer.Dispose();
+                    _mediaPlayer = null;
+                }
+                _currentMedia?.Dispose();
+                _currentMedia = null;
+                _libVlc?.Dispose();
+                _libVlc = null;
+            }
+
+            EnsureInitializedWithSwapChain(_swapChainOptions);
+            var opened = await OpenMediaAsync(_currentFilePath, pos).ConfigureAwait(false);
+
+            if (opened)
+            {
+                if (!string.IsNullOrEmpty(extAudio) && File.Exists(extAudio))
+                {
+                    await AddExternalAudioAsync(extAudio).ConfigureAwait(false);
+                }
+                if (!string.IsNullOrEmpty(extSub) && File.Exists(extSub))
+                {
+                    await AddExternalSubtitleAsync(extSub).ConfigureAwait(false);
+                }
+                if (audioTrack != -1)
+                {
+                    SetAudioTrack(audioTrack);
+                }
+                if (subTrack != -1)
+                {
+                    SetSubtitleTrack(subTrack);
+                }
+                if (!wasPlaying)
+                {
+                    Pause();
+                }
+            }
+        }
+
+        SubtitleSettingsChanged?.Invoke();
+    }
+
     private void RefreshTracks()
     {
         if (_mediaPlayer == null) return;
@@ -528,7 +731,12 @@ public sealed class VlcPlayerService : IVlcPlayerService
                 {
                     if (t.Id != -1) // -1 is disable/none
                     {
-                        audioList.Add(new PlayerTrackInfo(t.Id, t.Name ?? $"Audio Track {t.Id}", "Unknown", t.Id == currentAudioId));
+                        var trackName = t.Name ?? $"Audio Track {t.Id}";
+                        if (!string.IsNullOrEmpty(_externalAudioPath) && t.Id == currentAudioId)
+                        {
+                            trackName = $"{trackName} (External: {Path.GetFileName(_externalAudioPath)})";
+                        }
+                        audioList.Add(new PlayerTrackInfo(t.Id, trackName, "Unknown", t.Id == currentAudioId));
                     }
                 }
             }
@@ -545,7 +753,12 @@ public sealed class VlcPlayerService : IVlcPlayerService
                 {
                     if (s.Id != -1)
                     {
-                        subList.Add(new PlayerTrackInfo(s.Id, s.Name ?? $"Subtitle {s.Id}", "Unknown", s.Id == currentSpuId));
+                        var subName = s.Name ?? $"Subtitle {s.Id}";
+                        if (!string.IsNullOrEmpty(_externalSubtitlePath) && s.Id == currentSpuId)
+                        {
+                            subName = $"{subName} (External: {Path.GetFileName(_externalSubtitlePath)})";
+                        }
+                        subList.Add(new PlayerTrackInfo(s.Id, subName, "Unknown", s.Id == currentSpuId));
                     }
                 }
             }

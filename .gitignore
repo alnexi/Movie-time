@@ -50,3 +50,4 @@ Desktop.ini
 *.local.json
 secrets.json
 appsettings.*.local.json
+subtitle_settings.json
