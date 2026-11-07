@@ -1,5 +1,6 @@
 using System;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -18,6 +19,7 @@ public sealed partial class PlayerView : UserControl
 {
     private readonly DispatcherTimer _inactivityTimer;
     private bool _isUserDraggingSlider;
+    private LibVLCSharp.Platforms.Windows.VideoView? _videoView;
 
     public static readonly DependencyProperty ViewModelProperty =
         DependencyProperty.Register(
@@ -53,28 +55,73 @@ public sealed partial class PlayerView : UserControl
     {
         if (d is PlayerView view)
         {
+            view.DataContext = e.NewValue;
             view.ResetInactivityTimer();
+        }
+    }
+
+    /// <summary>
+    /// Lazily instantiates and attaches the native VideoView swapchain surface only when the player view is active.
+    /// </summary>
+    public void EnsureVideoSurfaceAttached()
+    {
+        try
+        {
+            if (_videoView == null)
+            {
+                App.Logger?.LogInformation("EnsureVideoSurfaceAttached: Initializing Core...");
+                LibVLCSharp.Shared.Core.Initialize();
+                App.Logger?.LogInformation("EnsureVideoSurfaceAttached: Instantiating new VideoView...");
+                _videoView = new LibVLCSharp.Platforms.Windows.VideoView
+                {
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    VerticalAlignment = VerticalAlignment.Stretch
+                };
+                App.Logger?.LogInformation("EnsureVideoSurfaceAttached: VideoView instantiated. Adding to VideoViewContainer...");
+
+                VideoViewContainer.Children.Clear();
+                VideoViewContainer.Children.Add(_videoView);
+                App.Logger?.LogInformation("EnsureVideoSurfaceAttached: VideoView added to container.");
+            }
+
+            var playerService = App.Current.Services.GetService<IVlcPlayerService>();
+            if (playerService is VlcPlayerService vlcService)
+            {
+                App.Logger?.LogInformation("EnsureVideoSurfaceAttached: Attaching VideoView to VlcPlayerService...");
+                vlcService.AttachVideoView(_videoView);
+                App.Logger?.LogInformation("EnsureVideoSurfaceAttached: VideoView attached successfully.");
+            }
+        }
+        catch (Exception ex)
+        {
+            App.Logger?.LogError(ex, "Failed to initialize or attach VideoView in PlayerView: {Message}", ex.Message);
+        }
+    }
+
+    private void OnSubtitleTrackItemClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: PlayerTrackInfo track })
+        {
+            ViewModel?.SelectSubtitleTrackCommand.Execute(track);
+        }
+    }
+
+    private void OnAudioTrackItemClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: PlayerTrackInfo track })
+        {
+            ViewModel?.SelectAudioTrackCommand.Execute(track);
         }
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        try
+        if (this.Visibility == Visibility.Visible)
         {
-            // Attach video surface to LibVLC engine
-            var playerService = App.Current.Services.GetService<IVlcPlayerService>();
-            if (playerService is VlcPlayerService vlcService)
-            {
-                vlcService.AttachVideoView(LibVlcVideoView);
-            }
+            EnsureVideoSurfaceAttached();
+            ResetInactivityTimer();
+            this.Focus(FocusState.Programmatic);
         }
-        catch
-        {
-            // Logging handled in service
-        }
-
-        ResetInactivityTimer();
-        this.Focus(FocusState.Programmatic);
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)

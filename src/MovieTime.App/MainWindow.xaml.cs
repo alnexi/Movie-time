@@ -1,4 +1,5 @@
 using System;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using MovieTime.App.ViewModels;
@@ -27,7 +28,8 @@ public sealed partial class MainWindow : Window
         MoviesViewModel moviesViewModel,
         SettingsViewModel settingsViewModel,
         MovieDetailsViewModel movieDetailsViewModel,
-        PlayerViewModel playerViewModel)
+        PlayerViewModel playerViewModel,
+        MovieTime.App.Common.IDispatcherService? dispatcherService = null)
     {
         HomeViewModel = homeViewModel ?? throw new ArgumentNullException(nameof(homeViewModel));
         MoviesViewModel = moviesViewModel ?? throw new ArgumentNullException(nameof(moviesViewModel));
@@ -36,6 +38,11 @@ public sealed partial class MainWindow : Window
         PlayerViewModel = playerViewModel ?? throw new ArgumentNullException(nameof(playerViewModel));
 
         this.InitializeComponent();
+
+        if (dispatcherService is MovieTime.App.Services.WinUiDispatcherService winUiDispatcher)
+        {
+            winUiDispatcher.SetDispatcherQueue(this.DispatcherQueue);
+        }
 
         // Extend content into title bar for seamless edge-to-edge layout
         this.ExtendsContentIntoTitleBar = true;
@@ -58,6 +65,10 @@ public sealed partial class MainWindow : Window
         MovieDetailsViewModel.PlaybackRequested += OnMovieDetailsPlaybackRequested;
         PlayerViewModel.NavigationRequested += OnNavigationRequested;
         PlayerViewModel.FullscreenToggled += OnFullscreenToggled;
+
+        this.Activated += (s, e) => App.Logger?.LogInformation("MainWindow.Activated: WindowActivationState={State}", e.WindowActivationState);
+        this.VisibilityChanged += (s, e) => App.Logger?.LogInformation("MainWindow.VisibilityChanged: Visible={Visible}", e.Visible);
+        this.Closed += (s, e) => App.Logger?.LogInformation("MainWindow.Closed event fired on MainWindow.");
 
         _ = HomeViewModel.InitializeAsync();
     }
@@ -164,12 +175,21 @@ public sealed partial class MainWindow : Window
 
     public void NavigateToPlayer(string filePath, int? movieId)
     {
+        App.Logger?.LogInformation("NavigateToPlayer start: Collapsing views...");
         MainHomeView.Visibility = Visibility.Collapsed;
         MainMoviesView.Visibility = Visibility.Collapsed;
         MainSettingsView.Visibility = Visibility.Collapsed;
         MainMovieDetailsView.Visibility = Visibility.Collapsed;
+
+        App.Logger?.LogInformation("NavigateToPlayer: Setting MainPlayerView.Visibility = Visible...");
         MainPlayerView.Visibility = Visibility.Visible;
+
+        App.Logger?.LogInformation("NavigateToPlayer: Calling EnsureVideoSurfaceAttached...");
+        MainPlayerView.EnsureVideoSurfaceAttached();
+
+        App.Logger?.LogInformation("NavigateToPlayer: Calling PlayerViewModel.InitializeAsync...");
         _ = PlayerViewModel.InitializeAsync(filePath, movieId);
+        App.Logger?.LogInformation("NavigateToPlayer: Finished dispatching InitializeAsync.");
     }
 
     private void ExitPlayerMode()

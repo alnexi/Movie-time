@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.6.1] - 2026-11-07 (Phase 4.1 Critical Hotfix: Application Startup Failure)
+
+### Fixed
+- **Resolved Fatal Application Startup Crash (`0xc000027b` STATUS_STOWED_EXCEPTION in `Microsoft.UI.Xaml.dll`)**:
+  - **Root Cause 1 — Declarative SwapChainPanel Instantiation**: In `PlayerView.xaml`, `<lvs:VideoView>` (which subclasses WinUI's native `SwapChainPanel`) was declared directly in static XAML markup. During initial `MainWindow.InitializeComponent()`, WinUI 3 attempted to initialize DirectX swapchain surfaces before LibVLC's native unmanaged core was initialized and before an HWND swapchain was created, triggering an uncatchable `RoFailFastWithErrorContext` exception (`E_FAIL 0x80004005`).
+  - **Resolution 1 — Lazy VideoView Lifecycle**: Replaced declarative XAML `<lvs:VideoView>` with a lightweight container `<Grid x:Name="VideoViewContainer">`. Native `VideoView` is now instantiated programmatically on demand in `PlayerView.EnsureVideoSurfaceAttached()`, strictly after `LibVLCSharp.Shared.Core.Initialize()` executes and only when navigating to the player.
+  - **Root Cause 2 — Windows App SDK Version & ABI Downgrade Mismatch**: `MovieTime.App.csproj` had pinned `Microsoft.WindowsAppSDK` to `1.6.250108002`, while `LibVLCSharp.WinUI` 3.10.2 was built against `1.7.250909003` (triggering NuGet warning `NU1605`). Loading `VideoView` compiled for 1.7 into 1.6 binaries caused DirectComposition swapchain ABI incompatibilities.
+  - **Resolution 2 — Package Alignment**: Upgraded `Microsoft.WindowsAppSDK` to `1.7.250909003`, eliminating downgrade warnings and aligning all native WinRT/XAML composition interfaces.
+  - **Root Cause 3 — Cross-Thread UI Invocation (`0x8001010E RPC_E_WRONG_THREAD`)**: LibVLC native event callbacks (`OnLengthChanged`, `OnTimeChanged`, `OnPositionChanged`, etc.) are delivered on unmanaged background threads. Updating UI-bound properties in `PlayerViewModel` fired `PropertyChanged` notifications on worker threads, causing WinUI `{x:Bind}` setters on `TextBlock` to throw `RPC_E_WRONG_THREAD` and terminate CoreCLR with code `0xe0434352`.
+  - **Resolution 3 — Thread-Safe UI Dispatcher**: Introduced `IDispatcherService` and `WinUiDispatcherService` (utilizing `Microsoft.UI.Dispatching.DispatcherQueue`). All LibVLC background event callbacks now safely marshal property changes (`PositionMs`, `DurationMs`, `RemainingTimeDisplay`, `AudioTracks`, `SubtitleTracks`, `IsPlaying`, `HasError`) directly onto the UI thread.
+- **Enhanced Application Startup & Fault Tolerance**:
+  - Added global `AppDomain.CurrentDomain.UnhandledException` handler with automatic Serilog flush.
+  - Added guarded try/catch around `MainWindow` DI resolution and activation with explicit diagnostic logging.
+  - Replaced nested `{Binding ElementName=...}` expressions inside `PlayerView.xaml` audio/subtitle DataTemplates with reliable code-behind click handlers.
+  - Verified sustained process stability for direct execution of `MovieTime.App.exe` and execution through the Desktop shortcut (`C:\Users\Ali\Desktop\Movie Time.lnk`).
+
+---
+
 ## [0.6.0] - 2026-11-06 (Phase 4: Native Cinematic Player + Liquid Glass)
 
 ### Added

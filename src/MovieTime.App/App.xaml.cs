@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
+using MovieTime.App.Common;
 using MovieTime.App.Services;
 using MovieTime.App.ViewModels;
 using MovieTime.Core;
@@ -23,6 +24,11 @@ public partial class App : Application
     private readonly Microsoft.Extensions.Logging.ILogger<App> _logger;
 
     /// <summary>
+    /// Static logger for early diagnostic tracking.
+    /// </summary>
+    public static Microsoft.Extensions.Logging.ILogger? Logger { get; private set; }
+
+    /// <summary>
     /// Gets the current <see cref="App"/> instance in use.
     /// </summary>
     public static new App Current => (App)Application.Current;
@@ -37,9 +43,16 @@ public partial class App : Application
         // 1. Initialize DI and Logging immediately
         Services = ConfigureServices();
         _logger = Services.GetRequiredService<Microsoft.Extensions.Logging.ILogger<App>>();
+        Logger = _logger;
 
-        // 2. Global unhandled exception hook
+        // 2. Global unhandled exception hooks
         this.UnhandledException += OnUnhandledException;
+        AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
+        {
+            var ex = args.ExceptionObject as Exception;
+            _logger.LogCritical(ex, "FATAL AppDomain UnhandledException: {Message}\n{StackTrace}", ex?.Message, ex?.ToString());
+            Log.CloseAndFlush();
+        };
 
         _logger.LogInformation("Movie Time starting up. Version: {Version}, OS: {OS}, Arch: {Arch}",
             AppConstants.ApplicationVersion,
@@ -68,6 +81,7 @@ public partial class App : Application
 #endif
 
         // 3. Presentation Services & Windows
+        services.AddSingleton<IDispatcherService, WinUiDispatcherService>();
         services.AddSingleton<IVlcPlayerService, VlcPlayerService>();
         services.AddTransient<HomeViewModel>();
         services.AddTransient<MoviesViewModel>();
@@ -93,10 +107,21 @@ public partial class App : Application
             _logger.LogCritical(ex, "Failed to initialize local SQLite database during application launch.");
         }
 
-        // Resolve MainWindow from DI container
-        _window = Services.GetRequiredService<MainWindow>();
-        _window.Closed += OnWindowClosed;
-        _window.Activate();
+        try
+        {
+            _logger.LogInformation("Attempting to resolve MainWindow from DI...");
+            _window = Services.GetRequiredService<MainWindow>();
+            _logger.LogInformation("MainWindow resolved successfully. Activating...");
+            _window.Closed += OnWindowClosed;
+            _window.Activate();
+            _logger.LogInformation("MainWindow activated successfully.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogCritical(ex, "FATAL: Failed to resolve or activate MainWindow: {Message}\n{StackTrace}", ex.Message, ex.ToString());
+            Log.CloseAndFlush();
+            throw;
+        }
     }
 
     private async void OnWindowClosed(object sender, WindowEventArgs args)
@@ -120,7 +145,7 @@ public partial class App : Application
 
     private void OnUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
     {
-        _logger.LogCritical(e.Exception, "Unhandled application exception occurred: {Message}", e.Message);
+        _logger.LogCritical(e.Exception, "Unhandled application exception occurred: {Message}\n{StackTrace}", e.Message, e.Exception?.ToString());
         Log.CloseAndFlush();
     }
 }

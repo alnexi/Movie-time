@@ -24,6 +24,7 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
     private readonly IMediaFileRepository _mediaFileRepository;
     private readonly IPlaybackProgressRepository _progressRepository;
     private readonly ILogger<PlayerViewModel> _logger;
+    private readonly IDispatcherService? _dispatcher;
 
     private int _movieId;
     private int _mediaFileId;
@@ -277,13 +278,15 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
         IMovieRepository movieRepository,
         IMediaFileRepository mediaFileRepository,
         IPlaybackProgressRepository progressRepository,
-        ILogger<PlayerViewModel>? logger = null)
+        ILogger<PlayerViewModel>? logger = null,
+        IDispatcherService? dispatcher = null)
     {
         _playerService = playerService ?? throw new ArgumentNullException(nameof(playerService));
         _movieRepository = movieRepository ?? throw new ArgumentNullException(nameof(movieRepository));
         _mediaFileRepository = mediaFileRepository ?? throw new ArgumentNullException(nameof(mediaFileRepository));
         _progressRepository = progressRepository ?? throw new ArgumentNullException(nameof(progressRepository));
         _logger = logger ?? NullLogger<PlayerViewModel>.Instance;
+        _dispatcher = dispatcher;
 
         PlayPauseCommand = new RelayCommand(OnPlayPause);
         SeekForwardCommand = new RelayCommand(() => SeekRelative(10000));
@@ -534,70 +537,100 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
         }
     }
 
+    private void RunOnUi(Action action)
+    {
+        if (_dispatcher != null)
+        {
+            _dispatcher.RunOnUi(action);
+        }
+        else
+        {
+            action();
+        }
+    }
+
     private void OnPlayerStateChanged(PlayerState state)
     {
-        IsPlaying = state == PlayerState.Playing;
-        if (state == PlayerState.Playing)
+        RunOnUi(() =>
         {
-            HasError = false;
-        }
+            IsPlaying = state == PlayerState.Playing;
+            if (state == PlayerState.Playing)
+            {
+                HasError = false;
+            }
+        });
     }
 
     private void OnPlayerPositionChanged(long positionMs, float ratio)
     {
-        PositionMs = positionMs;
-        ProgressRatio = ratio;
-
-        CurrentTimeDisplay = FormatTime(positionMs);
-        if (_durationMs > 0)
+        RunOnUi(() =>
         {
-            var remaining = Math.Max(0, _durationMs - positionMs);
-            RemainingTimeDisplay = $"-{FormatTime(remaining)}";
-        }
+            PositionMs = positionMs;
+            ProgressRatio = ratio;
 
-        // Periodically save progress to database every 5 seconds
-        if ((DateTime.UtcNow - _lastSavedProgressTime).TotalSeconds >= 5)
-        {
-            _ = SaveProgressAsync(isFinished: false);
-        }
+            CurrentTimeDisplay = FormatTime(positionMs);
+            if (_durationMs > 0)
+            {
+                var remaining = Math.Max(0, _durationMs - positionMs);
+                RemainingTimeDisplay = $"-{FormatTime(remaining)}";
+            }
+
+            // Periodically save progress to database every 5 seconds
+            if ((DateTime.UtcNow - _lastSavedProgressTime).TotalSeconds >= 5)
+            {
+                _ = SaveProgressAsync(isFinished: false);
+            }
+        });
     }
 
     private void OnPlayerDurationChanged(long durationMs)
     {
-        DurationMs = durationMs;
-        DurationDisplay = FormatTime(durationMs);
-        var remaining = Math.Max(0, _durationMs - _positionMs);
-        RemainingTimeDisplay = $"-{FormatTime(remaining)}";
+        RunOnUi(() =>
+        {
+            DurationMs = durationMs;
+            DurationDisplay = FormatTime(durationMs);
+            var remaining = Math.Max(0, _durationMs - _positionMs);
+            RemainingTimeDisplay = $"-{FormatTime(remaining)}";
+        });
     }
 
     private void OnPlayerTracksChanged()
     {
-        AudioTracks.Clear();
-        foreach (var a in _playerService.AudioTracks)
+        RunOnUi(() =>
         {
-            AudioTracks.Add(a);
-        }
+            AudioTracks.Clear();
+            foreach (var a in _playerService.AudioTracks)
+            {
+                AudioTracks.Add(a);
+            }
 
-        SubtitleTracks.Clear();
-        foreach (var s in _playerService.SubtitleTracks)
-        {
-            SubtitleTracks.Add(s);
-        }
+            SubtitleTracks.Clear();
+            foreach (var s in _playerService.SubtitleTracks)
+            {
+                SubtitleTracks.Add(s);
+            }
+        });
     }
 
     private void OnPlayerPlaybackError(string message)
     {
-        HasError = true;
-        ErrorMessage = message;
-        IsPlaying = false;
-        IsControlsVisible = true;
+        RunOnUi(() =>
+        {
+            HasError = true;
+            ErrorMessage = message;
+            IsPlaying = false;
+            IsControlsVisible = true;
+        });
     }
 
     private void OnPlayerMediaEnded()
     {
-        _ = SaveProgressAsync(isFinished: true);
-        IsPlaying = false;
-        IsControlsVisible = true;
+        RunOnUi(() =>
+        {
+            _ = SaveProgressAsync(isFinished: true);
+            IsPlaying = false;
+            IsControlsVisible = true;
+        });
     }
 
     public static string FormatTime(long milliseconds)

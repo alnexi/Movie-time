@@ -3,7 +3,7 @@
 > A premium, cinematic, offline-first local media library manager and desktop player for Windows, meticulously inspired by Apple TV's visual language and fluid navigation.
 
 [![.NET](https://img.shields.io/badge/.NET-10.0%20LTS%20(x64)-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
-[![Windows App SDK](https://img.shields.io/badge/WinUI%203-Windows%20App%20SDK%201.6-0078D7?logo=windows)](https://learn.microsoft.com/en-us/windows/apps/winui/winui3/)
+[![Windows App SDK](https://img.shields.io/badge/WinUI%203-Windows%20App%20SDK%201.7-0078D7?logo=windows)](https://learn.microsoft.com/en-us/windows/apps/winui/winui3/)
 [![Tests](https://img.shields.io/badge/Unit%20Tests-194%20Passed-brightgreen)](https://github.com/alnexi/Movie-time)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -115,6 +115,11 @@ Unlike cluttered streaming apps or heavy web-wrapped wrappers, Movie Time is bui
   - `M`: Mute / Unmute.
   - `F` / `Alt+Enter`: Toggle edge-to-edge Fullscreen (`AppWindowPresenterKind.FullScreen`).
   - `Esc` / `Backspace`: Exit player and return seamlessly to Movie Details / Library.
+* **Phase 4.1 Hotfix (v0.6.1)**:
+  - Resolved fatal `0xc000027b` FailFast crash during startup by replacing static XAML `<lvs:VideoView>` markup with lazy programmatic surface attachment upon player navigation.
+  - Aligned `Microsoft.WindowsAppSDK` to `1.7.250909003` to resolve DirectComposition swapchain ABI mismatches.
+  - Implemented `IDispatcherService` and `WinUiDispatcherService` to marshal all unmanaged LibVLC background events to the UI thread, resolving `0x8001010E (RPC_E_WRONG_THREAD)` exceptions.
+  - Verified clean launch via Desktop shortcut and direct binary execution.
 
 ---
 
