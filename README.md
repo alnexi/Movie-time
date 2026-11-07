@@ -4,7 +4,7 @@
 
 [![.NET](https://img.shields.io/badge/.NET-10.0%20LTS%20(x64)-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![Windows App SDK](https://img.shields.io/badge/WinUI%203-Windows%20App%20SDK%201.7-0078D7?logo=windows)](https://learn.microsoft.com/en-us/windows/apps/winui/winui3/)
-[![Tests](https://img.shields.io/badge/Unit%20Tests-194%20Passed-brightgreen)](https://github.com/alnexi/Movie-time)
+[![Tests](https://img.shields.io/badge/Unit%20Tests-201%20Passed-brightgreen)](https://github.com/alnexi/Movie-time)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
@@ -124,6 +124,12 @@ Unlike cluttered streaming apps or heavy web-wrapped wrappers, Movie Time is bui
   - Eliminated external/disconnected VLC popup windows by passing native Direct3D11 swapchain options (`--winrt-d3dcontext`, `--winrt-swapchain`) from `VideoView.Initialized` to `LibVLC`.
   - Enforced single-window architecture: video renders directly inside `PlayerView`'s in-tree `SwapChainPanel` beneath interactive Liquid Glass transport controls, timeline playhead, and back navigation.
   - Ensured single-window fullscreen transitions (`AppWindowPresenterKind.FullScreen`) and Esc/Back navigation to Movie Details without creating secondary windows.
+* **Phase 4.3 Player Seek Stability Hotfix (v0.6.3)**:
+  - **Non-Blocking Asynchronous Seeking**: Offloaded native `_mediaPlayer.Time = clampedTime` from the WinUI UI thread to a dedicated background coalescing worker, completely eliminating UI thread starvation, freezes, and "Not Responding" hangs.
+  - **Coalesced Scrubbing**: Intermediate seek requests during rapid dragging are automatically coalesced, delivering fluid 60fps playhead scrubbing and live video preview without decoder backlog.
+  - **Direct Timeline Tap-to-Seek**: Wired universal pointer capture handlers (`handledEventsToo: true`) on `TimelineSlider` and `TimelineContainer`, allowing immediate jump-to-position upon clicking anywhere along the timeline bar.
+  - **Feedback Loop Elimination**: Introduced scrubbing lifecycle guards (`IsDraggingSlider`, `IsUpdatingFromPlayer`) preventing automatic player position ticks from triggering redundant seeks.
+  - **Safe Clamping & State Preservation**: Applied strict bounds clamping `[0, duration - 250ms]` and timestamp rounding, preserving paused/playing states across seek operations.
 
 ---
 

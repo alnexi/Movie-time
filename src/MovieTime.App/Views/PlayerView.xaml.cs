@@ -48,6 +48,33 @@ public sealed partial class PlayerView : UserControl
         this.PointerMoved += OnPointerMoved;
         this.PointerPressed += OnPointerPressed;
         this.KeyDown += OnKeyDown;
+
+        // Register timeline pointer handlers with handledEventsToo: true
+        // This ensures scrubbing and clicking are reliably captured even when internal Slider parts handle events
+        TimelineSlider.AddHandler(
+            UIElement.PointerPressedEvent,
+            new PointerEventHandler(OnTimelinePointerPressed),
+            handledEventsToo: true);
+
+        TimelineSlider.AddHandler(
+            UIElement.PointerMovedEvent,
+            new PointerEventHandler(OnTimelinePointerMoved),
+            handledEventsToo: true);
+
+        TimelineSlider.AddHandler(
+            UIElement.PointerReleasedEvent,
+            new PointerEventHandler(OnTimelinePointerReleased),
+            handledEventsToo: true);
+
+        TimelineSlider.AddHandler(
+            UIElement.PointerCaptureLostEvent,
+            new PointerEventHandler(OnTimelinePointerCaptureLost),
+            handledEventsToo: true);
+
+        TimelineContainer.AddHandler(
+            UIElement.PointerPressedEvent,
+            new PointerEventHandler(OnTimelinePointerPressed),
+            handledEventsToo: true);
     }
 
     private static void OnViewModelPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -202,19 +229,90 @@ public sealed partial class PlayerView : UserControl
         }
     }
 
-    private void TimelineSlider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
+    private void OnTimelinePointerPressed(object sender, PointerRoutedEventArgs e)
     {
-        if (TimelineSlider.FocusState != FocusState.Unfocused && ReferenceEquals(FocusManager.GetFocusedElement(this.XamlRoot), TimelineSlider))
+        var point = e.GetCurrentPoint(TimelineSlider);
+        if (point.Properties.IsLeftButtonPressed && TimelineSlider.ActualWidth > 0)
         {
             _isUserDraggingSlider = true;
-            ViewModel?.SeekToRatio(e.NewValue);
+            TimelineSlider.CapturePointer(e.Pointer);
+
+            double ratio = Math.Clamp(point.Position.X / TimelineSlider.ActualWidth, 0.0, 1.0);
+            TimelineSlider.Value = ratio;
+
+            ViewModel?.BeginSeek();
+            ViewModel?.SeekPreview(ratio);
+            ResetInactivityTimer();
+            e.Handled = true;
+        }
+    }
+
+    private void OnTimelinePointerMoved(object sender, PointerRoutedEventArgs e)
+    {
+        if (_isUserDraggingSlider && TimelineSlider.ActualWidth > 0)
+        {
+            var point = e.GetCurrentPoint(TimelineSlider);
+            double ratio = Math.Clamp(point.Position.X / TimelineSlider.ActualWidth, 0.0, 1.0);
+            TimelineSlider.Value = ratio;
+
+            ViewModel?.SeekPreview(ratio);
+            ResetInactivityTimer();
+            e.Handled = true;
+        }
+    }
+
+    private void OnTimelinePointerReleased(object sender, PointerRoutedEventArgs e)
+    {
+        if (_isUserDraggingSlider)
+        {
+            _isUserDraggingSlider = false;
+            try
+            {
+                TimelineSlider.ReleasePointerCapture(e.Pointer);
+            }
+            catch
+            {
+                // Best effort release
+            }
+
+            if (TimelineSlider.ActualWidth > 0)
+            {
+                var point = e.GetCurrentPoint(TimelineSlider);
+                double ratio = Math.Clamp(point.Position.X / TimelineSlider.ActualWidth, 0.0, 1.0);
+                TimelineSlider.Value = ratio;
+                ViewModel?.EndSeek(ratio);
+            }
+            else
+            {
+                ViewModel?.EndSeek(TimelineSlider.Value);
+            }
+
+            ResetInactivityTimer();
+            e.Handled = true;
+        }
+    }
+
+    private void OnTimelinePointerCaptureLost(object sender, PointerRoutedEventArgs e)
+    {
+        if (_isUserDraggingSlider)
+        {
+            _isUserDraggingSlider = false;
+            ViewModel?.EndSeek(TimelineSlider.Value);
             ResetInactivityTimer();
         }
     }
 
-    private void TimelineSlider_PointerCaptureLost(object sender, PointerRoutedEventArgs e)
+    private void TimelineSlider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
     {
-        _isUserDraggingSlider = false;
-        ResetInactivityTimer();
+        // Only trigger seek from ValueChanged if NOT actively handled by pointer drag/click
+        // and NOT caused by background playback position updates from LibVLC
+        if (!_isUserDraggingSlider && ViewModel != null && !ViewModel.IsUpdatingFromPlayer)
+        {
+            if (Math.Abs(e.NewValue - ViewModel.ProgressRatio) > 0.001)
+            {
+                ViewModel.SeekToRatio(e.NewValue);
+                ResetInactivityTimer();
+            }
+        }
     }
 }

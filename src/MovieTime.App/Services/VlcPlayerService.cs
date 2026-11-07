@@ -19,6 +19,9 @@ public sealed class VlcPlayerService : IVlcPlayerService
 {
     private readonly ILogger<VlcPlayerService> _logger;
     private readonly object _lock = new();
+    private readonly object _seekLock = new();
+    private long _pendingSeekTimeMs = -1;
+    private bool _isSeekWorkerRunning;
 
     private LibVLC? _libVlc;
     private MediaPlayer? _mediaPlayer;
@@ -293,6 +296,11 @@ public sealed class VlcPlayerService : IVlcPlayerService
                 return false;
             }
 
+            lock (_seekLock)
+            {
+                _pendingSeekTimeMs = -1;
+            }
+
             State = PlayerState.Opening;
 
             // Stop previous media if any
@@ -382,6 +390,11 @@ public sealed class VlcPlayerService : IVlcPlayerService
 
     public void Stop()
     {
+        lock (_seekLock)
+        {
+            _pendingSeekTimeMs = -1;
+        }
+
         if (_mediaPlayer != null)
         {
             _mediaPlayer.Stop();
@@ -391,18 +404,72 @@ public sealed class VlcPlayerService : IVlcPlayerService
 
     public void Seek(long positionMs)
     {
-        if (_mediaPlayer == null || _durationMs <= 0) return;
-        var clampedTime = Math.Clamp(positionMs, 0, _durationMs);
-        _mediaPlayer.Time = clampedTime;
+        if (_isDisposed || _mediaPlayer == null || _durationMs <= 0) return;
+
+        // Clamp safely between [0, duration - 250ms] to avoid EOF hanging
+        var maxSeekable = Math.Max(0, _durationMs - 250);
+        var clampedTime = Math.Clamp(positionMs, 0, maxSeekable);
+
+        // Optimistically update position cache immediately
         _positionMs = clampedTime;
-        _positionRatio = (float)clampedTime / _durationMs;
-        PositionChanged?.Invoke(_positionMs, _positionRatio);
+        _positionRatio = _durationMs > 0 ? (float)clampedTime / _durationMs : 0f;
+
+        lock (_seekLock)
+        {
+            _pendingSeekTimeMs = clampedTime;
+            if (!_isSeekWorkerRunning)
+            {
+                _isSeekWorkerRunning = true;
+                _ = Task.Run(ProcessPendingSeeksAsync);
+            }
+        }
+    }
+
+    private async Task ProcessPendingSeeksAsync()
+    {
+        while (true)
+        {
+            long targetMs;
+            lock (_seekLock)
+            {
+                if (_pendingSeekTimeMs < 0 || _mediaPlayer == null || _isDisposed)
+                {
+                    _isSeekWorkerRunning = false;
+                    _pendingSeekTimeMs = -1;
+                    return;
+                }
+
+                targetMs = _pendingSeekTimeMs;
+                _pendingSeekTimeMs = -1;
+            }
+
+            try
+            {
+                if (_mediaPlayer != null && !_isDisposed)
+                {
+                    _mediaPlayer.Time = targetMs;
+                    _positionMs = targetMs;
+                    if (_durationMs > 0)
+                    {
+                        _positionRatio = (float)targetMs / _durationMs;
+                    }
+                    PositionChanged?.Invoke(_positionMs, _positionRatio);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Background LibVLC seek to {TargetMs}ms failed.", targetMs);
+            }
+
+            // Brief throttle window (35ms) to let decoder settle and allow coalescing of rapid slider events
+            await Task.Delay(35).ConfigureAwait(false);
+        }
     }
 
     public void SeekRelative(long deltaMs)
     {
-        if (_mediaPlayer == null) return;
-        var currentTime = _mediaPlayer.Time;
+        if (_isDisposed || _mediaPlayer == null || _durationMs <= 0) return;
+        var currentTime = _positionMs;
         var targetTime = currentTime + deltaMs;
         Seek(targetTime);
     }
@@ -561,6 +628,11 @@ public sealed class VlcPlayerService : IVlcPlayerService
         {
             if (_isDisposed) return;
             _isDisposed = true;
+
+            lock (_seekLock)
+            {
+                _pendingSeekTimeMs = -1;
+            }
 
             try
             {

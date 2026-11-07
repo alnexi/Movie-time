@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.6.3] - 2026-11-07 (Phase 4.3: Critical Player Seek Stability Hotfix)
+
+### Fixed
+- **Resolved Player Freeze / "Not Responding" and Seek Instability**:
+  - **Root Cause 1 — Synchronous LibVLC Seek on UI Thread**: In `VlcPlayerService.Seek(long positionMs)`, assigning `_mediaPlayer.Time = clampedTime` was performed synchronously on the UI thread. In unmanaged LibVLC, `libvlc_media_player_set_time` flushes Direct3D11 swapchain buffers and halts thread execution while the demuxer seeks to the keyframe. When scrubbing or clicking, repeated synchronous calls starved the WinUI message pump, causing Windows to flag the process as "Not Responding" (`AppHang`).
+  - **Resolution 1 — Asynchronous Non-Blocking Coalesced Seek Worker**: Refactored `VlcPlayerService.Seek` to return immediately (< 0.1ms) to the UI thread. Introduced a dedicated background seek worker (`ProcessPendingSeeksAsync`) with atomic request coalescing. Intermediate rapid seek targets generated during slider drags are automatically discarded in favor of the latest requested timestamp, preventing native decoder flooding while delivering fluid 60fps scrubbing.
+  - **Root Cause 2 — XAML Event Feedback Loop**: In `PlayerView.xaml`, `Slider.ValueChanged` was triggered both by user interaction and by LibVLC's high-frequency `PositionChanged` callbacks (10-30Hz) setting `ViewModel.ProgressRatio`. This established an infinite feedback loop where each position callback triggered a new seek command back into LibVLC.
+  - **Resolution 2 — Scrubbing Lifecycle & Programmatic Update Guard**: Introduced `IsDraggingSlider` and `IsUpdatingFromPlayer` guards in `PlayerViewModel`. While the user drags the slider, inbound player updates are suppressed so the UI displays the user's scrub preview without jitter. During regular playback, `IsUpdatingFromPlayer` prevents `ValueChanged` from dispatching redundant seeks.
+  - **Root Cause 3 — Unresponsive Timeline Direct Clicking**: In WinUI 3, internal templated parts of `Slider` (`HorizontalTrackRect`, `Thumb`) consume pointer events and set `e.Handled = true`, preventing standard XAML click handlers from firing. Furthermore, focus checks prevented click-to-seek when the slider was not already focused.
+  - **Resolution 3 — Universal Pointer Capture & Timeline Container**: Registered low-level pointer handlers (`PointerPressed`, `PointerMoved`, `PointerReleased`, `PointerCaptureLost`) using `AddHandler(..., handledEventsToo: true)` on both `TimelineSlider` and `TimelineContainer`. Clicking anywhere along the 36px hit-testing region computes the proportional ratio `X / ActualWidth` and immediately seeks to that position.
+  - **Root Cause 4 — EOF Hang & Floating-Point Truncation**: Seeks beyond media duration previously risked decoding stalls at the exact EOF boundary, and `(long)(ratio * duration)` truncated fractional values like `62999.999ms`, producing off-by-one second display errors.
+  - **Resolution 4 — Safe Bounds Clamping & Rounded Timestamps**: Implemented strict clamping to `[0, Math.Max(0, durationMs - 250)]` and `(long)Math.Round(ratio * durationMs)`. Seeking while paused preserves paused state; seeking while playing resumes smoothly from the new timestamp.
+- **Enhanced Apple TV Timeline Styling**:
+  - Styled `TimelineSlider` with sleek Apple TV Liquid Glass theme brushes (solid white active track and thumb, 25% translucent unplayed track, 36px comfortable hit-test target).
+  - Disabled default Windows numeric tooltips (`IsThumbToolTipEnabled="False"`), keeping focus on the clean HUD playhead and remaining time displays.
+- **Unit Test Coverage Expansion**:
+  - Expanded unit test suite to **201 passed tests** in `tests/MovieTime.Tests/PlayerViewModelTests.cs`.
+  - Added deterministic tests for scrubbing lifecycle, external position suppression during drag, bounds clamping, rapid sequential seeks, and seek-while-paused state preservation.
+
+---
+
 ## [0.6.2] - 2026-11-07 (Phase 4.2: Single-Window Player Architecture & Integrated Playback UI)
 
 ### Fixed

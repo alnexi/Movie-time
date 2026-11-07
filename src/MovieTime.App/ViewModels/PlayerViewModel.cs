@@ -47,6 +47,11 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
     private bool _isFullscreen;
     private bool _hasError;
     private string? _errorMessage;
+    private bool _isDraggingSlider;
+    private bool _isUpdatingFromPlayer;
+
+    public bool IsDraggingSlider => _isDraggingSlider;
+    public bool IsUpdatingFromPlayer => _isUpdatingFromPlayer;
 
     // Info card metadata
     private string? _resolutionDisplay;
@@ -439,19 +444,70 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
         _playerService.TogglePlayPause();
     }
 
-    public void SeekRelative(long deltaMs)
+    public void BeginSeek()
     {
-        _playerService.SeekRelative(deltaMs);
+        _isDraggingSlider = true;
         TriggerInteraction();
+    }
+
+    public void SeekPreview(double ratio)
+    {
+        _isDraggingSlider = true;
+        ratio = Math.Clamp(ratio, 0.0, 1.0);
+        ProgressRatio = ratio;
+
+        if (_durationMs > 0)
+        {
+            var previewMs = (long)Math.Round(ratio * _durationMs);
+            PositionMs = previewMs;
+            CurrentTimeDisplay = FormatTime(previewMs);
+            var remaining = Math.Max(0, _durationMs - previewMs);
+            RemainingTimeDisplay = $"-{FormatTime(remaining)}";
+
+            // Fluid live video scrubbing via non-blocking coalesced background seek
+            _playerService.Seek(previewMs);
+        }
+
+        TriggerInteraction();
+    }
+
+    public void EndSeek(double ratio)
+    {
+        _isDraggingSlider = false;
+        SeekToRatio(ratio);
     }
 
     public void SeekToRatio(double ratio)
     {
+        ratio = Math.Clamp(ratio, 0.0, 1.0);
+        ProgressRatio = ratio;
+
         if (_durationMs > 0)
         {
-            var targetMs = (long)(Math.Clamp(ratio, 0.0, 1.0) * _durationMs);
+            var targetMs = (long)Math.Round(ratio * _durationMs);
+            PositionMs = targetMs;
+            CurrentTimeDisplay = FormatTime(targetMs);
+            var remaining = Math.Max(0, _durationMs - targetMs);
+            RemainingTimeDisplay = $"-{FormatTime(remaining)}";
             _playerService.Seek(targetMs);
         }
+
+        TriggerInteraction();
+    }
+
+    public void SeekRelative(long deltaMs)
+    {
+        if (_durationMs > 0)
+        {
+            var newPos = Math.Clamp(_positionMs + deltaMs, 0, _durationMs);
+            PositionMs = newPos;
+            CurrentTimeDisplay = FormatTime(newPos);
+            var remaining = Math.Max(0, _durationMs - newPos);
+            RemainingTimeDisplay = $"-{FormatTime(remaining)}";
+            ProgressRatio = (double)newPos / _durationMs;
+        }
+
+        _playerService.SeekRelative(deltaMs);
         TriggerInteraction();
     }
 
@@ -566,17 +622,29 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
         RunOnUi(() =>
         {
             PositionMs = positionMs;
-            ProgressRatio = ratio;
 
-            CurrentTimeDisplay = FormatTime(positionMs);
-            if (_durationMs > 0)
+            // When user is actively dragging the slider, do not overwrite the user's drag preview!
+            if (!_isDraggingSlider)
             {
-                var remaining = Math.Max(0, _durationMs - positionMs);
-                RemainingTimeDisplay = $"-{FormatTime(remaining)}";
+                _isUpdatingFromPlayer = true;
+                try
+                {
+                    ProgressRatio = ratio;
+                    CurrentTimeDisplay = FormatTime(positionMs);
+                    if (_durationMs > 0)
+                    {
+                        var remaining = Math.Max(0, _durationMs - positionMs);
+                        RemainingTimeDisplay = $"-{FormatTime(remaining)}";
+                    }
+                }
+                finally
+                {
+                    _isUpdatingFromPlayer = false;
+                }
             }
 
-            // Periodically save progress to database every 5 seconds
-            if ((DateTime.UtcNow - _lastSavedProgressTime).TotalSeconds >= 5)
+            // Periodically save progress to database every 5 seconds (only when playing and not dragging)
+            if (!_isDraggingSlider && (DateTime.UtcNow - _lastSavedProgressTime).TotalSeconds >= 5)
             {
                 _ = SaveProgressAsync(isFinished: false);
             }

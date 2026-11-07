@@ -262,18 +262,34 @@
                     </StackPanel>
                 </Grid>
 
-                <!-- B. Scrubber Timeline Bar (Full-Width Sleek Horizontal Bar) -->
-                <Grid Height="24" VerticalAlignment="Center">
+                <!-- B. Scrubber Timeline Bar (Apple TV Minimal Liquid Glass Progress Bar) -->
+                <Grid x:Name="TimelineContainer"
+                      Height="36"
+                      VerticalAlignment="Center"
+                      Background="Transparent">
                     <Slider x:Name="TimelineSlider"
                             Minimum="0"
                             Maximum="1"
-                            StepFrequency="0.001"
+                            StepFrequency="0.0001"
                             Value="{x:Bind ViewModel.ProgressRatio, Mode=OneWay}"
                             HorizontalAlignment="Stretch"
                             VerticalAlignment="Center"
-                            Height="24"
-                            ValueChanged="TimelineSlider_ValueChanged"
-                            PointerCaptureLost="TimelineSlider_PointerCaptureLost" />
+                            Height="36"
+                            IsThumbToolTipEnabled="False"
+                            ValueChanged="TimelineSlider_ValueChanged">
+                        <Slider.Resources>
+                            <!-- Sleek Apple TV Liquid Glass White Track & Thumb Colors -->
+                            <SolidColorBrush x:Key="SliderTrackFill" Color="#40FFFFFF" />
+                            <SolidColorBrush x:Key="SliderTrackFillPointerOver" Color="#55FFFFFF" />
+                            <SolidColorBrush x:Key="SliderTrackFillPressed" Color="#66FFFFFF" />
+                            <SolidColorBrush x:Key="SliderTrackValueFill" Color="#FFFFFFFF" />
+                            <SolidColorBrush x:Key="SliderTrackValueFillPointerOver" Color="#FFFFFFFF" />
+                            <SolidColorBrush x:Key="SliderTrackValueFillPressed" Color="#FFFFFFFF" />
+                            <SolidColorBrush x:Key="SliderThumbBackground" Color="#FFFFFFFF" />
+                            <SolidColorBrush x:Key="SliderThumbBackgroundPointerOver" Color="#FFFFFFFF" />
+                            <SolidColorBrush x:Key="SliderThumbBackgroundPressed" Color="#EAEAEA" />
+                        </Slider.Resources>
+                    </Slider>
                 </Grid>
 
                 <!-- C. Playhead Indicators & Bottom Action Pills Row -->
