@@ -6,6 +6,7 @@ namespace MovieTime.App.ViewModels;
 
 /// <summary>
 /// Presentation model for an individual 16:9 cinematic media card in a content row.
+/// Supports genuine backdrop/poster/position artwork, hover preview metadata, and navigation commands.
 /// </summary>
 public sealed class MediaCardViewModel : ObservableObject
 {
@@ -13,8 +14,18 @@ public sealed class MediaCardViewModel : ObservableObject
     private double? _progressPercentage;
     private string? _posterPath;
     private string? _backdropPath;
+    private string? _positionThumbnailPath;
 
     public int Id { get; set; }
+    public int? MovieId { get; set; }
+    public int? MediaFileId { get; set; }
+    public string? FilePath { get; set; }
+    public long FileSizeBytes { get; set; }
+    public DateTime? FileModifiedUtc { get; set; }
+    public long? PositionTicks { get; set; }
+    public long? DurationTicks { get; set; }
+    public long PositionSeconds => PositionTicks.HasValue ? (long)TimeSpan.FromTicks(PositionTicks.Value).TotalSeconds : 0;
+
     public string Title { get; set; } = string.Empty;
     public string Subtitle { get; set; } = string.Empty;
 
@@ -26,6 +37,8 @@ public sealed class MediaCardViewModel : ObservableObject
             if (SetProperty(ref _posterPath, value))
             {
                 OnPropertyChanged(nameof(HasPoster));
+                OnPropertyChanged(nameof(DisplayArtworkPath));
+                OnPropertyChanged(nameof(HasArtwork));
                 OnPropertyChanged(nameof(NeedsFallback));
             }
         }
@@ -39,6 +52,23 @@ public sealed class MediaCardViewModel : ObservableObject
             if (SetProperty(ref _backdropPath, value))
             {
                 OnPropertyChanged(nameof(HasBackdrop));
+                OnPropertyChanged(nameof(DisplayArtworkPath));
+                OnPropertyChanged(nameof(HasArtwork));
+                OnPropertyChanged(nameof(NeedsFallback));
+            }
+        }
+    }
+
+    public string? PositionThumbnailPath
+    {
+        get => _positionThumbnailPath;
+        set
+        {
+            if (SetProperty(ref _positionThumbnailPath, value))
+            {
+                OnPropertyChanged(nameof(HasPositionThumbnail));
+                OnPropertyChanged(nameof(DisplayArtworkPath));
+                OnPropertyChanged(nameof(HasArtwork));
                 OnPropertyChanged(nameof(NeedsFallback));
             }
         }
@@ -46,7 +76,14 @@ public sealed class MediaCardViewModel : ObservableObject
 
     public bool HasPoster => !string.IsNullOrWhiteSpace(PosterPath);
     public bool HasBackdrop => !string.IsNullOrWhiteSpace(BackdropPath);
-    public bool NeedsFallback => !HasBackdrop && !HasPoster;
+    public bool HasPositionThumbnail => !string.IsNullOrWhiteSpace(PositionThumbnailPath);
+
+    /// <summary>
+    /// Prefer genuine position thumbnail (for Continue Watching), then backdrop, then poster.
+    /// </summary>
+    public string? DisplayArtworkPath => PositionThumbnailPath ?? BackdropPath ?? PosterPath;
+    public bool HasArtwork => !string.IsNullOrWhiteSpace(DisplayArtworkPath);
+    public bool NeedsFallback => !HasArtwork;
 
     public void UpdateArtwork(string? posterPath, string? backdropPath)
     {
@@ -83,5 +120,18 @@ public sealed class MediaCardViewModel : ObservableObject
     public bool IsEpisode { get; set; }
     public bool IsSample { get; set; }
 
+    /// <summary>
+    /// Invoked when the card is clicked or selected (opens Movie Details for that movie).
+    /// </summary>
     public ICommand? SelectCommand { get; set; }
+
+    /// <summary>
+    /// Invoked when the user triggers direct playback/resume from Home (resumes at saved position).
+    /// </summary>
+    public ICommand? PlayCommand { get; set; }
+
+    /// <summary>
+    /// Explicit command to navigate to Movie Details.
+    /// </summary>
+    public ICommand? DetailsCommand { get; set; }
 }

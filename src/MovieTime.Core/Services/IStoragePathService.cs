@@ -37,6 +37,11 @@ public interface IStoragePathService
     string ThumbnailsDirectory { get; }
 
     /// <summary>
+    /// Gets the directory where hover preview frames are cached.
+    /// </summary>
+    string PreviewsDirectory { get; }
+
+    /// <summary>
     /// Gets the directory where application log files are stored.
     /// </summary>
     string LogsDirectory { get; }

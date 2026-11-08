@@ -12,6 +12,7 @@ public sealed class StoragePathService : IStoragePathService
     public string PostersDirectory => Path.Combine(RootDataPath, "Artwork", "Posters");
     public string BackdropsDirectory => Path.Combine(RootDataPath, "Artwork", "Backdrops");
     public string ThumbnailsDirectory => Path.Combine(RootDataPath, "Artwork", "Thumbnails");
+    public string PreviewsDirectory => Path.Combine(RootDataPath, "Artwork", "Previews");
     public string LogsDirectory => Path.Combine(RootDataPath, "Logs");
     public string ConfigDirectory => Path.Combine(RootDataPath, "Config");
     public string NamingPatternsFilePath => Path.Combine(ConfigDirectory, "naming_patterns.json");
@@ -31,6 +32,7 @@ public sealed class StoragePathService : IStoragePathService
         Directory.CreateDirectory(PostersDirectory);
         Directory.CreateDirectory(BackdropsDirectory);
         Directory.CreateDirectory(ThumbnailsDirectory);
+        Directory.CreateDirectory(PreviewsDirectory);
         Directory.CreateDirectory(LogsDirectory);
         Directory.CreateDirectory(ConfigDirectory);
         Directory.CreateDirectory(TempDirectory);

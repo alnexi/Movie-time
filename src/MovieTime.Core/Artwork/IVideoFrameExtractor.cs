@@ -14,4 +14,20 @@ public interface IVideoFrameExtractor
         string filePath,
         long durationMs,
         CancellationToken cancellationToken = default);
+
+    Task<CandidateVideoFrame?> ExtractFrameAtTimeAsync(
+        string filePath,
+        TimeSpan timestamp,
+        int targetWidth = 520,
+        int targetHeight = 292,
+        CancellationToken cancellationToken = default) => Task.FromResult<CandidateVideoFrame?>(null);
+
+    Task<IReadOnlyList<CandidateVideoFrame>> ExtractFramesAroundTimeAsync(
+        string filePath,
+        TimeSpan startTime,
+        int frameCount,
+        TimeSpan interval,
+        int targetWidth = 520,
+        int targetHeight = 292,
+        CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<CandidateVideoFrame>>(Array.Empty<CandidateVideoFrame>());
 }

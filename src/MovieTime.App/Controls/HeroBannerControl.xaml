@@ -8,10 +8,14 @@
     mc:Ignorable="d"
     d:DataContext="{d:DesignInstance Type=vm:HeroBannerViewModel}">
 
-    <Grid Height="480" Background="#0A0A0C">
+    <Grid x:Name="RootHeroGrid" Height="480" Background="#0A0A0C"
+          PointerEntered="OnHeroPointerEntered"
+          PointerExited="OnHeroPointerExited">
         <!-- 1. Cinematic Backdrop Canvas -->
-        <Grid>
-            <!-- Rich Ambient Dark Gradient (Cinematic lighting reminiscent of Screenshot 1) -->
+        <Grid x:Name="BackdropCanvas"
+              Background="Transparent"
+              PointerPressed="OnTitleOrBackdropPressed">
+            <!-- Rich Ambient Dark Gradient (Cinematic lighting) -->
             <Border>
                 <Border.Background>
                     <RadialGradientBrush Center="0.65,0.45" GradientOrigin="0.65,0.45" RadiusX="0.85" RadiusY="0.75">
@@ -40,7 +44,7 @@
                    Visibility="{x:Bind ViewModel.HasBackdrop, Mode=OneWay}" />
 
             <!-- Left Vignette Gradient: Guarantees title readability -->
-            <Border>
+            <Border IsHitTestVisible="False">
                 <Border.Background>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
                         <GradientStop Color="#F00A0A0C" Offset="0" />
@@ -51,7 +55,7 @@
             </Border>
 
             <!-- Bottom Vignette Gradient: Seamless fade into content rows below -->
-            <Border>
+            <Border IsHitTestVisible="False">
                 <Border.Background>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
                         <GradientStop Color="#000A0A0C" Offset="0.55" />
@@ -63,15 +67,16 @@
         </Grid>
 
         <!-- 2. Hero Content Overlay -->
-        <Grid Margin="48,80,48,36">
-            <StackPanel VerticalAlignment="Bottom" MaxWidth="560" Spacing="14" HorizontalAlignment="Left">
-                <!-- Hero Title -->
+        <Grid Margin="48,80,48,36" IsHitTestVisible="True">
+            <StackPanel VerticalAlignment="Bottom" MaxWidth="580" Spacing="14" HorizontalAlignment="Left">
+                <!-- Hero Title (Clicking opens details) -->
                 <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}"
                            FontSize="40"
                            FontWeight="Black"
                            Foreground="#FFFFFF"
                            TextWrapping="Wrap"
-                           MaxLines="2" />
+                           MaxLines="2"
+                           PointerPressed="OnTitleOrBackdropPressed" />
 
                 <!-- Genre & Metadata Badges -->
                 <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
@@ -81,7 +86,7 @@
                                Foreground="#CCCCCC"
                                VerticalAlignment="Center" />
 
-                    <!-- Rating Badge (e.g. [R]) -->
+                    <!-- Rating / Year Badge -->
                     <Border Visibility="{x:Bind ViewModel.HasRatingBadge, Mode=OneWay}"
                             BorderBrush="#8E8E93"
                             BorderThickness="1"
@@ -94,7 +99,7 @@
                                    Foreground="#C7C7CC" />
                     </Border>
 
-                    <!-- Quality Badge (e.g. 4K HDR) -->
+                    <!-- Quality Badge (e.g. 1080p, 4K) -->
                     <Border Visibility="{x:Bind ViewModel.HasQualityBadge, Mode=OneWay}"
                             BorderBrush="#8E8E93"
                             BorderThickness="1"
@@ -108,7 +113,7 @@
                     </Border>
                 </StackPanel>
 
-                <!-- Description / Cast -->
+                <!-- Description / Edition -->
                 <TextBlock Text="{x:Bind ViewModel.Description, Mode=OneWay}"
                            FontSize="14"
                            Foreground="#B0B0B8"
@@ -116,40 +121,66 @@
                            MaxLines="2"
                            LineHeight="20" />
 
-                <!-- Action Button: Apple TV Signature White Capsule Pill -->
-                <Button Command="{x:Bind ViewModel.ActionCommand, Mode=OneWay}"
-                        Background="#FFFFFF"
-                        Foreground="#000000"
-                        CornerRadius="18"
-                        Padding="24,10"
-                        FontWeight="SemiBold"
-                        FontSize="14"
-                        BorderThickness="0"
-                        Margin="0,4,0,0">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon Glyph="&#xE768;" FontSize="13" />
-                        <TextBlock Text="{x:Bind ViewModel.ActionButtonText, Mode=OneWay}" />
-                    </StackPanel>
-                </Button>
+                <!-- Dual Action Buttons: Play Movie & Details -->
+                <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,6,0,0">
+                    <!-- Primary Play Button: Apple TV Signature White Capsule Pill -->
+                    <Button Command="{x:Bind ViewModel.PlayCommand, Mode=OneWay}"
+                            Background="#FFFFFF"
+                            Foreground="#000000"
+                            CornerRadius="18"
+                            Padding="24,10"
+                            FontWeight="SemiBold"
+                            FontSize="14"
+                            BorderThickness="0">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE768;" FontSize="13" />
+                            <TextBlock Text="{x:Bind ViewModel.ActionButtonText, Mode=OneWay}" />
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Secondary Details Button -->
+                    <Button Command="{x:Bind ViewModel.DetailsCommand, Mode=OneWay}"
+                            Background="#30FFFFFF"
+                            Foreground="#FFFFFF"
+                            CornerRadius="18"
+                            Padding="20,10"
+                            FontWeight="Medium"
+                            FontSize="14"
+                            BorderThickness="1"
+                            BorderBrush="#40FFFFFF">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE946;" FontSize="13" />
+                            <TextBlock Text="Details" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
             </StackPanel>
 
-            <!-- 3. Apple TV Centered Carousel Dots -->
-            <StackPanel Orientation="Horizontal"
-                        Spacing="6"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Bottom"
-                        Margin="0,0,0,4">
-                <!-- Active dot capsule -->
-                <Border Width="18" Height="4" CornerRadius="2" Background="#FFFFFF" />
-                <!-- Inactive dots -->
-                <Border Width="4" Height="4" CornerRadius="2" Background="#50FFFFFF" />
-                <Border Width="4" Height="4" CornerRadius="2" Background="#50FFFFFF" />
-                <Border Width="4" Height="4" CornerRadius="2" Background="#50FFFFFF" />
-                <Border Width="4" Height="4" CornerRadius="2" Background="#50FFFFFF" />
-                <Border Width="4" Height="4" CornerRadius="2" Background="#50FFFFFF" />
-                <Border Width="4" Height="4" CornerRadius="2" Background="#50FFFFFF" />
-                <Border Width="4" Height="4" CornerRadius="2" Background="#50FFFFFF" />
-            </StackPanel>
+            <!-- 3. Dynamic Interactive Carousel Dots -->
+            <ItemsControl ItemsSource="{x:Bind ViewModel.Dots, Mode=OneWay}"
+                          Visibility="{x:Bind ViewModel.HasMultipleItems, Mode=OneWay}"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Bottom"
+                          Margin="0,0,0,8">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" Spacing="6" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:HeroDotViewModel">
+                        <Button Command="{x:Bind SelectCommand, Mode=OneWay}"
+                                Padding="0" Margin="0" MinWidth="0" MinHeight="0"
+                                BorderThickness="0" Background="Transparent">
+                            <Border Width="{x:Bind Width, Mode=OneWay}"
+                                    Height="4"
+                                    CornerRadius="2"
+                                    Background="#FFFFFF"
+                                    Opacity="{x:Bind Opacity, Mode=OneWay}" />
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
         </Grid>
     </Grid>
 </UserControl>

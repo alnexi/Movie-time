@@ -67,6 +67,12 @@ public sealed class ArtworkStorageService : IArtworkStorageService
     public string GetThumbnailPath(string fileHash) =>
         Path.Combine(_storagePathService.ThumbnailsDirectory, $"thumb_{fileHash}.jpg");
 
+    public string GetPositionThumbnailPath(string fileHash, long positionSeconds) =>
+        Path.Combine(_storagePathService.ThumbnailsDirectory, $"pos_{fileHash}_{positionSeconds}.jpg");
+
+    public string GetPreviewFramePath(string fileHash, long positionSeconds, int frameIndex) =>
+        Path.Combine(_storagePathService.PreviewsDirectory, $"prev_{fileHash}_{positionSeconds}_{frameIndex}.jpg");
+
     public bool HasValidPoster(string fileHash, out string existingPath) =>
         CheckValidFile(GetPosterPath(fileHash), out existingPath);
 
@@ -76,6 +82,12 @@ public sealed class ArtworkStorageService : IArtworkStorageService
     public bool HasValidThumbnail(string fileHash, out string existingPath) =>
         CheckValidFile(GetThumbnailPath(fileHash), out existingPath);
 
+    public bool HasValidPositionThumbnail(string fileHash, long positionSeconds, out string existingPath) =>
+        CheckValidFile(GetPositionThumbnailPath(fileHash, positionSeconds), out existingPath);
+
+    public bool HasValidPreviewFrame(string fileHash, long positionSeconds, int frameIndex, out string existingPath) =>
+        CheckValidFile(GetPreviewFramePath(fileHash, positionSeconds, frameIndex), out existingPath);
+
     public Task<string> SavePosterAsync(string fileHash, byte[] jpegBytes, CancellationToken ct = default) =>
         SaveAtomicAsync(GetPosterPath(fileHash), jpegBytes, ct);
 
@@ -84,6 +96,12 @@ public sealed class ArtworkStorageService : IArtworkStorageService
 
     public Task<string> SaveThumbnailAsync(string fileHash, byte[] jpegBytes, CancellationToken ct = default) =>
         SaveAtomicAsync(GetThumbnailPath(fileHash), jpegBytes, ct);
+
+    public Task<string> SavePositionThumbnailAsync(string fileHash, long positionSeconds, byte[] jpegBytes, CancellationToken ct = default) =>
+        SaveAtomicAsync(GetPositionThumbnailPath(fileHash, positionSeconds), jpegBytes, ct);
+
+    public Task<string> SavePreviewFrameAsync(string fileHash, long positionSeconds, int frameIndex, byte[] jpegBytes, CancellationToken ct = default) =>
+        SaveAtomicAsync(GetPreviewFramePath(fileHash, positionSeconds, frameIndex), jpegBytes, ct);
 
     private bool CheckValidFile(string path, out string validPath)
     {

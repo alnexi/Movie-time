@@ -59,6 +59,7 @@ public sealed partial class MainWindow : Window
 
         // Subscribe to navigation and playback events
         HomeViewModel.NavigationRequested += OnNavigationRequested;
+        HomeViewModel.PlaybackRequested += OnHomePlaybackRequested;
         MoviesViewModel.NavigationRequested += OnNavigationRequested;
         SettingsViewModel.NavigationRequested += OnNavigationRequested;
         MovieDetailsViewModel.NavigationRequested += OnNavigationRequested;
@@ -71,6 +72,11 @@ public sealed partial class MainWindow : Window
         this.Closed += (s, e) => App.Logger?.LogInformation("MainWindow.Closed event fired on MainWindow.");
 
         _ = HomeViewModel.InitializeAsync();
+    }
+
+    private void OnHomePlaybackRequested(string filePath, int? movieId)
+    {
+        NavigateToPlayer(filePath, movieId);
     }
 
     private void OnMovieDetailsPlaybackRequested(string filePath)

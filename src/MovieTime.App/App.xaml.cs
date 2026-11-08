@@ -102,6 +102,7 @@ public partial class App : Application
         services.AddSingleton<IVlcPlayerService, VlcPlayerService>();
         services.AddSingleton<MovieTime.Core.Artwork.IImageProcessingService, WicImageProcessingService>();
         services.AddSingleton<MovieTime.Core.Artwork.IVideoFrameExtractor, WindowsVideoFrameExtractor>();
+        services.AddSingleton<MovieTime.Core.Artwork.IHoverPreviewService, MovieTime.Core.Artwork.HoverPreviewService>();
         services.AddTransient<HomeViewModel>();
         services.AddTransient<MoviesViewModel>();
         services.AddTransient<MovieDetailsViewModel>();

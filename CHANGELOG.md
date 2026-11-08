@@ -11,6 +11,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.7.1] - 2026-11-09 (Home Experience Fix & Dynamic Artwork Integration)
+
+### Added
+- **Dynamic Rotating Hero Billboard**:
+  - Replaced static placeholder showcase with dynamic rotating banner populated exclusively from eligible real movies in the local SQLite library (up to 7 items).
+  - Automatic 7.5-second rotation with smooth hardware-accelerated crossfade backdrop transitions.
+  - Dynamic interactive carousel indicator dots reflecting active movie index with direct jump navigation.
+  - Pointer interaction pause/resume: timer automatically pauses when user hovers or focuses the hero section and resumes on exit.
+  - Dual action buttons: primary white pill `▶ Play Movie` and secondary `(i) Details` button.
+  - Clickable title and backdrop canvas navigating directly to Movie Details.
+  - Dynamic artwork updates responding in real time to `ArtworkPipelineService.ArtworkUpdated` events.
+- **Genuine Continue Watching Artwork & Position Frame Extraction**:
+  - Completely replaced placeholder camera icons with genuine media-derived artwork.
+  - Integrated `IHoverPreviewService` / `IArtworkStorageService` position thumbnail extraction: captures authentic keyframe from exact saved playback timestamp (`%LocalAppData%\MovieTime\Artwork\Positions\`).
+  - Seamless multi-tier artwork fallback: exact position thumbnail -> movie backdrop -> movie poster -> dark typographical fallback.
+  - Accurate progress bars bound directly to SQLite `PlaybackProgress.PositionPercentage`.
+- **Silent In-Card Hover Video Micro-Preview**:
+  - 600ms intentional hover delay initiates in-card micro-preview sequence.
+  - Smoothly cycles through 4 authentic keyframes sampled around the saved playback timestamp at 650ms intervals.
+  - Subtle top-left "PREVIEW" badge indicator.
+  - Instant cancellation and cleanup on pointer exit, ensuring zero audio interference, zero Direct3D swapchain contention, and zero UI stutter.
+  - Hover/focus play button overlay allowing instant one-click resume.
+- **Home Navigation & Playback Event Wiring**:
+  - Fixed unassigned card commands: clicking movie cards in Continue Watching or Movies shelves now reliably navigates to Movie Details for that exact title.
+  - Fixed card ID assignment in Continue Watching to properly reference `MovieId`.
+  - Connected `HomeViewModel.PlaybackRequested` to `MainWindow.NavigateToPlayer(filePath, movieId)`.
+- **Unit Test Suite Expansion**:
+  - Added `HomeExperienceTests.cs` covering dynamic hero rotation, carousel dot synchronization, pause/resume, Continue Watching artwork resolution, command execution, and hover preview caching.
+  - Test suite expanded from 235 to **242 passing tests** (0 failed, 0 skipped).
+
+---
+
 ## [0.7.0] - 2026-11-09 (Phase 5: Embedded Artwork & Local Thumbnail Extraction)
 
 ### Added
