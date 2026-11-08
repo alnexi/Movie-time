@@ -7,6 +7,7 @@ using System.Windows.Input;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using MovieTime.App.Common;
+using MovieTime.Core.Artwork;
 using MovieTime.Core.Database.Repositories;
 using MovieTime.Core.Entities;
 
@@ -20,6 +21,8 @@ public sealed class MovieDetailsViewModel : ObservableObject
 {
     private readonly IMovieRepository _movieRepository;
     private readonly IMediaFileRepository _mediaFileRepository;
+    private readonly IArtworkPipelineService? _artworkPipelineService;
+    private readonly IDispatcherService? _dispatcher;
     private readonly ILogger<MovieDetailsViewModel> _logger;
 
     private int _movieId;
@@ -191,10 +194,27 @@ public sealed class MovieDetailsViewModel : ObservableObject
         IMovieRepository movieRepository,
         IMediaFileRepository mediaFileRepository,
         ILogger<MovieDetailsViewModel>? logger = null)
+        : this(movieRepository, mediaFileRepository, null, null, logger)
+    {
+    }
+
+    public MovieDetailsViewModel(
+        IMovieRepository movieRepository,
+        IMediaFileRepository mediaFileRepository,
+        IArtworkPipelineService? artworkPipelineService,
+        IDispatcherService? dispatcher = null,
+        ILogger<MovieDetailsViewModel>? logger = null)
     {
         _movieRepository = movieRepository ?? throw new ArgumentNullException(nameof(movieRepository));
         _mediaFileRepository = mediaFileRepository ?? throw new ArgumentNullException(nameof(mediaFileRepository));
+        _artworkPipelineService = artworkPipelineService;
+        _dispatcher = dispatcher;
         _logger = logger ?? NullLogger<MovieDetailsViewModel>.Instance;
+
+        if (_artworkPipelineService != null)
+        {
+            _artworkPipelineService.ArtworkUpdated += OnArtworkUpdated;
+        }
 
         PlayCommand = new RelayCommand(OnPlay);
         BackCommand = new RelayCommand(OnBack);
@@ -206,6 +226,33 @@ public sealed class MovieDetailsViewModel : ObservableObject
                 await LoadMovieAsync(m.Id);
             }
         });
+    }
+
+    private void OnArtworkUpdated(int movieId, string? posterPath, string? backdropPath)
+    {
+        void Update()
+        {
+            if (MovieId == movieId)
+            {
+                PosterPath = posterPath;
+                BackdropPath = backdropPath;
+            }
+
+            var rec = RecommendedMovies.FirstOrDefault(m => m.Id == movieId);
+            if (rec != null)
+            {
+                rec.UpdateArtwork(posterPath, backdropPath);
+            }
+        }
+
+        if (_dispatcher != null)
+        {
+            _dispatcher.RunOnUi(Update);
+        }
+        else
+        {
+            Update();
+        }
     }
 
     public async Task LoadMovieAsync(int? movieId)

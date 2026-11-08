@@ -4,7 +4,7 @@
 
 [![.NET](https://img.shields.io/badge/.NET-10.0%20LTS%20(x64)-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![Windows App SDK](https://img.shields.io/badge/WinUI%203-Windows%20App%20SDK%201.7-0078D7?logo=windows)](https://learn.microsoft.com/en-us/windows/apps/winui/winui3/)
-[![Tests](https://img.shields.io/badge/Unit%20Tests-201%20Passed-brightgreen)](https://github.com/alnexi/Movie-time)
+[![Tests](https://img.shields.io/badge/Unit%20Tests-235%20Passed-brightgreen)](https://github.com/alnexi/Movie-time)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
@@ -139,6 +139,14 @@ Unlike cluttered streaming apps or heavy web-wrapped wrappers, Movie Time is bui
   - **Subtitle Customization & Persistence**: User-configurable font sizes (22pt to 52pt), high-visibility colors (White, Yellow, Cyan, Green), outline thickness, background opacities, and vertical position offsets persisted across sessions.
   - **Apple TV Liquid Glass Flyouts**: Refined overlay menus with frosted acrylic surfaces, high-contrast typography, and zero playback interruptions.
   - **Expanded Test Suite**: 217 automated unit tests validating playback logic, seeking math, external slave loading, and preference serialization.
+* **Phase 5 Embedded Artwork & Local Thumbnail Extraction (v0.7.0)**:
+  - **Tier 1 Embedded Cover Art Extraction**: Fast stream parser extracting embedded artwork directly from MP4/M4V/MOV atoms (`moov/udta/meta/ilst/covr/data`) and MKV/WebM EBML elements (`Segment/Attachments/AttachedFile`) without video decoding overhead.
+  - **Tier 2 Local Video Thumbnail Frame Sampling**: Multi-timestamp keyframe extraction across the video timeline using native Windows Media Composition and Shell APIs.
+  - **Multi-Metric Composite Quality Scoring**: Evaluates candidate frames for luminance, contrast std-dev, edge gradient sharpness, and Hasler-Süsstrunk colorfulness, automatically discarding black frames, blown-out frames, and flat scenes.
+  - **Hardware-Accelerated Aspect Ratio Cropping**: Generates 2:3 theatrical posters (`600x900`) and 16:9 widescreen backdrops (`1920x1080`) via Windows Imaging Component (`WIC`).
+  - **Deterministic Collision-Safe Caching**: Normalized path + file size + UTC modified timestamp SHA256 deterministic key generation. Caches all extracted assets under `%LocalAppData%\MovieTime\Artwork\Posters\` and `Backdrops\`; original user video directories are never modified.
+  - **Multi-Drive Support & Real-Time Event Dispatching**: Differentiates identical filenames on separate drives; dispatches `ArtworkUpdated` events to refresh `HeroBannerControl`, `MoviePosterCardControl`, and `MediaCardControl` in real time.
+  - **Expanded Test Suite**: 235 automated unit tests validating all format parsers, quality scoring algorithms, cache invalidation rules, and pipeline coordinators.
 
 ---
 
@@ -152,24 +160,25 @@ MovieTime/
 │   ├── MovieTime.App/             # WinUI 3 Native Desktop Application
 │   │   ├── Common/                # MVVM ObservableObject & RelayCommand
 │   │   ├── Controls/              # HeroBanner, MediaCard, MoviePosterCard, MediaRow, SidebarNavigation
-│   │   ├── Services/              # VlcPlayerService (LibVLC WinUI DirectComposition adapter)
+│   │   ├── Services/              # VlcPlayerService, WicImageProcessingService, WindowsVideoFrameExtractor
 │   │   ├── ViewModels/            # Presentation Models (HomeViewModel, MoviesViewModel, MovieDetailsViewModel, SettingsViewModel, PlayerViewModel)
 │   │   ├── Views/                 # Full-screen views (HomeView, MoviesView, MovieDetailsView, SettingsView, PlayerView)
 │   │   ├── MainWindow.xaml        # Edge-to-edge window host & navigation coordinator
 │   │   └── App.xaml               # Composition Root & DI configuration
 │   │
 │   └── MovieTime.Core/            # Core Domain & Platform-Agnostic Engine
+│       ├── Artwork/               # Embedded artwork extraction, quality evaluation, storage, and pipeline coordination
 │       ├── Database/              # SQLite-net WAL database, migrations & repositories
 │       ├── Entities/              # Movie, Series, Season, Episode, MediaFile, ScanRoot, PlaybackProgress
 │       ├── Library/               # MLibraryManagerService, LibraryImportService & ScanRootService
 │       ├── Logging/               # Serilog rolling local file logger (%LocalAppData%\MovieTime\Logs)
 │       ├── Parsing/               # FilenameParserEngine (heuristic classification & extraction)
-│       ├── Playback/              # IVlcPlayerService, PlayerState, PlayerTrackInfo
+│       ├── Playback/              # IVlcPlayerService, PlayerState, PlayerTrackInfo, SubtitleSettings
 │       ├── Scanning/              # MediaScannerService (recursive async filesystem scanner)
 │       └── Services/              # StoragePathService & AppEnvironment
 │
 └── tests/
-    └── MovieTime.Tests/           # Unit & Integration Tests (194 tests)
+    └── MovieTime.Tests/           # Unit & Integration Tests (235 tests)
 ```
 
 ### Key Components

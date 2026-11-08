@@ -1,6 +1,10 @@
+using System;
+using System.ComponentModel;
+using System.IO;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media.Imaging;
 using MovieTime.App.ViewModels;
 
 namespace MovieTime.App.Controls;
@@ -12,7 +16,7 @@ public sealed partial class MoviePosterCardControl : UserControl
             nameof(ViewModel),
             typeof(MoviePosterItemViewModel),
             typeof(MoviePosterCardControl),
-            new PropertyMetadata(null));
+            new PropertyMetadata(null, OnViewModelPropertyChanged));
 
     public MoviePosterItemViewModel? ViewModel
     {
@@ -20,9 +24,61 @@ public sealed partial class MoviePosterCardControl : UserControl
         set => SetValue(ViewModelProperty, value);
     }
 
+    private static void OnViewModelPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is MoviePosterCardControl control)
+        {
+            if (e.OldValue is MoviePosterItemViewModel oldVm)
+            {
+                oldVm.PropertyChanged -= control.OnViewModelPropertyChangedInternal;
+            }
+            if (e.NewValue is MoviePosterItemViewModel newVm)
+            {
+                newVm.PropertyChanged += control.OnViewModelPropertyChangedInternal;
+            }
+            control.UpdatePosterImage();
+        }
+    }
+
+    private void OnViewModelPropertyChangedInternal(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MoviePosterItemViewModel.PosterPath) ||
+            e.PropertyName == nameof(MoviePosterItemViewModel.HasPoster))
+        {
+            UpdatePosterImage();
+        }
+    }
+
+    private void UpdatePosterImage()
+    {
+        if (PosterImage == null) return;
+
+        var vm = ViewModel;
+        if (vm != null && vm.HasPoster && !string.IsNullOrWhiteSpace(vm.PosterPath) && File.Exists(vm.PosterPath))
+        {
+            try
+            {
+                var uri = new Uri(vm.PosterPath);
+                var bmp = new BitmapImage(uri)
+                {
+                    DecodePixelWidth = 340 // 2x high-DPI density for 170px width card
+                };
+                PosterImage.Source = bmp;
+                return;
+            }
+            catch
+            {
+                // Fall back cleanly to typographical placeholder
+            }
+        }
+
+        PosterImage.Source = null;
+    }
+
     public MoviePosterCardControl()
     {
         this.InitializeComponent();
+        this.Loaded += (s, e) => UpdatePosterImage();
 
         this.PointerEntered += OnPointerEntered;
         this.PointerExited += OnPointerExited;

@@ -11,6 +11,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.7.0] - 2026-11-09 (Phase 5: Embedded Artwork & Local Thumbnail Extraction)
+
+### Added
+- **Multi-Tier Local Artwork Extraction Pipeline (`IArtworkPipelineService`)**:
+  - **Tier 1 (Embedded Cover Artwork)**:
+    - Direct binary atom/element stream parser for MP4/M4V/MOV `moov/udta/meta/ilst/covr/data` boxes and MKV/WebM EBML `Segment/Attachments/AttachedFile` elements.
+    - Zero video decoding overhead; streams embedded front cover art directly in < 5ms.
+    - Automatic binary image validation (JPEG, PNG, WebP) enforcing minimum byte bounds and image dimensions, rejecting arbitrary binary payloads.
+  - **Tier 2 (Video Thumbnail Candidate Extraction)**:
+    - Multi-timestamp keyframe extraction across the media timeline (sampling candidate frames across video duration).
+    - Uses native Windows Imaging and Media Composition APIs with fallback to Shell Thumbnail provider for 10-bit HEVC, AVC, and modern formats.
+    - Multi-metric composite quality scoring (`ImageQualityEvaluator`): computes ITU-R BT.601 luminance, contrast std-dev, edge gradient sharpness, and Hasler-Süsstrunk colorfulness metrics.
+    - Rejects black screen frames, blown-out white flash frames, and low-contrast flat scenes.
+    - Hardware-accelerated aspect ratio cropping and scaling (2:3 theatrical poster at 600x900, 16:9 widescreen backdrop at 1920x1080) via Windows Imaging Component (`WicImageProcessingService`).
+  - **Tier 3 (Safe Typographical Fallback)**:
+    - Graceful fallback for unreadable or damaged media files; sets `IsPosterFallback` and `IsBackdropFallback` flags in SQLite.
+    - Displays high-fidelity Apple TV dark atmospheric radial glow and metadata typography with zero UI pop-in or crashes.
+- **Collision-Safe Local Storage & Deterministic Cache (`ArtworkStorageService`)**:
+  - Normalized path + file size + UTC modified timestamp SHA256 deterministic key generation.
+  - Strictly non-destructive: all extracted posters and backdrops are cached under `%LocalAppData%\MovieTime\Artwork\Posters\` and `Backdrops\`; original user video directories are never touched.
+  - Multi-drive support: differentiates files with identical names across distinct drives (e.g. `D:\Movies\Gladiator.mkv` vs `E:\Movies\Gladiator.mkv`).
+  - Automatic cache invalidation: media file size or timestamp modifications generate distinct hash keys and trigger seamless re-extraction.
+  - Atomic persistence with `.tmp` staging files and thread-safe per-file locking (`ConcurrentDictionary<string, SemaphoreSlim>`).
+- **Real-Time UI Integration & Event Dispatching**:
+  - `MoviePosterCardControl` and `MediaCardControl` updated with hardware-decoded `BitmapImage` (`DecodePixelWidth` high-DPI scaling) and smooth transition from typographical fallback to extracted artwork.
+  - `HeroBannerControl` dynamic atmospheric backdrop loading.
+  - `MoviesViewModel`, `HomeViewModel`, and `MovieDetailsViewModel` subscribed to `ArtworkPipelineService.ArtworkUpdated` events to dynamically refresh visible cards and hero billboards on the UI dispatcher without requiring app restart or manual library reload.
+  - Non-blocking background extraction: initiates after UI initialization and runs asynchronously without blocking WinUI 3 message pumps or active video playback.
+  - `LibraryImportService` automatically triggers artwork processing upon completion of filesystem scans when new or updated media files are imported.
+- **Unit & Integration Test Suite Expansion**:
+  - Expanded test suite from 217 to **235 passing unit tests**.
+  - Added comprehensive tests for `ImageHeaderValidator`, `ImageQualityEvaluator`, `ArtworkStorageService`, `EmbeddedArtworkExtractor`, and `ArtworkPipelineService`.
+
+---
+
+---
+
 ## [0.6.4] - 2026-11-07 (Phase 4.4: YouTube-Style Shortcuts, External Audio, External Subtitles & Subtitle Customization)
 
 ### Added

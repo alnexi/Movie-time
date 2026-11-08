@@ -13,12 +13,39 @@ public sealed class MoviePosterItemViewModel : ObservableObject
     private bool _isFocused;
     private bool _isSelected;
 
+    private string? _posterPath;
+    private string? _backdropPath;
+
     public int Id { get; set; }
     public string Title { get; set; } = string.Empty;
     public int? ReleaseYear { get; set; }
     public string? Edition { get; set; }
-    public string? PosterPath { get; set; }
-    public string? BackdropPath { get; set; }
+
+    public string? PosterPath
+    {
+        get => _posterPath;
+        set
+        {
+            if (SetProperty(ref _posterPath, value))
+            {
+                OnPropertyChanged(nameof(HasPoster));
+                OnPropertyChanged(nameof(NeedsFallback));
+            }
+        }
+    }
+
+    public string? BackdropPath
+    {
+        get => _backdropPath;
+        set
+        {
+            if (SetProperty(ref _backdropPath, value))
+            {
+                OnPropertyChanged(nameof(HasBackdrop));
+            }
+        }
+    }
+
     public string? QualityTag { get; set; }
     public string? VideoCodec { get; set; }
     public string? ResolutionDisplay { get; set; }
@@ -51,7 +78,14 @@ public sealed class MoviePosterItemViewModel : ObservableObject
     }
 
     public bool HasPoster => !string.IsNullOrWhiteSpace(PosterPath) && File.Exists(PosterPath);
+    public bool NeedsFallback => !HasPoster;
     public bool HasBackdrop => !string.IsNullOrWhiteSpace(BackdropPath) && File.Exists(BackdropPath);
+
+    public void UpdateArtwork(string? posterPath, string? backdropPath)
+    {
+        PosterPath = posterPath;
+        BackdropPath = backdropPath;
+    }
     public bool HasQualityTag => !string.IsNullOrWhiteSpace(QualityTag);
     public bool HasYear => ReleaseYear.HasValue && ReleaseYear.Value > 0;
 

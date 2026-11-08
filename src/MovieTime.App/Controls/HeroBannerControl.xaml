@@ -32,6 +32,13 @@
                 </Border.Background>
             </Border>
 
+            <!-- Genuine Local Backdrop Image (when HasBackdrop is true) -->
+            <Image x:Name="HeroBackdropImage"
+                   Stretch="UniformToFill"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   Visibility="{x:Bind ViewModel.HasBackdrop, Mode=OneWay}" />
+
             <!-- Left Vignette Gradient: Guarantees title readability -->
             <Border>
                 <Border.Background>

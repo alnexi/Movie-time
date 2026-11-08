@@ -7,6 +7,7 @@ using System.Windows.Input;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using MovieTime.App.Common;
+using MovieTime.Core.Artwork;
 using MovieTime.Core.Database;
 using MovieTime.Core.Database.Repositories;
 using MovieTime.Core.Entities;
@@ -25,6 +26,8 @@ public sealed class MoviesViewModel : ObservableObject
     private readonly IMediaFileRepository _mediaFileRepository;
     private readonly IScanRootService _scanRootService;
     private readonly ILibraryImportService _importService;
+    private readonly IArtworkPipelineService? _artworkPipelineService;
+    private readonly IDispatcherService? _dispatcher;
     private readonly ILogger<MoviesViewModel> _logger;
 
     private bool _isLoading;
@@ -190,13 +193,33 @@ public sealed class MoviesViewModel : ObservableObject
         IScanRootService scanRootService,
         ILibraryImportService importService,
         ILogger<MoviesViewModel>? logger = null)
+        : this(databaseService, movieRepository, mediaFileRepository, scanRootService, importService, null, null, logger)
+    {
+    }
+
+    public MoviesViewModel(
+        IDatabaseService databaseService,
+        IMovieRepository movieRepository,
+        IMediaFileRepository mediaFileRepository,
+        IScanRootService scanRootService,
+        ILibraryImportService importService,
+        IArtworkPipelineService? artworkPipelineService,
+        IDispatcherService? dispatcher = null,
+        ILogger<MoviesViewModel>? logger = null)
     {
         _databaseService = databaseService ?? throw new ArgumentNullException(nameof(databaseService));
         _movieRepository = movieRepository ?? throw new ArgumentNullException(nameof(movieRepository));
         _mediaFileRepository = mediaFileRepository ?? throw new ArgumentNullException(nameof(mediaFileRepository));
         _scanRootService = scanRootService ?? throw new ArgumentNullException(nameof(scanRootService));
         _importService = importService ?? throw new ArgumentNullException(nameof(importService));
+        _artworkPipelineService = artworkPipelineService;
+        _dispatcher = dispatcher;
         _logger = logger ?? NullLogger<MoviesViewModel>.Instance;
+
+        if (_artworkPipelineService != null)
+        {
+            _artworkPipelineService.ArtworkUpdated += OnArtworkUpdated;
+        }
 
         ToggleSidebarCommand = new RelayCommand(() => IsSidebarOpen = !IsSidebarOpen);
         OpenSidebarCommand = new RelayCommand(() => IsSidebarOpen = true);
@@ -214,6 +237,27 @@ public sealed class MoviesViewModel : ObservableObject
         ManageLibrariesCommand = new RelayCommand(() => NavigationRequested?.Invoke("Settings"));
 
         InitializeCategories();
+    }
+
+    private void OnArtworkUpdated(int movieId, string? posterPath, string? backdropPath)
+    {
+        void Update()
+        {
+            var match = AllMovies.FirstOrDefault(m => m.Id == movieId);
+            if (match != null)
+            {
+                match.UpdateArtwork(posterPath, backdropPath);
+            }
+        }
+
+        if (_dispatcher != null)
+        {
+            _dispatcher.RunOnUi(Update);
+        }
+        else
+        {
+            Update();
+        }
     }
 
     private void InitializeCategories()

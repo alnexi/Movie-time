@@ -11,14 +11,48 @@ public sealed class MediaCardViewModel : ObservableObject
 {
     private bool _isFocused;
     private double? _progressPercentage;
+    private string? _posterPath;
+    private string? _backdropPath;
 
     public int Id { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Subtitle { get; set; } = string.Empty;
-    public string? PosterPath { get; set; }
-    public string? BackdropPath { get; set; }
+
+    public string? PosterPath
+    {
+        get => _posterPath;
+        set
+        {
+            if (SetProperty(ref _posterPath, value))
+            {
+                OnPropertyChanged(nameof(HasPoster));
+                OnPropertyChanged(nameof(NeedsFallback));
+            }
+        }
+    }
+
+    public string? BackdropPath
+    {
+        get => _backdropPath;
+        set
+        {
+            if (SetProperty(ref _backdropPath, value))
+            {
+                OnPropertyChanged(nameof(HasBackdrop));
+                OnPropertyChanged(nameof(NeedsFallback));
+            }
+        }
+    }
+
     public bool HasPoster => !string.IsNullOrWhiteSpace(PosterPath);
     public bool HasBackdrop => !string.IsNullOrWhiteSpace(BackdropPath);
+    public bool NeedsFallback => !HasBackdrop && !HasPoster;
+
+    public void UpdateArtwork(string? posterPath, string? backdropPath)
+    {
+        PosterPath = posterPath;
+        BackdropPath = backdropPath;
+    }
 
     public double? ProgressPercentage
     {

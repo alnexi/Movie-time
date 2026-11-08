@@ -28,7 +28,9 @@
             <Border CornerRadius="14" Background="#181820">
                 <Grid>
                     <!-- Typographical / Gradient Fallback Artwork -->
-                    <Border Background="#1C1C26">
+                    <Border x:Name="FallbackBorder"
+                            Background="#1C1C26"
+                            Visibility="{x:Bind ViewModel.NeedsFallback, Mode=OneWay}">
                         <Grid>
                             <!-- Radial decorative gradient glow -->
                             <Border Opacity="0.35">
@@ -60,6 +62,13 @@
                                        MaxLines="1" />
                         </Grid>
                     </Border>
+
+                    <!-- Genuine Local Extracted Backdrop / Thumbnail Image -->
+                    <Image x:Name="CardImage"
+                           Stretch="UniformToFill"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Visibility="{x:Bind ViewModel.HasBackdrop, Mode=OneWay}" />
 
                     <!-- Quality / Source Tag Badge (e.g. 4K HDR, tv+) -->
                     <Border Visibility="{x:Bind ViewModel.HasQualityTag, Mode=OneWay}"

@@ -6,6 +6,7 @@ using System.Windows.Input;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using MovieTime.App.Common;
+using MovieTime.Core.Artwork;
 using MovieTime.Core.Database;
 using MovieTime.Core.Database.Repositories;
 using MovieTime.Core.Entities;
@@ -28,6 +29,8 @@ public sealed class HomeViewModel : ObservableObject
     private readonly IMediaFileRepository _mediaFileRepository;
     private readonly IScanRootService _scanRootService;
     private readonly ILibraryImportService _importService;
+    private readonly IArtworkPipelineService? _artworkPipelineService;
+    private readonly IDispatcherService? _dispatcher;
     private readonly ILogger<HomeViewModel> _logger;
 
     private HeroBannerViewModel _hero = new();
@@ -109,6 +112,33 @@ public sealed class HomeViewModel : ObservableObject
         IScanRootService scanRootService,
         ILibraryImportService importService,
         ILogger<HomeViewModel>? logger = null)
+        : this(
+            databaseService,
+            movieRepository,
+            seriesRepository,
+            seasonRepository,
+            episodeRepository,
+            mediaFileRepository,
+            scanRootService,
+            importService,
+            null,
+            null,
+            logger)
+    {
+    }
+
+    public HomeViewModel(
+        IDatabaseService databaseService,
+        IMovieRepository movieRepository,
+        ISeriesRepository seriesRepository,
+        ISeasonRepository seasonRepository,
+        IEpisodeRepository episodeRepository,
+        IMediaFileRepository mediaFileRepository,
+        IScanRootService scanRootService,
+        ILibraryImportService importService,
+        IArtworkPipelineService? artworkPipelineService,
+        IDispatcherService? dispatcher = null,
+        ILogger<HomeViewModel>? logger = null)
     {
         _databaseService = databaseService ?? throw new ArgumentNullException(nameof(databaseService));
         _movieRepository = movieRepository ?? throw new ArgumentNullException(nameof(movieRepository));
@@ -118,7 +148,14 @@ public sealed class HomeViewModel : ObservableObject
         _mediaFileRepository = mediaFileRepository ?? throw new ArgumentNullException(nameof(mediaFileRepository));
         _scanRootService = scanRootService ?? throw new ArgumentNullException(nameof(scanRootService));
         _importService = importService ?? throw new ArgumentNullException(nameof(importService));
+        _artworkPipelineService = artworkPipelineService;
+        _dispatcher = dispatcher;
         _logger = logger ?? NullLogger<HomeViewModel>.Instance;
+
+        if (_artworkPipelineService != null)
+        {
+            _artworkPipelineService.ArtworkUpdated += OnArtworkUpdated;
+        }
 
         ToggleSidebarCommand = new RelayCommand(() => IsSidebarOpen = !IsSidebarOpen);
         OpenSidebarCommand = new RelayCommand(() => IsSidebarOpen = true);
@@ -129,6 +166,37 @@ public sealed class HomeViewModel : ObservableObject
 
         InitializeSidebarItems();
         SetupEmptyLibraryState();
+    }
+
+    private void OnArtworkUpdated(int movieId, string? posterPath, string? backdropPath)
+    {
+        void Update()
+        {
+            // If the featured movie on the Hero billboard matches
+            if (Hero.TargetMovieId == movieId)
+            {
+                Hero.BackdropPath = backdropPath ?? posterPath;
+            }
+
+            // Update matching cards in all rows
+            foreach (var row in Rows)
+            {
+                var card = row.Items.FirstOrDefault(c => c.IsMovie && c.Id == movieId);
+                if (card != null)
+                {
+                    card.UpdateArtwork(posterPath, backdropPath);
+                }
+            }
+        }
+
+        if (_dispatcher != null)
+        {
+            _dispatcher.RunOnUi(Update);
+        }
+        else
+        {
+            Update();
+        }
     }
 
     private void InitializeSidebarItems()

@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using MovieTime.Core.Artwork;
 using MovieTime.Core.Database;
 using MovieTime.Core.Database.Repositories;
 using MovieTime.Core.Entities;
@@ -33,6 +34,7 @@ public sealed class LibraryImportService : ILibraryImportService
     private readonly ISeasonRepository _seasonRepository;
     private readonly IEpisodeRepository _episodeRepository;
     private readonly IMediaFileRepository _mediaFileRepository;
+    private readonly IArtworkPipelineService? _artworkPipelineService;
     private readonly ILogger<LibraryImportService> _logger;
 
     private readonly SemaphoreSlim _importLock = new(1, 1);
@@ -51,6 +53,33 @@ public sealed class LibraryImportService : ILibraryImportService
         IEpisodeRepository episodeRepository,
         IMediaFileRepository mediaFileRepository,
         ILogger<LibraryImportService>? logger = null)
+        : this(
+            scanRootService,
+            scannerService,
+            parserEngine,
+            databaseService,
+            movieRepository,
+            seriesRepository,
+            seasonRepository,
+            episodeRepository,
+            mediaFileRepository,
+            null,
+            logger)
+    {
+    }
+
+    public LibraryImportService(
+        IScanRootService scanRootService,
+        IMediaScannerService scannerService,
+        IFilenameParserEngine parserEngine,
+        IDatabaseService databaseService,
+        IMovieRepository movieRepository,
+        ISeriesRepository seriesRepository,
+        ISeasonRepository seasonRepository,
+        IEpisodeRepository episodeRepository,
+        IMediaFileRepository mediaFileRepository,
+        IArtworkPipelineService? artworkPipelineService,
+        ILogger<LibraryImportService>? logger = null)
     {
         _scanRootService = scanRootService ?? throw new ArgumentNullException(nameof(scanRootService));
         _scannerService = scannerService ?? throw new ArgumentNullException(nameof(scannerService));
@@ -61,6 +90,7 @@ public sealed class LibraryImportService : ILibraryImportService
         _seasonRepository = seasonRepository ?? throw new ArgumentNullException(nameof(seasonRepository));
         _episodeRepository = episodeRepository ?? throw new ArgumentNullException(nameof(episodeRepository));
         _mediaFileRepository = mediaFileRepository ?? throw new ArgumentNullException(nameof(mediaFileRepository));
+        _artworkPipelineService = artworkPipelineService;
         _logger = logger ?? NullLogger<LibraryImportService>.Instance;
     }
 
@@ -212,6 +242,21 @@ public sealed class LibraryImportService : ILibraryImportService
             _logger.LogInformation(
                 "Library import completed in {DurationMs}ms. Discovered: {Discovered}, Imported: {Imported}, Updated: {Updated}, Unchanged: {Unchanged}, Missing: {Missing}, Cancelled: {Cancelled}.",
                 stopwatch.ElapsedMilliseconds, result.FilesDiscovered, result.FilesImported, result.FilesUpdated, result.FilesUnchanged, result.FilesMissing, result.IsCancelled);
+
+            if (_artworkPipelineService != null && !result.IsCancelled && (result.FilesImported > 0 || result.FilesUpdated > 0))
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await _artworkPipelineService.ProcessPendingLibraryArtworkAsync(cancellationToken: CancellationToken.None).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Background artwork pipeline run encountered an error after library import.");
+                    }
+                });
+            }
 
             return result;
         }

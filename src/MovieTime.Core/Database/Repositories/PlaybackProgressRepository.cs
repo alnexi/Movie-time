@@ -54,7 +54,7 @@ public sealed class PlaybackProgressRepository : IPlaybackProgressRepository
                 LastWatchedAt = DateTime.UtcNow,
                 PlayCount = 1
             };
-            return await Connection.InsertAsync(progress).ConfigureAwait(false);
+            return await Connection.InsertOrReplaceAsync(progress).ConfigureAwait(false);
         }
 
         existing.MovieId = movieId ?? existing.MovieId;
@@ -67,7 +67,7 @@ public sealed class PlaybackProgressRepository : IPlaybackProgressRepository
         {
             existing.PlayCount++;
         }
-        return await Connection.UpdateAsync(existing).ConfigureAwait(false);
+        return await Connection.InsertOrReplaceAsync(existing).ConfigureAwait(false);
     }
 
     public async Task<int> DeleteByMediaFileIdAsync(int mediaFileId)

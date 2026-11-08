@@ -27,8 +27,10 @@
             <!-- Poster Artwork / Base -->
             <Border CornerRadius="14" Background="#16161E">
                 <Grid>
-                    <!-- Typographical / Gradient Fallback Artwork -->
-                    <Border Background="#1C1C26">
+                    <!-- Typographical / Gradient Fallback Artwork (when no poster exists) -->
+                    <Border x:Name="FallbackBorder"
+                            Background="#1C1C26"
+                            Visibility="{x:Bind ViewModel.NeedsFallback, Mode=OneWay}">
                         <Grid>
                             <!-- Ambient atmospheric gradient glow -->
                             <Border Opacity="0.45">
@@ -74,6 +76,13 @@
                                        MaxLines="2" />
                         </Grid>
                     </Border>
+
+                    <!-- Genuine Local Extracted Poster Image -->
+                    <Image x:Name="PosterImage"
+                           Stretch="UniformToFill"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Visibility="{x:Bind ViewModel.HasPoster, Mode=OneWay}" />
 
                     <!-- Quality Tag Badge (e.g. 4K HDR, 1080p) -->
                     <Border Visibility="{x:Bind ViewModel.HasQualityTag, Mode=OneWay}"

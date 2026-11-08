@@ -100,6 +100,8 @@ public partial class App : Application
         services.AddSingleton<IDispatcherService, WinUiDispatcherService>();
         services.AddSingleton<IFilePickerService, WinUiFilePickerService>();
         services.AddSingleton<IVlcPlayerService, VlcPlayerService>();
+        services.AddSingleton<MovieTime.Core.Artwork.IImageProcessingService, WicImageProcessingService>();
+        services.AddSingleton<MovieTime.Core.Artwork.IVideoFrameExtractor, WindowsVideoFrameExtractor>();
         services.AddTransient<HomeViewModel>();
         services.AddTransient<MoviesViewModel>();
         services.AddTransient<MovieDetailsViewModel>();
@@ -132,6 +134,24 @@ public partial class App : Application
             _window.Closed += OnWindowClosed;
             _window.Activate();
             _logger.LogInformation("MainWindow activated successfully.");
+
+            // Initiate non-blocking background artwork extraction for movies missing posters/backdrops
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(1500); // Allow window layout and visual tree to settle
+                    var pipeline = Services.GetService<MovieTime.Core.Artwork.IArtworkPipelineService>();
+                    if (pipeline != null)
+                    {
+                        await pipeline.ProcessPendingLibraryArtworkAsync();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Background library artwork processing encountered a non-fatal error.");
+                }
+            });
         }
         catch (Exception ex)
         {
