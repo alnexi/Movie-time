@@ -435,7 +435,7 @@ public sealed class SettingsViewModel : ObservableObject
             StatusMessage = "Scanning registered MLibrary folders...";
 
             var result = await _libraryManager.ScanLibrariesAsync();
-            StatusMessage = $"Scan completed: {result.FilesDiscovered} files examined, {result.MoviesCreated} movies cataloged.";
+            StatusMessage = $"Scan completed: {result.FilesDiscovered} files discovered ({result.MoviesClassified} movies, {result.TvEpisodesClassified} episodes), {result.FilesImported} imported, {result.FilesUpdated} updated.";
 
             await LoadLibrariesAsync();
         }
@@ -458,7 +458,7 @@ public sealed class SettingsViewModel : ObservableObject
             StatusMessage = "Scanning selected library folder...";
 
             var result = await _libraryManager.ScanLibrariesAsync(new[] { libraryId });
-            StatusMessage = $"Library scan completed: {result.FilesDiscovered} files examined, {result.MoviesCreated} movies cataloged.";
+            StatusMessage = $"Library scan completed: {result.FilesDiscovered} files discovered ({result.MoviesClassified} movies, {result.TvEpisodesClassified} episodes), {result.FilesImported} imported, {result.FilesUpdated} updated.";
 
             await LoadLibrariesAsync();
         }

@@ -11,6 +11,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.9.5] - 2026-11-10 (River — Movie Detection & Library Import Critical Fix)
+
+### Added
+- **Universal Movie Detection & Classification Engine**:
+  - Validated rule: **valid movies do not require a release year**. Standalone video files without year metadata (e.g. `Gladiator.mkv`, `The Dark Knight.mp4`, `Inception.mkv`) are now properly classified as `MediaClassification.Movie` and imported into SQLite.
+  - Full support for Persian, Arabic, and Unicode movie titles with accents and symbols (e.g. `فروشنده.mkv`, `جدایی نادر از سیمین.mkv`, `طعم گیلاس (1997).mkv`, `Silent Hill- Townfall - Part 2 - کابوسی که ازش نمیشه بیدار شد.mp4`, `رفتیم خونه جنی یه مرد غریبه برای هالووین 😂.mkv`).
+  - Bracketed year notation support (`Inception [2010].mkv`, `Interstellar [2014] [1080p].mkv`).
+  - High-precision title number disambiguation: numbers in titles (`1917`, `300`, `2001 A Space Odyssey`, `Se7en`, `District 9`, `Apollo 13`, `12 Angry Men`) are accurately preserved as title words rather than incorrectly swallowed as release years.
+  - Future year protection: release years clamped to `1888` through `DateTime.UtcNow.Year + 2` to prevent sci-fi titles (e.g. `Blade Runner 2049`) from treating futuristic years as release dates.
+  - Preserved multi-part titles and roman numerals: `Part Two`, `Part 1`, `Part 2`, `Part II`, `Rocky II`, `Volume 1`, `No Way Home`, `The Fellowship of the Ring`.
+  - Folder-context title/year inheritance for generic filenames (`cd1.avi`, `cd2.avi`, `movie.mkv`, `feature.mkv`, `part1.mkv`).
+- **Comprehensive Movie Import Diagnostic Reporting**:
+  - `ImportDiagnosticItem` structured model recording filename, classification, and precise rejection reasons for anomalous or non-feature media.
+  - `LibraryImportResult` expanded to provide structured counts: `FilesDiscovered`, `MoviesClassified`, `TvEpisodesClassified`, `UnknownFiles`, `FilesImported`, `MoviesCreated`, `MoviesUpdated`, `DuplicateFiles`, `FilesSkipped`, `FilesUnchanged`, `FilesMissing`, and `FailedImports`.
+  - Formatted diagnostic summaries surfaced via `FormatDiagnosticSummary()` across logging, `MLibraryManagerService`, and Settings UI.
+- **Extended Video File Extensions**:
+  - Expanded `MediaScanOptions.DefaultSupportedExtensions` to support 21 video formats: `.mkv`, `.mp4`, `.avi`, `.mov`, `.wmv`, `.m4v`, `.mpg`, `.mpeg`, `.ts`, `.m2ts`, `.mts`, `.m2t`, `.webm`, `.vob`, `.flv`, `.divx`, `.3gp`, `.ogv`, `.asf`, `.rmvb`, `.rm`.
+
+### Fixed & Stabilized
+- **Unlinked Media File Re-Evaluation**:
+  - Fixed a critical import pipeline bug in `LibraryImportService` where existing files with `MovieId == null && EpisodeId == null` were silently skipped on subsequent scans.
+  - Automatically re-evaluates all previously unclassified media files and links them to newly created or updated `Movie` records in SQLite.
+- **Deterministic Classification Priority**:
+  - Strict precedence: TV episode heuristics (`S01E08`, `1x03`, `Season 1 Episode 2`) take precedence over movie heuristics, guaranteeing zero TV regressions.
+  - Non-feature media filtering: explicit `sample.mkv`, `trailer.mp4`, `random_clip_001.mp4`, and `Extras/Bonus` directories are cleanly separated from the main feature movie library with human-readable diagnostic tags.
+- **Test Suite**:
+  - Added comprehensive test fixtures in `FilenameParserTests.cs` and `LibraryImportTests.cs` verifying movies without years, bracketed years, Persian Unicode titles, complex titles, unlinked re-evaluation, and diagnostic summaries. All 308 tests passing.
+
+---
+
 ## [0.9.4] - 2026-11-10 (Complete Stabilization, Phase 6 TV Shows, Playlists & Windows Integration)
 
 ### Added

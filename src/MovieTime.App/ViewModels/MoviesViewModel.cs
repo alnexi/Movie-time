@@ -573,9 +573,9 @@ public sealed class MoviesViewModel : ObservableObject
         {
             IsLoading = true;
             StatusMessage = "Scanning local roots and synchronizing library...";
-            await _importService.ImportAsync();
+            var result = await _importService.ImportAsync();
             await LoadMoviesAsync();
-            StatusMessage = $"Library updated: {TotalMovieCount} movies found.";
+            StatusMessage = $"Library updated: {TotalMovieCount} movies displayed ({result.FilesImported} new, {result.FilesUpdated} updated).";
         }
         catch (Exception ex)
         {

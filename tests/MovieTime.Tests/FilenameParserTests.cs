@@ -261,6 +261,7 @@ public sealed class FilenameParserTests : IDisposable
     {
         var result = _parser.Parse("The.Shawshank.Redemption.mkv");
 
+        Assert.Equal(MediaClassification.Movie, result.Classification);
         Assert.Equal("The Shawshank Redemption", result.Title);
         Assert.Null(result.Year);
     }
@@ -278,10 +279,31 @@ public sealed class FilenameParserTests : IDisposable
     }
 
     [Fact]
+    public void Parse_Movie_Gladiator_CompletelyPlainNoYearNoTags_ClassifiesAsMovie()
+    {
+        var result = _parser.Parse("Gladiator.mkv");
+
+        Assert.Equal(MediaClassification.Movie, result.Classification);
+        Assert.Equal("Gladiator", result.Title);
+        Assert.Null(result.Year);
+    }
+
+    [Fact]
+    public void Parse_Movie_TheDarkKnight_PlainNoYearNoTags_ClassifiesAsMovie()
+    {
+        var result = _parser.Parse("The Dark Knight.mp4");
+
+        Assert.Equal(MediaClassification.Movie, result.Classification);
+        Assert.Equal("The Dark Knight", result.Title);
+        Assert.Null(result.Year);
+    }
+
+    [Fact]
     public void Parse_Movie_PulpFiction_NoTagsNoYear_CleansTitle()
     {
         var result = _parser.Parse("Pulp.Fiction.mkv");
 
+        Assert.Equal(MediaClassification.Movie, result.Classification);
         Assert.Equal("Pulp Fiction", result.Title);
         Assert.Null(result.Year);
     }
@@ -291,6 +313,7 @@ public sealed class FilenameParserTests : IDisposable
     {
         var result = _parser.Parse("Fight Club.mkv");
 
+        Assert.Equal(MediaClassification.Movie, result.Classification);
         Assert.Equal("Fight Club", result.Title);
         Assert.Null(result.Year);
     }
@@ -700,6 +723,58 @@ public sealed class FilenameParserTests : IDisposable
         Assert.Equal(MediaClassification.Movie, result.Classification);
         Assert.Equal("فروشنده", result.Title);
         Assert.Equal(2016, result.Year);
+    }
+
+    [Fact]
+    public void Parse_Unicode_PersianMovieWithoutYear_ClassifiesAsMovie()
+    {
+        var result = _parser.Parse("فروشنده.mkv");
+
+        Assert.Equal(MediaClassification.Movie, result.Classification);
+        Assert.Equal("فروشنده", result.Title);
+        Assert.Null(result.Year);
+    }
+
+    [Fact]
+    public void Parse_Unicode_PersianSeparationWithoutYear_ClassifiesAsMovie()
+    {
+        var result = _parser.Parse("جدایی نادر از سیمین.mkv");
+
+        Assert.Equal(MediaClassification.Movie, result.Classification);
+        Assert.Equal("جدایی نادر از سیمین", result.Title);
+        Assert.Null(result.Year);
+    }
+
+    [Fact]
+    public void Parse_Unicode_PersianComplexTitleWithEmoji_ClassifiesAsMovie()
+    {
+        var result = _parser.Parse("رفتیم خونه جنی یه مرد غریبه برای هالووین 😂.mkv");
+
+        Assert.Equal(MediaClassification.Movie, result.Classification);
+        Assert.Equal("رفتیم خونه جنی یه مرد غریبه برای هالووین 😂", result.Title);
+        Assert.Null(result.Year);
+    }
+
+    [Fact]
+    public void Parse_Unicode_MixedEnglishPersianTitleWithPartNumber_ClassifiesAsMovie()
+    {
+        var result = _parser.Parse("Silent Hill- Townfall - Part 2 - کابوسی که ازش نمیشه بیدار شد.mp4");
+
+        Assert.Equal(MediaClassification.Movie, result.Classification);
+        Assert.Contains("Silent Hill", result.Title);
+        Assert.Contains("Part 2", result.Title);
+        Assert.Contains("کابوسی که ازش نمیشه بیدار شد", result.Title);
+        Assert.Null(result.Year);
+    }
+
+    [Fact]
+    public void Parse_Movie_ParenthesesWithoutYear_PreservesParenthesesContentInTitle()
+    {
+        var result = _parser.Parse("DIY High Speed 3D Printer (CoreXY From Scratch).mp4");
+
+        Assert.Equal(MediaClassification.Movie, result.Classification);
+        Assert.Contains("DIY High Speed 3D Printer", result.Title);
+        Assert.Null(result.Year);
     }
 
     #endregion

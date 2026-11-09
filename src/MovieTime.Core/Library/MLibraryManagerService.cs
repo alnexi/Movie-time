@@ -348,6 +348,8 @@ public sealed class MLibraryManagerService : IMLibraryManagerService
         }
 
         _logger.LogInformation("Initiating MLibrary scan across registered storage locations.");
-        return await _importService.ImportAsync(options, progress, cancellationToken).ConfigureAwait(false);
+        var result = await _importService.ImportAsync(options, progress, cancellationToken).ConfigureAwait(false);
+        _logger.LogInformation("MLibrary scan finished. {DiagnosticSummary}", result.FormatDiagnosticSummary());
+        return result;
     }
 }

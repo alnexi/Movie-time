@@ -481,5 +481,101 @@ public sealed class LibraryImportTests : IDisposable
         Assert.Equal("Alien.1979.mkv", files[0].FileName);
     }
 
+    [Fact]
+    public async Task ImportAsync_MoviesWithoutYears_AreSuccessfullyImportedAndLinked()
+    {
+        var moviesDir = Path.Combine(_tempDir, "Movies_No_Year");
+        CreateDummyVideoFile(Path.Combine("Movies_No_Year", "Gladiator.mkv"));
+        CreateDummyVideoFile(Path.Combine("Movies_No_Year", "The Dark Knight.mp4"));
+        CreateDummyVideoFile(Path.Combine("Movies_No_Year", "Inception.mkv"));
+
+        await _scanRootService.AddRootAsync(moviesDir);
+        var result = await _importService.ImportAsync();
+
+        Assert.Equal(3, result.FilesDiscovered);
+        Assert.Equal(3, result.FilesImported);
+        Assert.Equal(3, result.MoviesClassified);
+        Assert.Equal(3, result.MoviesCreated);
+        Assert.Equal(0, result.UnknownFiles);
+
+        var movies = await _movieRepository.GetAllAsync();
+        Assert.Equal(3, movies.Count);
+        Assert.Contains(movies, m => m.Title == "Gladiator" && m.ReleaseYear == null);
+        Assert.Contains(movies, m => m.Title == "The Dark Knight" && m.ReleaseYear == null);
+        Assert.Contains(movies, m => m.Title == "Inception" && m.ReleaseYear == null);
+
+        var files = await _mediaFileRepository.GetAllAsync();
+        Assert.Equal(3, files.Count);
+        Assert.All(files, f => Assert.NotNull(f.MovieId));
+    }
+
+    [Fact]
+    public async Task ImportAsync_PreviouslyUnlinkedFiles_AreReEvaluatedAndLinkedOnSubsequentScan()
+    {
+        var moviesDir = Path.Combine(_tempDir, "Unlinked_Reevaluation");
+        var filePath = Path.Combine(_tempDir, "Unlinked_Reevaluation", "Gladiator.mkv");
+        CreateDummyVideoFile(Path.Combine("Unlinked_Reevaluation", "Gladiator.mkv"));
+        var root = await _scanRootService.AddRootAsync(moviesDir);
+
+        // Simulate an existing media file that was previously saved with MovieId = null
+        var unlinkedFile = new MovieTime.Core.Entities.MediaFile
+        {
+            ScanRootId = root.Id,
+            FilePath = filePath,
+            FileName = "Gladiator.mkv",
+            FileExtension = ".mkv",
+            SizeBytes = 1024,
+            FileCreatedAt = DateTime.UtcNow,
+            FileModifiedAt = DateTime.UtcNow,
+            LastScannedAt = DateTime.UtcNow,
+            MovieId = null,
+            EpisodeId = null,
+            IsMissing = false
+        };
+        await _mediaFileRepository.InsertAsync(unlinkedFile);
+
+        // Run import - the unlinked file must be re-evaluated and linked to a Movie entity
+        var result = await _importService.ImportAsync();
+
+        Assert.Equal(1, result.FilesDiscovered);
+        Assert.Equal(1, result.FilesUpdated);
+        Assert.Equal(1, result.MoviesClassified);
+        Assert.Equal(1, result.MoviesCreated);
+
+        var movies = await _movieRepository.GetAllAsync();
+        Assert.Single(movies);
+        Assert.Equal("Gladiator", movies[0].Title);
+
+        var updatedFile = await _mediaFileRepository.GetByPathAsync(filePath);
+        Assert.NotNull(updatedFile);
+        Assert.Equal(movies[0].Id, updatedFile.MovieId);
+    }
+
+    [Fact]
+    public async Task ImportAsync_DiagnosticReport_TracksAllClassificationsAndDiagnosticsAccurately()
+    {
+        var mixedDir = Path.Combine(_tempDir, "Diagnostic_Mixed");
+        CreateDummyVideoFile(Path.Combine("Diagnostic_Mixed", "Interstellar.2014.1080p.mkv"));
+        CreateDummyVideoFile(Path.Combine("Diagnostic_Mixed", "The.Wire.S01E08.Lessons.720p.mkv"));
+        CreateDummyVideoFile(Path.Combine("Diagnostic_Mixed", "sample.mkv"));
+
+        await _scanRootService.AddRootAsync(mixedDir);
+        var result = await _importService.ImportAsync();
+
+        Assert.Equal(3, result.FilesDiscovered);
+        Assert.Equal(1, result.MoviesClassified);
+        Assert.Equal(1, result.TvEpisodesClassified);
+        Assert.Equal(1, result.UnknownFiles);
+        Assert.Single(result.Diagnostics);
+        Assert.Equal("sample.mkv", result.Diagnostics[0].FileName);
+        Assert.Equal("Unknown", result.Diagnostics[0].Classification);
+        Assert.Contains("Sample", result.Diagnostics[0].Reason);
+
+        var summary = result.FormatDiagnosticSummary();
+        Assert.Contains("Movies Classified: 1", summary);
+        Assert.Contains("TV Episodes Classified: 1", summary);
+        Assert.Contains("Unknown: 1", summary);
+    }
+
     #endregion
 }

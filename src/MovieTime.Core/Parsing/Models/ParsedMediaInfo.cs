@@ -80,6 +80,11 @@ public sealed class ParsedMediaInfo
     public bool FolderContextUsed { get; }
 
     /// <summary>
+    /// Human-readable diagnostic reason for classification, rejection, or fallback (e.g. "Sample video file").
+    /// </summary>
+    public string? DiagnosticReason { get; }
+
+    /// <summary>
     /// True if multiple episodes are contained in this single file.
     /// </summary>
     public bool IsMultiEpisode => EpisodeNumbers.Count > 1;
@@ -98,7 +103,8 @@ public sealed class ParsedMediaInfo
         string? edition = null,
         IEnumerable<string>? detectedTechnicalTags = null,
         string? releaseGroup = null,
-        bool folderContextUsed = false)
+        bool folderContextUsed = false,
+        string? diagnosticReason = null)
     {
         OriginalInput = originalInput ?? string.Empty;
         Classification = classification;
@@ -112,6 +118,7 @@ public sealed class ParsedMediaInfo
         Edition = edition;
         ReleaseGroup = releaseGroup;
         FolderContextUsed = folderContextUsed;
+        DiagnosticReason = diagnosticReason;
 
         if (episodeNumbers != null)
         {

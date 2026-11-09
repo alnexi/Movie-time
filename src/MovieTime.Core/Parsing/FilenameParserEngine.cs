@@ -15,6 +15,7 @@ namespace MovieTime.Core.Parsing;
 /// Production offline filename and metadata parsing engine.
 /// Evaluates video filenames and directory hierarchies to classify media, identify clean titles,
 /// extract release years, season/episode coordinates, edition markers, and technical tags.
+/// Adheres strictly to the rule that valid movies do not require a release year.
 /// </summary>
 public sealed class FilenameParserEngine : IFilenameParserEngine
 {
@@ -30,7 +31,15 @@ public sealed class FilenameParserEngine : IFilenameParserEngine
         "tv", "tv shows", "tv show", "tv series", "series", "shows", "television",
         "downloads", "download", "completed", "complete", "media", "videos", "video",
         "incoming", "temp", "tmp", "torrents", "torrent", "seedbox", "library",
-        "specials", "extras", "season", "seasons", "disk", "disc"
+        "specials", "extras", "season", "seasons", "disk", "disc", "mlibrary"
+    };
+
+    // Generic movie file names that indicate parent folder should be used for title/year
+    private static readonly HashSet<string> GenericMovieFileNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "movie", "feature", "main", "video", "film",
+        "cd1", "cd2", "cd3", "disc1", "disc2", "disc3", "disk1", "disk2", "disk3",
+        "part1", "part2", "part3", "pt1", "pt2"
     };
 
     // Standard technical tags recognized in scene and P2P filenames
@@ -39,12 +48,12 @@ public sealed class FilenameParserEngine : IFilenameParserEngine
         // Resolution
         @"2160p", @"4k", @"uhd", @"1080p", @"1080i", @"720p", @"576p", @"480p", @"sd",
         // Source
-        @"remux", @"blu-?ray", @"bdrip", @"brrip", @"web-?dl", @"webrip", @"web",
+        @"remux", @"blu-?ray", @"bdrip", @"brrip", @"web-?dl", @"webrip",
         @"hdrip", @"dvdrip", @"dvd", @"hdtv", @"vob",
         // Video Codec
         @"x265", @"h\.?265", @"hevc", @"x264", @"h\.?264", @"avc", @"av1", @"xvid", @"divx", @"vc-?1", @"10bit", @"8bit",
         // Audio
-        @"dts-?hd\s*ma", @"dts-?hd", @"dts", @"truehd", @"atmos", @"eac3", @"ac3", @"aac", @"flac", @"mp3",
+        @"dts-?hd\s*ma", @"dts-?hd", @"dtshd", @"dts", @"truehd", @"atmos", @"eac3", @"ac3", @"aac", @"flac", @"mp3",
         @"dd5\.1", @"dd\+", @"5\.1", @"7\.1", @"2\.0", @"2ch", @"6ch", @"8ch",
         // Dynamic Range
         @"hdr10\+", @"hdr10", @"hdr", @"dolby\s*vision", @"\bdv\b",
@@ -54,13 +63,13 @@ public sealed class FilenameParserEngine : IFilenameParserEngine
 
     // Technical / release boundary for cutoff after episode code
     private const string TechnicalCutoffPattern =
-        @"(?:\d{3,4}p|4k|uhd|bluray|blu-?ray|web-?dl|webrip|web|remux|hdtv|dvdrip|x264|x265|h\.?264|h\.?265|hevc|avc|av1|aac|dts|ac3|eac3|truehd|atmos|flac|10bit|8bit|hdr|remastered|proper|repack|2ch)";
+        @"(?:\d{3,4}p|4k|uhd|bluray|blu-?ray|web-?dl|webrip|remux|hdtv|dvdrip|x264|x265|h\.?264|h\.?265|hevc|avc|av1|aac|dts|ac3|eac3|truehd|atmos|flac|10bit|8bit|hdr|remastered|proper|repack|2ch)";
 
     // Known isolated tokens that represent technical/scene tags, not human episode titles
     private static readonly HashSet<string> KnownTechnicalTokens = new(StringComparer.OrdinalIgnoreCase)
     {
         "2160p", "4k", "uhd", "1080p", "1080i", "720p", "576p", "480p", "sd",
-        "remux", "bluray", "blu-ray", "bdrip", "brrip", "web-dl", "webrip", "web", "webdl",
+        "remux", "bluray", "blu-ray", "bdrip", "brrip", "web-dl", "webrip", "webdl",
         "hdrip", "dvdrip", "dvd", "hdtv", "pdtv", "dsr", "vob",
         "x265", "h265", "h.265", "hevc", "x264", "h264", "h.264", "avc", "av1", "xvid", "divx", "vc1", "vc-1", "10bit", "8bit",
         "dts", "dtshd", "dts-hd", "truehd", "atmos", "eac3", "ac3", "aac", "flac", "mp3", "dd5.1", "dd+", "5.1", "7.1", "2.0", "2ch", "6ch", "8ch",
@@ -134,9 +143,9 @@ public sealed class FilenameParserEngine : IFilenameParserEngine
         RegexTimeout
     );
 
-    // Movie with Parenthesized Year: e.g. Interstellar (2014) [2160p]
+    // Movie with Parenthesized or Bracketed Year: e.g. Interstellar (2014) [2160p], Inception [2010]
     private static readonly Regex MovieParenthesizedYearRegex = new(
-        @"^(?<title>.+?)\s*\((?<year>19\d\d|20\d\d)\)(?<remainder>.*)$",
+        @"^(?<title>.+?)[._\s]*[\(\[](?<year>18\d\d|19\d\d|20\d\d)[\)\]](?<remainder>.*)$",
         RegexOptions.Compiled,
         RegexTimeout
     );
@@ -162,7 +171,7 @@ public sealed class FilenameParserEngine : IFilenameParserEngine
     {
         if (string.IsNullOrWhiteSpace(fullPath))
         {
-            return new ParsedMediaInfo(string.Empty, MediaClassification.Unknown, ParseConfidence.Low, string.Empty);
+            return new ParsedMediaInfo(string.Empty, MediaClassification.Unknown, ParseConfidence.Low, string.Empty, diagnosticReason: "Empty path");
         }
 
         var filename = Path.GetFileName(fullPath);
@@ -175,7 +184,7 @@ public sealed class FilenameParserEngine : IFilenameParserEngine
     {
         if (string.IsNullOrWhiteSpace(filename))
         {
-            return new ParsedMediaInfo(string.Empty, MediaClassification.Unknown, ParseConfidence.Low, string.Empty);
+            return new ParsedMediaInfo(string.Empty, MediaClassification.Unknown, ParseConfidence.Low, string.Empty, diagnosticReason: "Empty filename");
         }
 
         var originalInput = filename;
@@ -185,75 +194,195 @@ public sealed class FilenameParserEngine : IFilenameParserEngine
             nameWithoutExt = filename;
         }
 
-        // 1. Extract technical tags and release group upfront
+        // 1. Non-feature media check (sample, trailer, extras, empty)
+        if (IsNonFeatureMedia(nameWithoutExt, folderPath, out var nonFeatureReason))
+        {
+            var fallbackTitle = CleanTitle(nameWithoutExt);
+            return new ParsedMediaInfo(
+                originalInput: originalInput,
+                classification: MediaClassification.Unknown,
+                confidence: ParseConfidence.Low,
+                title: fallbackTitle,
+                diagnosticReason: nonFeatureReason
+            );
+        }
+
+        // 2. Extract technical tags and release group upfront
         var technicalTags = ExtractTechnicalTags(nameWithoutExt);
         var releaseGroup = ExtractReleaseGroup(nameWithoutExt);
 
-        // 2. Custom User Patterns (highest priority if configured)
+        // 3. Custom User Patterns (highest priority if configured)
         if (TryMatchCustomPatterns(nameWithoutExt, originalInput, technicalTags, releaseGroup, out var customResult))
         {
             return customResult;
         }
 
-        // 3. Television Standard Patterns (SxxExx, 1x02, Season X Episode Y)
+        // 4. Television Standard Patterns (SxxExx, 1x02, Season X Episode Y) - STRICT PRIORITY
         if (TryMatchStandardTv(nameWithoutExt, originalInput, technicalTags, releaseGroup, out var tvResult))
         {
             return tvResult;
         }
 
-        // 4. Television Season-Level File (e.g. Show.Name.S02.mkv)
+        // 5. Television Season-Level File (e.g. Show.Name.S02.mkv)
         if (TryMatchTvSeasonOnly(nameWithoutExt, originalInput, technicalTags, releaseGroup, out var seasonResult))
         {
             return seasonResult;
         }
 
-        // 5. Folder-Context Guided Television Parsing (e.g. Show/Season 2/03 - Title.mkv)
+        // 6. Folder-Context Guided Television Parsing (e.g. Show/Season 2/03 - Title.mkv)
         if (!string.IsNullOrWhiteSpace(folderPath) &&
             TryMatchTvFolderContext(nameWithoutExt, folderPath, originalInput, technicalTags, releaseGroup, out var folderTvResult))
         {
             return folderTvResult;
         }
 
-        // 6. Movie Parenthesized Year Pattern: "Interstellar (2014) [2160p]"
+        // 7. Generic Filename Folder Inheritance (e.g. Movies/Gladiator (2000)/cd1.avi or Inception/movie.mkv)
+        if (!string.IsNullOrWhiteSpace(folderPath) && GenericMovieFileNames.Contains(nameWithoutExt.Trim()))
+        {
+            var parentDir = GetDirectoryNameFromPath(folderPath, 0);
+            if (!string.IsNullOrWhiteSpace(parentDir) && !GenericFolderNames.Contains(parentDir.Trim()))
+            {
+                var folderParsed = Parse(parentDir, GetDirectoryNameFromPath(folderPath, 1));
+                if (folderParsed.Classification == MediaClassification.Movie)
+                {
+                    return new ParsedMediaInfo(
+                        originalInput: originalInput,
+                        classification: MediaClassification.Movie,
+                        confidence: ParseConfidence.High,
+                        title: folderParsed.Title,
+                        year: folderParsed.Year,
+                        edition: folderParsed.Edition ?? ExtractEdition(nameWithoutExt),
+                        detectedTechnicalTags: technicalTags.Count > 0 ? technicalTags : folderParsed.DetectedTechnicalTags,
+                        releaseGroup: releaseGroup ?? folderParsed.ReleaseGroup,
+                        folderContextUsed: true
+                    );
+                }
+            }
+        }
+
+        // 8. Movie Parenthesized or Bracketed Year Pattern: "Interstellar (2014) [2160p]" or "Inception [2010]"
         if (TryMatchParenthesizedMovie(nameWithoutExt, originalInput, technicalTags, releaseGroup, out var parenMovieResult))
         {
             return parenMovieResult;
         }
 
-        // 7. Standard Delimited Movie Pattern with Year: "The.Dark.Knight.2008.1080p.BluRay" or "1917.2019.1080p"
+        // 9. Standard Delimited Movie Pattern with Year: "The.Dark.Knight.2008.1080p.BluRay" or "1917.2019.1080p"
         if (TryMatchDelimitedMovieWithYear(nameWithoutExt, originalInput, technicalTags, releaseGroup, out var movieWithYearResult))
         {
             return movieWithYearResult;
         }
 
-        // 8. Folder-Context Guided Movie Parsing (e.g. Movies/The Dark Knight (2008)/The.Dark.Knight.1080p.mkv)
+        // 10. Folder-Context Guided Movie Parsing (e.g. Movies/The Dark Knight (2008)/The.Dark.Knight.1080p.mkv)
         if (!string.IsNullOrWhiteSpace(folderPath) &&
             TryMatchMovieFolderContext(nameWithoutExt, folderPath, originalInput, technicalTags, releaseGroup, out var folderMovieResult))
         {
             return folderMovieResult;
         }
 
-        // 9. Delimited Movie Pattern without Year (e.g. "Gladiator.1080p.BluRay" or "The.Shawshank.Redemption")
+        // 11. Delimited Movie Pattern without Year (e.g. "Gladiator.1080p.BluRay" or "Inception.EXTENDED")
         if (TryMatchDelimitedMovieWithoutYear(nameWithoutExt, originalInput, technicalTags, releaseGroup, out var movieWithoutYearResult))
         {
             return movieWithoutYearResult;
         }
 
-        // 10. Conservative Fallback: Clean title without forcing classification
-        var fallbackTitle = CleanTitle(nameWithoutExt);
-        var fallbackConfidence = !string.IsNullOrWhiteSpace(fallbackTitle) ? ParseConfidence.Low : ParseConfidence.Low;
+        // 12. Valid Movies without Release Year or Technical Tags (e.g. "Gladiator.mkv", "The Dark Knight.mp4", "فروشنده.mkv")
+        // Rule 3: Valid movies must not require a release year.
+        // Any video file reaching this point is NOT a TV show, NOT a sample/trailer/clip, and has valid content.
+        var cleanTitle = CleanTitle(nameWithoutExt);
+        if (!string.IsNullOrWhiteSpace(cleanTitle) && cleanTitle.Any(char.IsLetterOrDigit))
+        {
+            return new ParsedMediaInfo(
+                originalInput: originalInput,
+                classification: MediaClassification.Movie,
+                confidence: ParseConfidence.Medium,
+                title: cleanTitle,
+                year: null,
+                edition: ExtractEdition(nameWithoutExt),
+                detectedTechnicalTags: technicalTags,
+                releaseGroup: releaseGroup
+            );
+        }
 
+        // 13. Unclassified Fallback: Empty, invalid, or unidentifiable
         return new ParsedMediaInfo(
             originalInput: originalInput,
             classification: MediaClassification.Unknown,
-            confidence: fallbackConfidence,
-            title: fallbackTitle,
+            confidence: ParseConfidence.Low,
+            title: cleanTitle,
             detectedTechnicalTags: technicalTags,
-            releaseGroup: releaseGroup
+            releaseGroup: releaseGroup,
+            diagnosticReason: "Filename contains no identifiable title"
         );
     }
 
     #region Pattern Matchers
+
+    private static bool IsNonFeatureMedia(string nameWithoutExt, string? folderPath, out string reason)
+    {
+        reason = string.Empty;
+        if (string.IsNullOrWhiteSpace(nameWithoutExt))
+        {
+            reason = "Empty or whitespace filename";
+            return true;
+        }
+
+        // Check if filename contains no letters or digits across any Unicode script
+        if (!nameWithoutExt.Any(char.IsLetterOrDigit))
+        {
+            reason = "Filename contains no alphanumeric title characters";
+            return true;
+        }
+
+        // Sample detection (exact word "sample", "sample-1", "movie.sample")
+        if (Regex.IsMatch(nameWithoutExt, @"(^|[._\s-])sample([._\s-]|\d|$)", RegexOptions.IgnoreCase, RegexTimeout))
+        {
+            reason = "Sample video file";
+            return true;
+        }
+
+        // Trailer detection (exact standalone "trailer" or suffix "-trailer", ".trailer")
+        if (string.Equals(nameWithoutExt, "trailer", StringComparison.OrdinalIgnoreCase) ||
+            Regex.IsMatch(nameWithoutExt, @"[._\s-]trailer$", RegexOptions.IgnoreCase, RegexTimeout))
+        {
+            reason = "Trailer video file";
+            return true;
+        }
+
+        // Random clip / test clip detection
+        if (Regex.IsMatch(nameWithoutExt, @"^(?:random[._\s-])?clip[._\s-]*\d*$", RegexOptions.IgnoreCase, RegexTimeout) ||
+            Regex.IsMatch(nameWithoutExt, @"^test[._\s-]*clip", RegexOptions.IgnoreCase, RegexTimeout))
+        {
+            reason = "Non-feature media clip";
+            return true;
+        }
+
+        // Folder context: extras / samples / bonus
+        if (!string.IsNullOrWhiteSpace(folderPath))
+        {
+            var parentDir = Path.GetFileName(folderPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+            if (!string.IsNullOrEmpty(parentDir))
+            {
+                if (string.Equals(parentDir, "sample", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(parentDir, "samples", StringComparison.OrdinalIgnoreCase))
+                {
+                    reason = "Sample directory file";
+                    return true;
+                }
+
+                if (string.Equals(parentDir, "extras", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(parentDir, "featurettes", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(parentDir, "bonus", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(parentDir, "behind the scenes", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(parentDir, "deleted scenes", StringComparison.OrdinalIgnoreCase))
+                {
+                    reason = "Extras / bonus content";
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
 
     private bool TryMatchCustomPatterns(
         string rawName,
@@ -508,19 +637,22 @@ public sealed class FilenameParserEngine : IFilenameParserEngine
             if (int.TryParse(yearStr, out var year) && IsValidMovieYear(year))
             {
                 var cleanTitle = CleanTitle(titleRaw);
-                var edition = ExtractEdition(remainder);
+                if (!string.IsNullOrWhiteSpace(cleanTitle) && cleanTitle.Any(char.IsLetterOrDigit))
+                {
+                    var edition = ExtractEdition(remainder) ?? ExtractEdition(rawName);
 
-                result = new ParsedMediaInfo(
-                    originalInput: originalInput,
-                    classification: MediaClassification.Movie,
-                    confidence: ParseConfidence.High,
-                    title: cleanTitle,
-                    year: year,
-                    edition: edition,
-                    detectedTechnicalTags: technicalTags,
-                    releaseGroup: releaseGroup
-                );
-                return true;
+                    result = new ParsedMediaInfo(
+                        originalInput: originalInput,
+                        classification: MediaClassification.Movie,
+                        confidence: ParseConfidence.High,
+                        title: cleanTitle,
+                        year: year,
+                        edition: edition,
+                        detectedTechnicalTags: technicalTags,
+                        releaseGroup: releaseGroup
+                    );
+                    return true;
+                }
             }
         }
 
@@ -569,19 +701,22 @@ public sealed class FilenameParserEngine : IFilenameParserEngine
             var remainderTokens = tokens.Skip(yearIndex + 1).ToList();
 
             var cleanTitle = CleanTitle(string.Join(" ", titleTokens));
-            var edition = ExtractEdition(string.Join(" ", remainderTokens));
+            if (!string.IsNullOrWhiteSpace(cleanTitle) && cleanTitle.Any(char.IsLetterOrDigit))
+            {
+                var edition = ExtractEdition(string.Join(" ", remainderTokens)) ?? ExtractEdition(rawName);
 
-            result = new ParsedMediaInfo(
-                originalInput: originalInput,
-                classification: MediaClassification.Movie,
-                confidence: ParseConfidence.High,
-                title: cleanTitle,
-                year: detectedYear,
-                edition: edition,
-                detectedTechnicalTags: technicalTags,
-                releaseGroup: releaseGroup
-            );
-            return true;
+                result = new ParsedMediaInfo(
+                    originalInput: originalInput,
+                    classification: MediaClassification.Movie,
+                    confidence: ParseConfidence.High,
+                    title: cleanTitle,
+                    year: detectedYear,
+                    edition: edition,
+                    detectedTechnicalTags: technicalTags,
+                    releaseGroup: releaseGroup
+                );
+                return true;
+            }
         }
 
         return false;
@@ -603,32 +738,35 @@ public sealed class FilenameParserEngine : IFilenameParserEngine
 
         if (tokens.Count == 0) return false;
 
-        // What if no year is present, but clear technical tags or release indicators are present?
-        // e.g. "Gladiator.1080p.BluRay"
-        int firstTechIndex = -1;
+        // Check if clear technical tags or edition indicators are present
+        int firstBoundaryIndex = -1;
         for (int i = 0; i < tokens.Count; i++)
         {
             var t = tokens[i].Trim('(', ')', '[', ']');
-            if (IsTechnicalTag(t))
+            if (IsTechnicalTag(t) || EditionKeywords.ContainsKey(t))
             {
-                firstTechIndex = i;
+                firstBoundaryIndex = i;
                 break;
             }
         }
 
-        if (firstTechIndex > 0)
+        if (firstBoundaryIndex > 0)
         {
-            var titleTokens = tokens.Take(firstTechIndex).ToList();
+            var titleTokens = tokens.Take(firstBoundaryIndex).ToList();
+            var remainderTokens = tokens.Skip(firstBoundaryIndex).ToList();
             var cleanTitle = CleanTitle(string.Join(" ", titleTokens));
 
-            if (!string.IsNullOrWhiteSpace(cleanTitle))
+            if (!string.IsNullOrWhiteSpace(cleanTitle) && cleanTitle.Any(char.IsLetterOrDigit))
             {
+                var edition = ExtractEdition(string.Join(" ", remainderTokens)) ?? ExtractEdition(rawName);
+
                 result = new ParsedMediaInfo(
                     originalInput: originalInput,
                     classification: MediaClassification.Movie,
                     confidence: ParseConfidence.Medium,
                     title: cleanTitle,
                     year: null,
+                    edition: edition,
                     detectedTechnicalTags: technicalTags,
                     releaseGroup: releaseGroup
                 );
@@ -649,7 +787,7 @@ public sealed class FilenameParserEngine : IFilenameParserEngine
     {
         result = null!;
 
-        // Check if parent directory contains "Title (Year)" e.g. "The Dark Knight (2008)"
+        // Check if parent directory contains "Title (Year)" or "Title [Year]"
         var parentDirName = GetDirectoryNameFromPath(folderPath, 0);
         if (!string.IsNullOrEmpty(parentDirName) && !GenericFolderNames.Contains(parentDirName.Trim()))
         {
@@ -661,12 +799,18 @@ public sealed class FilenameParserEngine : IFilenameParserEngine
 
                 if (int.TryParse(yearStr, out var year) && IsValidMovieYear(year))
                 {
+                    var fileCleanTitle = CleanTitle(rawName);
+                    var titleToUse = (!string.IsNullOrWhiteSpace(fileCleanTitle) && !GenericMovieFileNames.Contains(rawName.Trim()))
+                        ? fileCleanTitle
+                        : CleanTitle(titleRaw);
+
                     result = new ParsedMediaInfo(
                         originalInput: originalInput,
                         classification: MediaClassification.Movie,
                         confidence: ParseConfidence.High,
-                        title: CleanTitle(titleRaw),
+                        title: titleToUse,
                         year: year,
+                        edition: ExtractEdition(rawName) ?? ExtractEdition(parentDirName),
                         detectedTechnicalTags: technicalTags,
                         releaseGroup: releaseGroup,
                         folderContextUsed: true
@@ -683,7 +827,13 @@ public sealed class FilenameParserEngine : IFilenameParserEngine
 
     #region Helper Methods
 
-    private static bool IsValidMovieYear(int year) => year >= 1888 && year <= 2099;
+    private static bool IsValidMovieYear(int year)
+    {
+        // Earliest motion picture is 1888 (Roundhay Garden Scene).
+        // Max valid release year is current UTC year + 2 (e.g. 2028).
+        // This ensures titles containing future numbers like "Blade Runner 2049" or numbers > 2028 are not misclassified as years.
+        return year >= 1888 && year <= DateTime.UtcNow.Year + 2;
+    }
 
     public static string CleanTitle(string rawTitle)
     {

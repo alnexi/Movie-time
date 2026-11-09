@@ -215,6 +215,8 @@ public sealed class LibraryImportService : ILibraryImportService
                     // Skip duplicate processing if already discovered through an ancestor/overlapping root
                     if (!seenFilePathsThisSession.Add(normalizedPath))
                     {
+                        result.DuplicateFiles++;
+                        result.FilesSkipped++;
                         continue;
                     }
 
@@ -254,9 +256,7 @@ public sealed class LibraryImportService : ILibraryImportService
             }
 
             result.Duration = stopwatch.Elapsed;
-            _logger.LogInformation(
-                "Library import completed in {DurationMs}ms. Discovered: {Discovered}, Imported: {Imported}, Updated: {Updated}, Unchanged: {Unchanged}, Missing: {Missing}, Cancelled: {Cancelled}.",
-                stopwatch.ElapsedMilliseconds, result.FilesDiscovered, result.FilesImported, result.FilesUpdated, result.FilesUnchanged, result.FilesMissing, result.IsCancelled);
+            _logger.LogInformation("{DiagnosticSummary}", result.FormatDiagnosticSummary());
 
             if (_artworkPipelineService != null && !result.IsCancelled && (result.FilesImported > 0 || result.FilesUpdated > 0))
             {
@@ -289,6 +289,27 @@ public sealed class LibraryImportService : ILibraryImportService
         }
     }
 
+    private static void RecordClassification(ParsedMediaInfo parsed, string fileName, LibraryImportResult result)
+    {
+        if (parsed.Classification == MediaClassification.Movie)
+        {
+            result.MoviesClassified++;
+        }
+        else if (parsed.Classification == MediaClassification.TvEpisode || parsed.Classification == MediaClassification.TvSeason)
+        {
+            result.TvEpisodesClassified++;
+        }
+        else
+        {
+            result.UnknownFiles++;
+            result.Diagnostics.Add(new ImportDiagnosticItem(
+                fileName: fileName,
+                classification: parsed.Classification.ToString(),
+                reason: parsed.DiagnosticReason ?? "Non-feature or unclassified media"
+            ));
+        }
+    }
+
     private async Task ProcessMediaFileAsync(
         ScannedMediaFile file,
         string normalizedPath,
@@ -305,10 +326,11 @@ public sealed class LibraryImportService : ILibraryImportService
             var isModifiedMatch = existingMediaFile.FileModifiedAt.HasValue &&
                 Math.Abs((existingMediaFile.FileModifiedAt.Value - file.LastModifiedUtc).TotalSeconds) < 1;
             var forceReparse = options?.ForceReparse == true;
+            var isCurrentlyUnlinked = !existingMediaFile.MovieId.HasValue && !existingMediaFile.EpisodeId.HasValue;
 
-            if (isSizeMatch && isModifiedMatch && !forceReparse)
+            if (isSizeMatch && isModifiedMatch && !forceReparse && !isCurrentlyUnlinked)
             {
-                // File content unchanged
+                // File content unchanged and already linked to an entity
                 if (existingMediaFile.IsMissing)
                 {
                     existingMediaFile.IsMissing = false;
@@ -325,7 +347,7 @@ public sealed class LibraryImportService : ILibraryImportService
                 return;
             }
 
-            // File modified on disk: update metadata and re-evaluate classification
+            // File modified on disk OR previously unlinked: re-evaluate classification
             existingMediaFile.SizeBytes = file.SizeBytes;
             existingMediaFile.FileModifiedAt = file.LastModifiedUtc;
             existingMediaFile.LastScannedAt = DateTime.UtcNow;
@@ -333,6 +355,8 @@ public sealed class LibraryImportService : ILibraryImportService
 
             var directoryPath = Path.GetDirectoryName(file.FilePath);
             var parsed = _parserEngine.Parse(file.FileName, directoryPath);
+            RecordClassification(parsed, file.FileName, result);
+
             await EnsureEntityAssociationAsync(parsed, existingMediaFile, result, isUpdate: true).ConfigureAwait(false);
 
             await _mediaFileRepository.UpdateAsync(existingMediaFile).ConfigureAwait(false);
@@ -343,6 +367,7 @@ public sealed class LibraryImportService : ILibraryImportService
         // New media file discovered
         var newDirectoryPath = Path.GetDirectoryName(file.FilePath);
         var parsedInfo = _parserEngine.Parse(file.FileName, newDirectoryPath);
+        RecordClassification(parsedInfo, file.FileName, result);
 
         var newMediaFile = new MediaFile
         {
@@ -397,6 +422,26 @@ public sealed class LibraryImportService : ILibraryImportService
                 };
                 await _movieRepository.InsertAsync(movie).ConfigureAwait(false);
                 result.MoviesCreated++;
+            }
+            else if (isUpdate)
+            {
+                bool movieUpdated = false;
+                if (!string.IsNullOrWhiteSpace(parsed.Edition) && movie.Edition != parsed.Edition)
+                {
+                    movie.Edition = parsed.Edition;
+                    movieUpdated = true;
+                }
+                if (parsed.Year.HasValue && movie.ReleaseYear != parsed.Year)
+                {
+                    movie.ReleaseYear = parsed.Year;
+                    movieUpdated = true;
+                }
+                if (movieUpdated)
+                {
+                    movie.UpdatedAt = DateTime.UtcNow;
+                    await _movieRepository.UpdateAsync(movie).ConfigureAwait(false);
+                    result.MoviesUpdated++;
+                }
             }
 
             mediaFile.MovieId = movie.Id;
@@ -494,10 +539,6 @@ public sealed class LibraryImportService : ILibraryImportService
             // Unknown or ambiguous media file: preserve in MediaFiles with null entity links
             mediaFile.MovieId = null;
             mediaFile.EpisodeId = null;
-            if (!isUpdate)
-            {
-                result.UnknownFiles++;
-            }
         }
     }
 

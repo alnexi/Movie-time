@@ -9,8 +9,8 @@ namespace MovieTime.Core.Scanning.Models;
 public sealed class MediaScanOptions
 {
     /// <summary>
-    /// Default set of 13 supported video file extensions.
-    /// .mkv, .mp4, .avi, .mov, .wmv, .m4v, .mpg, .mpeg, .ts, .m2ts, .webm, .vob, .flv
+    /// Default set of supported video file extensions.
+    /// .mkv, .mp4, .avi, .mov, .wmv, .m4v, .mpg, .mpeg, .ts, .m2ts, .mts, .m2t, .webm, .vob, .flv, .divx, .3gp, .ogv, .asf, .rmvb, .rm
     /// </summary>
     public static readonly IReadOnlySet<string> DefaultSupportedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
@@ -24,9 +24,17 @@ public sealed class MediaScanOptions
         ".mpeg",
         ".ts",
         ".m2ts",
+        ".mts",
+        ".m2t",
         ".webm",
         ".vob",
-        ".flv"
+        ".flv",
+        ".divx",
+        ".3gp",
+        ".ogv",
+        ".asf",
+        ".rmvb",
+        ".rm"
     };
 
     /// <summary>
