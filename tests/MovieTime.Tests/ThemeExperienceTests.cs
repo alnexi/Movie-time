@@ -60,6 +60,18 @@ public sealed class ThemeExperienceTests : IDisposable
     }
 
     [Fact]
+    public void ThemeSettings_Continuous0To100PercentageMapping_ResolvesExactIntegers()
+    {
+        for (int p = 0; p <= 100; p++)
+        {
+            double val = p / 100.0;
+            var settings = new ThemeSettings { ThemeValue = val };
+            Assert.Equal(p, settings.ThemePercentage);
+            Assert.Equal(val, settings.SinkingProgress, precision: 4);
+        }
+    }
+
+    [Fact]
     public void PaletteInterpolation_CalculatesContinuousColorTransitions()
     {
         var dayCol = ThemeColor.FromArgb(255, 46, 139, 87);       // #2E8B57
@@ -104,12 +116,54 @@ public sealed class ThemeExperienceTests : IDisposable
     }
 
     [Fact]
+    public void PaletteInterpolation_Interpolate5_CalculatesSmooth5StopTransitions()
+    {
+        var c0 = ThemeColor.FromArgb(255, 18, 92, 54);     // Day
+        var c25 = ThemeColor.FromArgb(255, 26, 75, 48);    // Afternoon
+        var c50 = ThemeColor.FromArgb(255, 140, 72, 22);   // Twilight
+        var c75 = ThemeColor.FromArgb(255, 18, 42, 64);    // Dusk
+        var c100 = ThemeColor.FromArgb(255, 6, 12, 20);    // Night
+
+        // Key stops
+        var col0 = ThemeColorInterpolator.Interpolate5(c0, c25, c50, c75, c100, 0.0);
+        Assert.Equal(c0.R, col0.R);
+        Assert.Equal(c0.G, col0.G);
+        Assert.Equal(c0.B, col0.B);
+
+        var col25 = ThemeColorInterpolator.Interpolate5(c0, c25, c50, c75, c100, 0.25);
+        Assert.Equal(c25.R, col25.R);
+        Assert.Equal(c25.G, col25.G);
+        Assert.Equal(c25.B, col25.B);
+
+        var col50 = ThemeColorInterpolator.Interpolate5(c0, c25, c50, c75, c100, 0.50);
+        Assert.Equal(c50.R, col50.R);
+        Assert.Equal(c50.G, col50.G);
+        Assert.Equal(c50.B, col50.B);
+
+        var col75 = ThemeColorInterpolator.Interpolate5(c0, c25, c50, c75, c100, 0.75);
+        Assert.Equal(c75.R, col75.R);
+        Assert.Equal(c75.G, col75.G);
+        Assert.Equal(c75.B, col75.B);
+
+        var col100 = ThemeColorInterpolator.Interpolate5(c0, c25, c50, c75, c100, 1.0);
+        Assert.Equal(c100.R, col100.R);
+        Assert.Equal(c100.G, col100.G);
+        Assert.Equal(c100.B, col100.B);
+
+        // Smooth continuous intermediate values
+        var mid12 = ThemeColorInterpolator.Interpolate5(c0, c25, c50, c75, c100, 0.125);
+        Assert.InRange(mid12.R, (byte)Math.Min(c0.R, c25.R), (byte)Math.Max(c0.R, c25.R));
+        Assert.InRange(mid12.G, (byte)Math.Min(c0.G, c25.G), (byte)Math.Max(c0.G, c25.G));
+    }
+
+    [Fact]
     public async Task ThemeSettingsService_PersistenceAndRestoration_WorksCorrectly()
     {
         // 1. Initial load creates default settings (1.0 = Night)
         var initial = await _settingsService.LoadSettingsAsync();
         Assert.NotNull(initial);
         Assert.Equal(1.0, initial.ThemeValue);
+        Assert.Equal(100, initial.ThemePercentage);
         Assert.False(initial.ReducedMotion);
         Assert.True(initial.AmbientAnimationEnabled);
 
@@ -123,6 +177,7 @@ public sealed class ThemeExperienceTests : IDisposable
         var restored = await secondService.LoadSettingsAsync();
 
         Assert.Equal(0.50, restored.ThemeValue, precision: 2);
+        Assert.Equal(50, restored.ThemePercentage);
         Assert.Equal(AppThemeMode.Twilight, restored.Mode);
         Assert.True(restored.ReducedMotion);
         Assert.False(restored.AmbientAnimationEnabled);
@@ -133,9 +188,11 @@ public sealed class ThemeExperienceTests : IDisposable
     {
         await _settingsService.UpdateThemeValueAsync(-0.8);
         Assert.Equal(0.0, _settingsService.CurrentSettings.ThemeValue);
+        Assert.Equal(0, _settingsService.CurrentSettings.ThemePercentage);
 
         await _settingsService.UpdateThemeValueAsync(2.4);
         Assert.Equal(1.0, _settingsService.CurrentSettings.ThemeValue);
+        Assert.Equal(100, _settingsService.CurrentSettings.ThemePercentage);
     }
 
     [Fact]
@@ -176,6 +233,51 @@ public sealed class ThemeExperienceTests : IDisposable
     }
 
     [Fact]
+    public async Task SettingsViewModel_TabNavigation_SwitchesBetweenLibraryAndThemeTabs()
+    {
+        var manager = new ThemeManagerService(_settingsService, null, NullLogger<ThemeManagerService>.Instance);
+        await manager.InitializeAsync();
+
+        var storage = new StoragePathService(_tempDir);
+        var db = new DatabaseService(storage, NullLogger<DatabaseService>.Instance);
+        await db.InitializeAsync();
+        var scanRootRepo = new ScanRootRepository(db);
+        var scanRootService = new ScanRootService(scanRootRepo, NullLogger<ScanRootService>.Instance);
+        var mediaScanner = new MediaScannerService(NullLogger<MediaScannerService>.Instance);
+        var parser = new FilenameParserEngine(NullLogger<FilenameParserEngine>.Instance, storage);
+        var importService = new LibraryImportService(
+            scanRootService, mediaScanner, parser, db,
+            new MovieRepository(db),
+            new SeriesRepository(db),
+            new SeasonRepository(db),
+            new EpisodeRepository(db),
+            new MediaFileRepository(db),
+            NullLogger<LibraryImportService>.Instance);
+
+        var libManager = new MLibraryManagerService(scanRootService, importService, NullLogger<MLibraryManagerService>.Instance);
+        var vm = new SettingsViewModel(libManager, manager, NullLogger<SettingsViewModel>.Instance);
+
+        // Default tab is General / Storage (0)
+        Assert.Equal(0, vm.SelectedTabIndex);
+        Assert.True(vm.IsGeneralTabSelected);
+        Assert.False(vm.IsThemeTabSelected);
+
+        // Switch to Theme Experience (1)
+        vm.SelectThemeTabCommand.Execute(null);
+        Assert.Equal(1, vm.SelectedTabIndex);
+        Assert.False(vm.IsGeneralTabSelected);
+        Assert.True(vm.IsThemeTabSelected);
+
+        // Switch back to General (0)
+        vm.SelectGeneralTabCommand.Execute(null);
+        Assert.Equal(0, vm.SelectedTabIndex);
+        Assert.True(vm.IsGeneralTabSelected);
+        Assert.False(vm.IsThemeTabSelected);
+
+        db.Dispose();
+    }
+
+    [Fact]
     public async Task SettingsViewModel_ThemeCommandsAndProperties_SynchronizeWithManager()
     {
         var manager = new ThemeManagerService(_settingsService, null, NullLogger<ThemeManagerService>.Instance);
@@ -204,30 +306,41 @@ public sealed class ThemeExperienceTests : IDisposable
 
         // Verify initial state
         Assert.Equal(1.0, vm.CurrentThemeValue);
+        Assert.Equal(100, vm.ThemePercentageInt);
         Assert.Equal(AppThemeMode.Night, vm.CurrentThemeMode);
         Assert.Contains("Night", vm.ThemeModeTitle);
         Assert.Equal("100%", vm.ThemePercentageText);
 
-        // Execute Day preset
+        // Execute Day preset (0%)
         vm.SetDayThemeCommand.Execute(null);
         Assert.Equal(0.0, vm.CurrentThemeValue);
+        Assert.Equal(0, vm.ThemePercentageInt);
         Assert.Equal(AppThemeMode.Day, vm.CurrentThemeMode);
         Assert.Contains("Day", vm.ThemeModeTitle);
         Assert.Equal("0%", vm.ThemePercentageText);
 
-        // Execute Twilight preset
+        // Execute Twilight preset (50%)
         vm.SetTwilightThemeCommand.Execute(null);
         Assert.Equal(0.5, vm.CurrentThemeValue);
+        Assert.Equal(50, vm.ThemePercentageInt);
         Assert.Equal(AppThemeMode.Twilight, vm.CurrentThemeMode);
         Assert.Contains("Twilight", vm.ThemeModeTitle);
         Assert.Equal("50%", vm.ThemePercentageText);
 
-        // Execute Night preset
+        // Execute Night preset (100%)
         vm.SetNightThemeCommand.Execute(null);
         Assert.Equal(1.0, vm.CurrentThemeValue);
+        Assert.Equal(100, vm.ThemePercentageInt);
         Assert.Equal(AppThemeMode.Night, vm.CurrentThemeMode);
         Assert.Contains("Night", vm.ThemeModeTitle);
         Assert.Equal("100%", vm.ThemePercentageText);
+
+        // Set exact arbitrary integer percentage (e.g. 37%)
+        vm.SetThemePercentage(37);
+        Assert.Equal(0.37, vm.CurrentThemeValue, precision: 2);
+        Assert.Equal(37, vm.ThemePercentageInt);
+        Assert.Equal("37%", vm.ThemePercentageText);
+        Assert.Equal(AppThemeMode.Twilight, vm.CurrentThemeMode);
 
         // Toggle ReducedMotion
         vm.ReducedMotion = true;

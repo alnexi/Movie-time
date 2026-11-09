@@ -11,6 +11,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.9.1] - 2026-11-09 (Theme Experience 2.0: Real-Time 3D Water, Continuous Sinking, Droplet Slider & Settings Tabs)
+
+### Changed & Improved
+- **100% Elimination of Unwanted Night Hatching**:
+  - Identified root cause in earlier 2D coordinate-phase wave thresholding (`Math.Sin((x * 0.5f) + (y * 0.35f)...)`) that generated harsh diagonal striped artifacts across the midnight water column.
+  - Replaced with physical 3D Fresnel specular reflection equations and standard $8 \times 8$ Bayer ordered dithering matrix.
+  - Clean, organic water highlights and shadows without artificial diagonal stripes across the entire 0%–100% range.
+- **Procedural Liquid Glass Droplet Slider Thumb**:
+  - Designed and rendered a custom liquid glass droplet thumb replacing the blocky icon.
+  - Features an Apple-inspired teardrop silhouette (bulbous lower radius with smooth transition to tapered upward tip), bright specular highlight glint, refractive translucent core, and soft elevation drop shadow.
+  - Interactive tactile feedback: smooth scaling and intensified glow upon pointer hover and drag.
+- **Continuous 0–100% Single-Percent Intensity Control**:
+  - Replaced crude discrete stepping with exact integer percentage control ($0\%$ to $100\%$).
+  - Implemented 5-stop cubic Hermite continuous color spline (`ThemeColorInterpolator.Interpolate5`):
+    - **0% Day**: Sunlit emerald waters, bright sky reflection, light weathered wood boat, white seagull.
+    - **25% Afternoon**: Golden sunlight, warm amber water reflections, honeyed oak wood tones.
+    - **50% Twilight**: Rich violet-rose sunset glow, deep teak boat, violet-tinted water surface.
+    - **75% Dusk**: Deep indigo-slate water, glowing twilight horizon, shadowed gunwales.
+    - **100% Night**: Deep obsidian midnight waters, clean moonlit specular reflections, dark boat silhouette.
+  - Avoids muddy brown/grey desaturation through perceptually tuned color ramps.
+- **Real-Time 3D Water Surface & Volumetric Boat Mesh**:
+  - Replaced flat 2D sprite simulation with a genuine 3D perspective camera (`fov = 55°`) and 3D depth-buffered rasterization.
+  - Interactive mouse orbit: moving the cursor across the canvas smoothly orbits and tilts the 3D camera (yaw and pitch) around the boat.
+  - 3D parametric volumetric wooden boat mesh: features contoured exterior hull planks, gunwale rails, interior floorboards, transverse bench seats, angled prow stem, and 3D perched seagull.
+  - Dynamic 3D water surface with multi-octave Gerstner-style wave harmonics and mouse-driven circular wave ripples.
+- **100% Continuous Boat Sinking Animation Across 100 Stages**:
+  - Seamless, fully reversible vertical boat displacement keyed directly to the theme percentage: $0\%$ (riding high above water) to $100\%$ (submerged beneath midnight water with only tip of prow exposed).
+  - Accurate 3D waterline clipping with depth sorting: hull sections below the local dynamic water elevation are smoothly attenuated via exponential optical depth decay ($e^{-0.22 \Delta Y}$) with submerged scatter.
+  - Dynamic waterline contact meniscus foam highlight tracking boat hull contours at the water surface.
+- **Strict Interaction Boundary**:
+  - Pointer over water generates expanding 3D ripples and specular disturbance.
+  - Pointer over boat suppresses water ripple generation, preserving the physical solidity and rigidity of the wooden vessel.
+- **Artwork Typography & Header Cleanup**:
+  - Completely purged text annotations ("Sinking into dither", "yarik") from the rendering canvas.
+  - Removed large redundant title heading and explanatory text paragraph above the artwork in Settings for a distraction-free, cinematic layout.
+- **Settings Redesign — Dedicated Two-Tab Architecture**:
+  - Introduced an Apple TV-inspired segmented capsule tab bar at the top of Settings:
+    - **Tab 1: 🗄️ Media Libraries & Storage**: Dedicated to drive enumeration, MLibrary folder discovery, library registration cards, and scan controls.
+    - **Tab 2: 🎨 Theme Experience**: Dedicated full-width showcase for the real-time 3D canvas, droplet slider, percentage readout, presets, and accessibility switches.
+  - Independent scrolling and clean separation of concerns without page clutter.
+- **Application Theme Integration**:
+  - Continuous mapping to WinUI application resources (`AppBackgroundBrush`, `AppCardBackgroundBrush`, `AppTextPrimaryBrush`, `AppAccentBrush`, etc.) across all 5 color stops.
+  - Discrete `ElementTheme.Light` ($0\%$) to `ElementTheme.Dark` ($100\%$) synchronization.
+  - Local persistence to `%LocalAppData%\MovieTime\Config\theme_settings.json`.
+- **Automated Test Suite Expansion**:
+  - Added unit tests for 5-stop continuous spline interpolation, 0–100% integer mapping, and Settings tab navigation.
+  - Total automated test suite expanded to **280 passing tests** (0 failures).
+
+---
+
 ## [0.9.0] - 2026-11-09 (Interactive Celestial Pixel Dither Theme Experience)
 
 ### Added

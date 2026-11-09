@@ -11,9 +11,9 @@
     d:DataContext="{d:DesignInstance Type=vm:SettingsViewModel}">
 
     <Grid Background="{ThemeResource AppBackgroundBrush}">
-        <!-- 1. Top Header Bar -->
+        <!-- 1. Top Header Bar with Segmented Tabs -->
         <Grid Height="72" VerticalAlignment="Top" Margin="36,24,36,0">
-            <!-- Left: Apple TV Capsule Pill ( ⚙️ Settings ) -->
+            <!-- Left: Apple TV Capsule Pill ( ⚙️ Settings ) & Navigation Quick Shortcuts -->
             <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Left" VerticalAlignment="Center">
                 <Border Background="#60181820"
                         BorderBrush="#30FFFFFF"
@@ -50,6 +50,71 @@
                 </Button>
             </StackPanel>
 
+            <!-- Center: Apple TV Segmented Tabs [ 🗄️ Media Libraries & Storage ] [ 🎨 Theme Experience ] -->
+            <Border HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Background="#25181820"
+                    BorderBrush="#25FFFFFF"
+                    BorderThickness="1"
+                    CornerRadius="20"
+                    Padding="4">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                    <!-- Tab 1 Button: General / Storage -->
+                    <Grid>
+                        <Button Command="{x:Bind ViewModel.SelectGeneralTabCommand, Mode=OneWay}"
+                                Background="Transparent"
+                                Foreground="{ThemeResource AppTextSecondaryBrush}"
+                                BorderThickness="0"
+                                CornerRadius="16"
+                                Padding="16,8"
+                                Visibility="{x:Bind BoolToInvertedVisibility(ViewModel.IsGeneralTabSelected), Mode=OneWay}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE8B7;" FontSize="13" />
+                                <TextBlock Text="Media Libraries &amp; Storage" FontSize="13" FontWeight="SemiBold" />
+                            </StackPanel>
+                        </Button>
+                        <Button Background="{ThemeResource AppTextPrimaryBrush}"
+                                Foreground="{ThemeResource AppBackgroundBrush}"
+                                BorderThickness="0"
+                                CornerRadius="16"
+                                Padding="16,8"
+                                Visibility="{x:Bind BoolToVisibility(ViewModel.IsGeneralTabSelected), Mode=OneWay}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE8B7;" FontSize="13" />
+                                <TextBlock Text="Media Libraries &amp; Storage" FontSize="13" FontWeight="SemiBold" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <!-- Tab 2 Button: Theme Experience -->
+                    <Grid>
+                        <Button Command="{x:Bind ViewModel.SelectThemeTabCommand, Mode=OneWay}"
+                                Background="Transparent"
+                                Foreground="{ThemeResource AppTextSecondaryBrush}"
+                                BorderThickness="0"
+                                CornerRadius="16"
+                                Padding="16,8"
+                                Visibility="{x:Bind BoolToInvertedVisibility(ViewModel.IsThemeTabSelected), Mode=OneWay}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE790;" FontSize="13" />
+                                <TextBlock Text="Theme Experience" FontSize="13" FontWeight="SemiBold" />
+                            </StackPanel>
+                        </Button>
+                        <Button Background="{ThemeResource AppTextPrimaryBrush}"
+                                Foreground="{ThemeResource AppBackgroundBrush}"
+                                BorderThickness="0"
+                                CornerRadius="16"
+                                Padding="16,8"
+                                Visibility="{x:Bind BoolToVisibility(ViewModel.IsThemeTabSelected), Mode=OneWay}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE790;" FontSize="13" />
+                                <TextBlock Text="Theme Experience" FontSize="13" FontWeight="SemiBold" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
             <!-- Right: Status / Progress Indicator -->
             <StackPanel Orientation="Horizontal"
                         Spacing="8"
@@ -65,25 +130,13 @@
         <ScrollViewer Margin="36,104,36,24"
                       VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled">
-            <StackPanel MaxWidth="880" HorizontalAlignment="Left" Spacing="28">
+            <Grid MaxWidth="880" HorizontalAlignment="Left">
 
                 <!-- ============================================================== -->
-                <!-- SECTION 1: APPEARANCE & CELESTIAL PIXEL DITHER THEME EXPERIENCE -->
+                <!-- TAB 2: THEME EXPERIENCE (Primary Visual Focus - No Headings)   -->
                 <!-- ============================================================== -->
-                <StackPanel Spacing="16">
-                    <StackPanel Spacing="6">
-                        <TextBlock Text="Appearance &amp; Atmosphere"
-                                   FontSize="30"
-                                   FontWeight="Bold"
-                                   Foreground="{ThemeResource AppTextPrimaryBrush}" />
-                        <TextBlock Text="Interactive mouse-reactive 8-bit pixel dither environment. Drag the celestial slider between the Sun and Moon to smoothly transform Movie Time between Day, Twilight, and Night."
-                                   FontSize="13"
-                                   Foreground="{ThemeResource AppTextSecondaryBrush}"
-                                   TextWrapping="Wrap"
-                                   LineHeight="18"
-                                   MaxWidth="780" />
-                    </StackPanel>
-
+                <StackPanel Spacing="16"
+                            Visibility="{x:Bind BoolToVisibility(ViewModel.IsThemeTabSelected), Mode=OneWay}">
                     <!-- Featured Atmosphere Card -->
                     <Border Background="{ThemeResource AppCardBackgroundBrush}"
                             BorderBrush="{ThemeResource AppBorderBrush}"
@@ -98,18 +151,7 @@
 
                             <!-- Right: Atmosphere State, Presets & Controls -->
                             <StackPanel Grid.Column="1" Margin="32,0,0,0" Spacing="24" VerticalAlignment="Top">
-                                <!-- Title & Credits -->
-                                <StackPanel Spacing="4">
-                                    <TextBlock Text="SINKING INTO DITHER"
-                                               FontSize="22"
-                                               FontWeight="Bold"
-                                               Foreground="{ThemeResource AppTextPrimaryBrush}" />
-                                    <TextBlock Text="Original artwork &amp; concept by yarik • Native WinUI 3 GPU dither engine"
-                                               FontSize="12"
-                                               Foreground="{ThemeResource AppTextSecondaryBrush}" />
-                                </StackPanel>
-
-                                <!-- Active Mode Capsule Badge -->
+                                <!-- Mode & Percentage Badge -->
                                 <Border Background="{ThemeResource AppGlassFillBrush}"
                                         BorderBrush="{ThemeResource AppBorderBrush}"
                                         BorderThickness="1"
@@ -118,29 +160,36 @@
                                     <StackPanel Spacing="8">
                                         <Grid ColumnDefinitions="*,Auto">
                                             <TextBlock Text="{x:Bind ViewModel.ThemeModeTitle, Mode=OneWay}"
-                                                       FontSize="15"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="{ThemeResource AppTextPrimaryBrush}" />
-                                            <TextBlock Grid.Column="1"
-                                                       Text="{x:Bind ViewModel.ThemePercentageText, Mode=OneWay}"
-                                                       FontSize="14"
+                                                       FontSize="16"
                                                        FontWeight="Bold"
-                                                       Foreground="{ThemeResource AppAccentBrush}" />
+                                                       Foreground="{ThemeResource AppTextPrimaryBrush}" />
+                                            <Border Grid.Column="1"
+                                                    Background="#25FFFFFF"
+                                                    BorderBrush="{ThemeResource AppBorderBrush}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="10"
+                                                    Padding="10,4">
+                                                <TextBlock Text="{x:Bind ViewModel.ThemePercentageText, Mode=OneWay}"
+                                                           FontSize="13"
+                                                           FontWeight="Bold"
+                                                           Foreground="{ThemeResource AppAccentBrush}" />
+                                            </Border>
                                         </Grid>
                                         <TextBlock Text="{x:Bind ViewModel.ThemeDescription, Mode=OneWay}"
                                                    FontSize="12"
                                                    Foreground="{ThemeResource AppTextSecondaryBrush}"
                                                    TextWrapping="Wrap"
-                                                   LineHeight="17" />
+                                                   LineHeight="18" />
                                     </StackPanel>
                                 </Border>
 
                                 <!-- Quick Atmosphere Presets -->
                                 <StackPanel Spacing="10">
-                                    <TextBlock Text="CELESTIAL PRESETS"
+                                    <TextBlock Text="ATMOSPHERE PRESETS"
                                                FontSize="11"
                                                FontWeight="Bold"
                                                Foreground="{ThemeResource AppTextSecondaryBrush}" />
+
                                     <StackPanel Orientation="Horizontal" Spacing="10">
                                         <Button Command="{x:Bind ViewModel.SetDayThemeCommand, Mode=OneWay}"
                                                 Background="#20FFFFFF"
@@ -153,7 +202,7 @@
                                                 FontWeight="SemiBold">
                                             <StackPanel Orientation="Horizontal" Spacing="6">
                                                 <TextBlock Text="☀️" FontSize="13" />
-                                                <TextBlock Text="Day" />
+                                                <TextBlock Text="Day (0%)" />
                                             </StackPanel>
                                         </Button>
 
@@ -168,7 +217,7 @@
                                                 FontWeight="SemiBold">
                                             <StackPanel Orientation="Horizontal" Spacing="6">
                                                 <TextBlock Text="🌅" FontSize="13" />
-                                                <TextBlock Text="Twilight" />
+                                                <TextBlock Text="Twilight (50%)" />
                                             </StackPanel>
                                         </Button>
 
@@ -183,7 +232,7 @@
                                                 FontWeight="SemiBold">
                                             <StackPanel Orientation="Horizontal" Spacing="6">
                                                 <TextBlock Text="🌙" FontSize="13" />
-                                                <TextBlock Text="Night" />
+                                                <TextBlock Text="Night (100%)" />
                                             </StackPanel>
                                         </Button>
                                     </StackPanel>
@@ -228,22 +277,24 @@
                     </Border>
                 </StackPanel>
 
-                <!-- Divider -->
-                <Border Height="1" Background="{ThemeResource AppBorderBrush}" Margin="0,4" />
-
-                <!-- Title & Section Header -->
-                <StackPanel Spacing="6">
-                    <TextBlock Text="Media Libraries &amp; Storage"
-                               FontSize="30"
-                               FontWeight="Bold"
-                               Foreground="#FFFFFF" />
-                    <TextBlock Text="Movie Time organizes movies across your local drives using dedicated MLibrary folders. Only files inside registered MLibrary directories are scanned and cataloged."
-                               FontSize="13"
-                               Foreground="#8E8E93"
-                               TextWrapping="Wrap"
-                               LineHeight="18"
-                               MaxWidth="780" />
-                </StackPanel>
+                <!-- ============================================================== -->
+                <!-- TAB 1: MEDIA LIBRARIES & STORAGE SETTINGS                      -->
+                <!-- ============================================================== -->
+                <StackPanel Spacing="28"
+                            Visibility="{x:Bind BoolToVisibility(ViewModel.IsGeneralTabSelected), Mode=OneWay}">
+                    <!-- Title & Section Header -->
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Media Libraries &amp; Storage"
+                                   FontSize="30"
+                                   FontWeight="Bold"
+                                   Foreground="#FFFFFF" />
+                        <TextBlock Text="Movie Time organizes movies across your local drives using dedicated MLibrary folders. Only files inside registered MLibrary directories are scanned and cataloged."
+                                   FontSize="13"
+                                   Foreground="#8E8E93"
+                                   TextWrapping="Wrap"
+                                   LineHeight="18"
+                                   MaxWidth="780" />
+                    </StackPanel>
 
                 <!-- Global Action Bar -->
                 <Grid ColumnDefinitions="Auto,*,Auto">
@@ -495,7 +546,8 @@
                     </StackPanel>
                 </Border>
 
-            </StackPanel>
+                </StackPanel>
+            </Grid>
         </ScrollViewer>
 
         <!-- 3. Add Drive Modal Dialog Backdrop Overlay -->

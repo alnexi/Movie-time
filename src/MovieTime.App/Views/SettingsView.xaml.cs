@@ -23,6 +23,9 @@ public sealed partial class SettingsView : UserControl
         set => SetValue(ViewModelProperty, value);
     }
 
+    public Visibility BoolToVisibility(bool value) => value ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility BoolToInvertedVisibility(bool value) => value ? Visibility.Collapsed : Visibility.Visible;
+
     public SettingsView()
     {
         this.InitializeComponent();

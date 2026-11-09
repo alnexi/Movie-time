@@ -4,7 +4,7 @@
 
 [![.NET](https://img.shields.io/badge/.NET-10.0%20LTS%20(x64)-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![Windows App SDK](https://img.shields.io/badge/WinUI%203-Windows%20App%20SDK%201.7-0078D7?logo=windows)](https://learn.microsoft.com/en-us/windows/apps/winui/winui3/)
-[![Tests](https://img.shields.io/badge/Unit%20Tests-277%20Passed-brightgreen)](https://github.com/alnexi/Movie-time)
+[![Tests](https://img.shields.io/badge/Unit%20Tests-280%20Passed-brightgreen)](https://github.com/alnexi/Movie-time)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
@@ -226,7 +226,7 @@ MovieTime/
 # Restore dependencies and build the entire solution (x64 Debug)
 dotnet build MovieTime.sln -p:Platform=x64
 
-# Run all 194 automated unit tests
+# Run all 280 automated unit tests
 dotnet test MovieTime.sln -p:Platform=x64
 
 # Launch the application
@@ -237,7 +237,7 @@ dotnet run --project src\MovieTime.App\MovieTime.App.csproj -p:Platform=x64
 
 ## 🧪 Automated Test Suite
 
-The solution features **277 unit and integration tests** covering:
+The solution features **280 unit and integration tests** covering:
 - **Dependency Injection & Bootstrapping**: Service registration, lifetime scopes, and environment paths.
 - **Local Logging**: Serilog file sink rolling rules, log formatting, and output directory isolation.
 - **SQLite Engine & Migrations**: Schema creation, table constraints, indices, WAL mode, and migrations from v1 to v2.
@@ -248,11 +248,11 @@ The solution features **277 unit and integration tests** covering:
 - **Home Presentation Layer**: Pure zero-sample empty library state, neutral hero banner, sidebar category navigation, active category toggles, and card progress bar width math.
 - **Movies Presentation Layer**: Database loading, empty library state, live search query filtering, sorting by Title/Year/DateAdded, category filtering, and movie selection state.
 - **Movie Details Presentation Layer**: Real movie identification, year handling, missing artwork fallback flags, missing metadata omission, multiple editions/files selection, Play command target file binding, and local recommendations.
-- **Settings Presentation Layer**: Drive preview, registration confirmation dialog, status notification binding, and scanning triggers.
+- **Settings Presentation Layer**: Drive preview, registration confirmation dialog, status notification binding, scanning triggers, and two-tab navigation (Media Libraries & Storage vs. Theme Experience).
 - **Cinematic Player Presentation Layer**: Time formatting, seek offset math, volume clamping, mute toggling, edge-to-edge fullscreen presenter transitions, track enumeration/selection, InSight metadata binding, and auto-hide timer triggers.
 - **Playback Progress Persistence**: SQLite CRUD operations, position tick checkpoints, percentage calculations, completion flag thresholding, and play count increments.
 - **TV Shows & Episodes Architecture**: Filename recognition, series/season/episode entity relation linking, series details hero & season selectors, episode resume logic, and continuous playback.
-- **Celestial Pixel Dither Theme Experience**: 8-bit retro ordered dithering, 3-palette continuous color interpolation, mouse-reactive wave ripple simulation, parallax physics, and settings persistence.
+- **Theme Experience 2.0 (Real-Time 3D Water & Continuous Sinking)**: 3D perspective camera orbit, dynamic 3D water mesh with Fresnel specular reflections and 8x8 Bayer ordered dithering (100% elimination of night diagonal hatching), 3D parametric volumetric boat mesh with 100-stage continuous vertical sinking, submerged depth attenuation, waterline clipping, procedural liquid glass droplet slider thumb, and 5-stop continuous color spline interpolation.
 
 ---
 
@@ -271,6 +271,7 @@ The solution features **277 unit and integration tests** covering:
 - [x] **Phase 5**: Embedded Artwork & Local Thumbnail Extraction (WIC + Media Foundation / DirectShow).
 - [x] **Phase 6**: TV Show & Season/Episode Detail Experience (Recognition, Catalog, Details, Playback).
 - [x] **Interactive Pixel Dither Theme Experience**: Mouse-reactive retro dithered celestial theme switcher (Day / Twilight / Night).
+- [x] **Theme Experience 2.0**: Real-Time 3D Water Surface, 100% Continuous Sinking Animation, Liquid Droplet Slider, Elimination of Night Hatching, and Two-Tab Settings Redesign.
 
 ---
 

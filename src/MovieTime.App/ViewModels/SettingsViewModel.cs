@@ -22,6 +22,7 @@ public sealed class SettingsViewModel : ObservableObject
     private readonly IThemeManagerService? _themeManager;
     private readonly ILogger<SettingsViewModel> _logger;
 
+    private int _selectedTabIndex = 0; // 0 = General / Storage, 1 = Theme Experience
     private bool _isLoading;
     private bool _isScanning;
     private bool _isAddDialogOpen;
@@ -34,9 +35,29 @@ public sealed class SettingsViewModel : ObservableObject
 
     public IThemeManagerService? ThemeManager => _themeManager;
 
+    public int SelectedTabIndex
+    {
+        get => _selectedTabIndex;
+        set
+        {
+            if (SetProperty(ref _selectedTabIndex, value))
+            {
+                OnPropertyChanged(nameof(IsGeneralTabSelected));
+                OnPropertyChanged(nameof(IsThemeTabSelected));
+            }
+        }
+    }
+
+    public bool IsGeneralTabSelected => _selectedTabIndex == 0;
+    public bool IsThemeTabSelected => _selectedTabIndex == 1;
+
+    public ICommand SelectGeneralTabCommand { get; }
+    public ICommand SelectThemeTabCommand { get; }
+
     public double CurrentThemeValue => _themeManager?.CurrentThemeValue ?? 1.0;
     public AppThemeMode CurrentThemeMode => _themeManager?.CurrentMode ?? AppThemeMode.Night;
-    public string ThemePercentageText => $"{(int)(CurrentThemeValue * 100)}%";
+    public int ThemePercentageInt => (int)Math.Round(CurrentThemeValue * 100.0);
+    public string ThemePercentageText => $"{ThemePercentageInt}%";
 
     public string ThemeModeTitle => CurrentThemeMode switch
     {
@@ -45,12 +66,20 @@ public sealed class SettingsViewModel : ObservableObject
         _ => "Night \u2022 Obsidian Midnight (Apple TV)"
     };
 
-    public string ThemeDescription => CurrentThemeMode switch
+    public string ThemeDescription => CurrentThemeValue switch
     {
-        AppThemeMode.Day => "Vibrant emerald green waters, bright sunlight highlights, light weathered wood boat, white seagull, crisp light theme.",
-        AppThemeMode.Twilight => "Golden amber sunset atmosphere, warm teak boat, muted olive tones, atmospheric twilight ambiance.",
-        _ => "Deep obsidian navy waters, shimmering moonlight reflection column, dark silhouette boat, signature cinematic dark theme."
+        <= 0.10 => "0–10% (Day): Boat rides high above the water. Vibrant emerald green waters, bright sunlight highlights, light weathered wood boat, white seagull, crisp light theme.",
+        <= 0.35 => "11–35%: Boat begins lowering into the water. Lower hull plunges into green waters, warm afternoon sun, subtle wake displacement ripples.",
+        <= 0.65 => "36–65% (Twilight): Boat is half submerged. Waterline crosses mid-hull planks, golden amber sunset atmosphere, warm teak boat, atmospheric twilight ambiance.",
+        <= 0.85 => "66–85%: Boat is deeply submerged. Water reacts around the hull, gunwales near water surface, deep twilight-to-navy gradient.",
+        _ => "86–100% (Night): Boat reaches final sinking state. Deep obsidian navy waters, shimmering moonlight reflection column, dark silhouette boat, signature cinematic dark theme."
     };
+
+    public void SetThemePercentage(int percentage)
+    {
+        var clamped = Math.Clamp(percentage / 100.0, 0.0, 1.0);
+        _themeManager?.SetThemeValue(clamped);
+    }
 
     public bool ReducedMotion
     {
@@ -212,6 +241,8 @@ public sealed class SettingsViewModel : ObservableObject
         ToggleLibraryEnabledCommand = new AsyncRelayCommand<RegisteredMLibraryViewModel>(ToggleLibraryEnabledAsync);
         ScanAllLibrariesCommand = new AsyncRelayCommand(ScanAllLibrariesAsync);
         ScanSingleLibraryCommand = new AsyncRelayCommand<int>(ScanSingleLibraryAsync);
+        SelectGeneralTabCommand = new RelayCommand(() => SelectedTabIndex = 0);
+        SelectThemeTabCommand = new RelayCommand(() => SelectedTabIndex = 1);
         NavigateHomeCommand = new RelayCommand(() => NavigationRequested?.Invoke("Home"));
         NavigateMoviesCommand = new RelayCommand(() => NavigationRequested?.Invoke("Movies"));
 
@@ -227,6 +258,7 @@ public sealed class SettingsViewModel : ObservableObject
                 OnPropertyChanged(nameof(CurrentThemeMode));
                 OnPropertyChanged(nameof(ThemeModeTitle));
                 OnPropertyChanged(nameof(ThemeDescription));
+                OnPropertyChanged(nameof(ThemePercentageInt));
                 OnPropertyChanged(nameof(ThemePercentageText));
             };
         }
