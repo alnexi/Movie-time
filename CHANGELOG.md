@@ -11,6 +11,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.9.2] - 2026-11-09 (Theme Experience Visual Quality Emergency Hotfix)
+
+### Fixed & Overhauled
+- **Authentic Retro Pixel-Art Rendering Pipeline**:
+  - Replaced the high-resolution 1:1 screen-pixel renderer with a dedicated internal low-resolution framebuffer ($180 \times 320$) followed by hardware-friendly $2 \times 2$ nearest-neighbor upscaling to $360 \times 640$.
+  - Deliberate $2 \times 2$ pixel clusters restore the intended 8-bit / 16-bit retro aesthetic with razor-sharp edges and zero interpolation blur.
+- **Rebuilt 3D Clinker Wooden Rowboat Artwork**:
+  - Replaced the featureless dark polygon with a stylized 3D clinker/lapstrake wooden rowboat oriented diagonally with its prow pointing forward-left.
+  - Features 4 distinct plank tiers per side with wood-grain shading, highlighted gunwale rails, transverse wooden thwarts (bench seats), interior floorboards, and a contact foam meniscus highlighting the waterline.
+  - Perceptual color ramps across all 5 stops: sunlit pine wood in Day, warm teak in Twilight, and a moonlit wood silhouette with discernible plank contours at Night.
+- **Handcrafted Perched Pixel-Art Seagull**:
+  - Rebuilt the seagull as a recognizable retro sprite perched securely on the prow stem.
+  - Features a bright yellow/orange beak, dark eye, white crown, throat, and chest, slate-grey folded wings with dark charcoal primary wingtips, and perched legs.
+- **Concentric Circular Water Ripples & Shading**:
+  - Replaced glossy 3D waves and exaggerated white bands with smooth, calm concentric circular harmonic ripples radiating outward from the boat and cursor.
+  - Discrete palette quantization across 6 perceptual water bands combined with $8 \times 8$ Bayer ordered dithering.
+  - At Night: deep obsidian navy waters with crisp, restrained moonlit glints along the central column (zero diagonal hatching, zero repetitive white stripes).
+- **100% Continuous Sinking & Underwater Optical Absorption**:
+  - Retained fully continuous, reversible sinking across 100 integer stages ($Y_{\text{boat}} = 4.5\text{ to } -12.5$).
+  - Submerged hull sections are tinted through the water column using exponential optical depth decay.
+- **Droplet Slider Visual Polish**:
+  - Crisp teardrop droplet thumb with specular highlight glint and translucent refractive core belonging naturally to the water environment.
+
 ## [0.9.1] - 2026-11-09 (Theme Experience 2.0: Real-Time 3D Water, Continuous Sinking, Droplet Slider & Settings Tabs)
 
 ### Changed & Improved

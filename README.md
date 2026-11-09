@@ -252,7 +252,7 @@ The solution features **280 unit and integration tests** covering:
 - **Cinematic Player Presentation Layer**: Time formatting, seek offset math, volume clamping, mute toggling, edge-to-edge fullscreen presenter transitions, track enumeration/selection, InSight metadata binding, and auto-hide timer triggers.
 - **Playback Progress Persistence**: SQLite CRUD operations, position tick checkpoints, percentage calculations, completion flag thresholding, and play count increments.
 - **TV Shows & Episodes Architecture**: Filename recognition, series/season/episode entity relation linking, series details hero & season selectors, episode resume logic, and continuous playback.
-- **Theme Experience 2.0 (Real-Time 3D Water & Continuous Sinking)**: 3D perspective camera orbit, dynamic 3D water mesh with Fresnel specular reflections and 8x8 Bayer ordered dithering (100% elimination of night diagonal hatching), 3D parametric volumetric boat mesh with 100-stage continuous vertical sinking, submerged depth attenuation, waterline clipping, procedural liquid glass droplet slider thumb, and 5-stop continuous color spline interpolation.
+- **Theme Experience 2.0 & Retro Pixel-Art Overhaul**: Internal low-resolution rendering target ($180 \times 320$) with 2x nearest-neighbor upscale ($360 \times 640$), 3D perspective camera orbit, dynamic concentric circular ripples with 8x8 Bayer ordered dithering across discrete 5-stop color palettes, rebuilt 3D clinker wooden rowboat with visible planking, thwarts, and waterline foam, handcrafted perched pixel-art seagull, 100-stage continuous sinking animation, and liquid glass droplet thumb.
 
 ---
 
