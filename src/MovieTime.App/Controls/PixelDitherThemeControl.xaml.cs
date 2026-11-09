@@ -18,12 +18,12 @@ namespace MovieTime.App.Controls;
 /// <summary>
 /// Real-time interactive retro pixel-art theme controller for Movie Time.
 /// Faithfully reconstructed from the authoritative visual references:
-/// authentic handcrafted Day, Twilight, and Night keyframes, continuous 0–100% theme interpolation,
-/// dynamic 100-stage continuous boat sinking with optical depth absorption and foam meniscus,
-/// 3D perspective orbit/parallax driven by cursor movement with differential depth layers,
+/// authentic handcrafted Day, Twilight, and Night keyframes, continuous 0–100% theme interpolation
+/// with C2 SmootherStep transition easing, dynamic subpixel boat sinking with continuous optical depth absorption
+/// and foam meniscus, 3D perspective orbit/parallax driven by cursor movement with differential depth layers,
 /// real-time concentric water ripple simulation with strict boat hull boundaries (boat remains rigid and undeformed),
-/// clean obsidian night water with specular moonlight column glints (zero unwanted hatching/stripes),
-/// and an elegant Apple-inspired liquid glass droplet slider thumb.
+/// clean obsidian night water with smooth fading specular moonlight column glints,
+/// and a minimalist, perfectly proportioned circular dot slider thumb.
 /// </summary>
 public sealed partial class PixelDitherThemeControl : UserControl
 {
@@ -305,6 +305,18 @@ public sealed partial class PixelDitherThemeControl : UserControl
 
     #region Real-Time Reconstructed Pixel-Art Rendering Engine
 
+    /// <summary>
+    /// Ken Perlin's C2-continuous SmootherStep curve: 6t^5 - 15t^4 + 10t^3.
+    /// Guarantees zero 1st and 2nd derivatives at keyframe boundaries (t=0 and t=1),
+    /// delivering a silky smooth, fluid transition between Day, Twilight, and Night
+    /// with zero abrupt derivative kinks or visual corner artifacts.
+    /// </summary>
+    private static float SmootherStep(float t)
+    {
+        t = Math.Clamp(t, 0.0f, 1.0f);
+        return t * t * t * (t * (t * 6.0f - 15.0f) + 10.0f);
+    }
+
     private unsafe void RenderScene(float totalSec)
     {
         if (_writeableBitmap == null) return;
@@ -313,19 +325,21 @@ public sealed partial class PixelDitherThemeControl : UserControl
         bool reducedMotion = _themeManager?.ReducedMotion ?? false;
         bool ambient = _themeManager?.AmbientAnimationEnabled ?? true;
 
-        // Determine palette interpolation keyframes and factor
+        // Determine palette interpolation keyframes and factor with C2 SmootherStep
         byte[] src1, src2;
         float factor;
 
         if (v <= 0.5)
         {
-            factor = (float)(v / 0.5);
+            float t = (float)(v / 0.5);
+            factor = SmootherStep(t);
             src1 = _dayBuffer;
             src2 = _twilightBuffer;
         }
         else
         {
-            factor = (float)((v - 0.5) / 0.5);
+            float t = (float)((v - 0.5) / 0.5);
+            factor = SmootherStep(t);
             src1 = _twilightBuffer;
             src2 = _nightBuffer;
         }
@@ -333,11 +347,34 @@ public sealed partial class PixelDitherThemeControl : UserControl
         int invFactor = (int)((1.0f - factor) * 256.0f);
         int factor256 = (int)(factor * 256.0f);
 
-        // 100-Stage Continuous Sinking Physics
-        // Sinking downward displacement (0 to 6 pixels)
-        int sinkDy = (int)(v * 6.0f);
-        // Dynamic waterline sweeps upward across hull from Y=547 (Day nadir) to Y=472 (Night zenith)
-        int waterlineY = 547 - (int)(v * 75.0f);
+        // Continuous Water Absorption Tint (SmootherStep interpolation across full 0..1 range)
+        float wB, wG, wR;
+        if (v <= 0.5)
+        {
+            float wt = SmootherStep((float)(v / 0.5));
+            wB = (82.0f * (1.0f - wt)) + (48.0f * wt);
+            wG = (124.0f * (1.0f - wt)) + (88.0f * wt);
+            wR = (64.0f * (1.0f - wt)) + (92.0f * wt);
+        }
+        else
+        {
+            float wt = SmootherStep((float)((v - 0.5) / 0.5));
+            wB = (48.0f * (1.0f - wt)) + (35.0f * wt);
+            wG = (88.0f * (1.0f - wt)) + (24.0f * wt);
+            wR = (92.0f * (1.0f - wt)) + (22.0f * wt);
+        }
+
+        // Subpixel Continuous Sinking & Waterline Elevation
+        float floatSinkDy = (float)(v * 6.0);
+        float floatWaterlineY = 547.0f - (float)(v * 75.0);
+
+        // Moonlight Glint Smooth Fade-In (quadratic ramp from v=0.55 to v=1.0)
+        float moonGlintFactor = 0f;
+        if (v > 0.55f)
+        {
+            float tm = (float)((v - 0.55f) / 0.45f);
+            moonGlintFactor = tm * tm;
+        }
 
         // Differential 3D Depth Parallax
         int boatParallaxX = (int)(_currentParallaxX * 1.4f);
@@ -362,34 +399,48 @@ public sealed partial class PixelDitherThemeControl : UserControl
                     if (isBoat && !inSliderChannel)
                     {
                         // 1. Boat Pixel: Rigid wooden hull and perched seagull
-                        // Undeformed by water ripples, shifts with boat parallax and vertical sink offset
+                        // Shifts with boat parallax and subpixel-smooth vertical sink offset
+                        float byFloat = y + boatParallaxY - floatSinkDy;
+                        int by0 = Math.Clamp((int)Math.Floor(byFloat), 0, CanvasHeight - 1);
+                        int by1 = Math.Clamp(by0 + 1, 0, CanvasHeight - 1);
+                        int fy = (int)((byFloat - by0) * 256.0f);
+                        int invFy = 256 - fy;
+
                         int bx = Math.Clamp(x + boatParallaxX, 0, CanvasWidth - 1);
-                        int by = Math.Clamp(y + boatParallaxY - sinkDy, 0, CanvasHeight - 1);
-                        int srcOffset = (by * CanvasWidth * 4) + (bx * 4);
+                        int srcOffset0 = (by0 * CanvasWidth * 4) + (bx * 4);
+                        int srcOffset1 = (by1 * CanvasWidth * 4) + (bx * 4);
 
-                        int b = ((pSrc1[srcOffset + 0] * invFactor) + (pSrc2[srcOffset + 0] * factor256)) >> 8;
-                        int g = ((pSrc1[srcOffset + 1] * invFactor) + (pSrc2[srcOffset + 1] * factor256)) >> 8;
-                        int r = ((pSrc1[srcOffset + 2] * invFactor) + (pSrc2[srcOffset + 2] * factor256)) >> 8;
+                        int b0 = ((pSrc1[srcOffset0 + 0] * invFactor) + (pSrc2[srcOffset0 + 0] * factor256)) >> 8;
+                        int g0 = ((pSrc1[srcOffset0 + 1] * invFactor) + (pSrc2[srcOffset0 + 1] * factor256)) >> 8;
+                        int r0 = ((pSrc1[srcOffset0 + 2] * invFactor) + (pSrc2[srcOffset0 + 2] * factor256)) >> 8;
 
-                        // Continuous Waterline Submersion Absorption
-                        if (y > waterlineY)
+                        int b1 = ((pSrc1[srcOffset1 + 0] * invFactor) + (pSrc2[srcOffset1 + 0] * factor256)) >> 8;
+                        int g1 = ((pSrc1[srcOffset1 + 1] * invFactor) + (pSrc2[srcOffset1 + 1] * factor256)) >> 8;
+                        int r1 = ((pSrc1[srcOffset1 + 2] * invFactor) + (pSrc2[srcOffset1 + 2] * factor256)) >> 8;
+
+                        int b = ((b0 * invFy) + (b1 * fy)) >> 8;
+                        int g = ((g0 * invFy) + (g1 * fy)) >> 8;
+                        int r = ((r0 * invFy) + (r1 * fy)) >> 8;
+
+                        // Continuous Subpixel Waterline Submersion Absorption
+                        float dyWater = y - floatWaterlineY;
+                        if (dyWater > 0f)
                         {
-                            float depth = (y - waterlineY) * 0.16f;
+                            float depth = dyWater * 0.16f;
                             float atten = (float)Math.Exp(-depth);
-                            int waterB = v > 0.5 ? 35 : 82;
-                            int waterG = v > 0.5 ? 24 : 124;
-                            int waterR = v > 0.5 ? 22 : 64;
-
-                            b = (int)((b * atten) + (waterB * (1.0f - atten)));
-                            g = (int)((g * atten) + (waterG * (1.0f - atten)));
-                            r = (int)((r * atten) + (waterR * (1.0f - atten)));
+                            b = (int)((b * atten) + (wB * (1.0f - atten)));
+                            g = (int)((g * atten) + (wG * (1.0f - atten)));
+                            r = (int)((r * atten) + (wR * (1.0f - atten)));
                         }
-                        else if (y == waterlineY || y == waterlineY + 1)
+
+                        // Antialiased foam meniscus line tracking dynamic waterline
+                        float foamDist = Math.Abs(dyWater);
+                        if (foamDist < 1.6f)
                         {
-                            // Glowing white foam meniscus tracking dynamic waterline
-                            b = Math.Min(255, b + 55);
-                            g = Math.Min(255, g + 55);
-                            r = Math.Min(255, r + 55);
+                            int foam = (int)(((1.6f - foamDist) / 1.6f) * 50.0f);
+                            b = Math.Min(255, b + foam);
+                            g = Math.Min(255, g + foam);
+                            r = Math.Min(255, r + foam);
                         }
 
                         pRender[pixelOffset + 0] = (byte)b;
@@ -453,8 +504,8 @@ public sealed partial class PixelDitherThemeControl : UserControl
                         int g = ((pSrc1[srcOffset + 1] * invFactor) + (pSrc2[srcOffset + 1] * factor256)) >> 8;
                         int r = ((pSrc1[srcOffset + 2] * invFactor) + (pSrc2[srcOffset + 2] * factor256)) >> 8;
 
-                        // Moonlight specular glints at Night (clean, isolated sparkles; ZERO diagonal stripes/hatching)
-                        if (v > 0.65 && !inSliderChannel && x >= 140 && x <= 200 && y >= 110 && y <= 360)
+                        // Moonlight specular glints at Night (clean, isolated sparkles; smoothly faded in with moonGlintFactor)
+                        if (moonGlintFactor > 0.001f && !inSliderChannel && x >= 140 && x <= 200 && y >= 110 && y <= 360)
                         {
                             float colDist = Math.Abs(x - 170);
                             if (colDist < 25.0f)
@@ -463,7 +514,7 @@ public sealed partial class PixelDitherThemeControl : UserControl
                                 float noise = (float)(Math.Sin(glintPhase) * 43758.5453) % 1.0f;
                                 if (noise > 0.965f)
                                 {
-                                    int glint = (int)((noise - 0.965f) * 28.5f * 200.0f);
+                                    int glint = (int)((noise - 0.965f) * 28.5f * 200.0f * moonGlintFactor);
                                     b = Math.Min(255, b + glint);
                                     g = Math.Min(255, g + (glint * 8 / 10));
                                     r = Math.Min(255, r + (glint * 6 / 10));
@@ -479,9 +530,9 @@ public sealed partial class PixelDitherThemeControl : UserControl
                 }
             }
 
-            // Render celestial slider track, moon/sun icons, and droplet thumb
+            // Render celestial slider track, moon/sun icons, and minimalist circular dot thumb
             RenderSliderTrack(pRender);
-            RenderDropletThumb(pRender, (float)v);
+            RenderDotThumb(pRender, (float)v);
         }
 
         // Copy directly into WriteableBitmap buffer
@@ -492,7 +543,7 @@ public sealed partial class PixelDitherThemeControl : UserControl
 
     #endregion
 
-    #region Liquid Glass Celestial Droplet Slider
+    #region Minimalist Circular Dot Slider
 
     private unsafe void RenderSliderTrack(byte* pRender)
     {
@@ -588,20 +639,24 @@ public sealed partial class PixelDitherThemeControl : UserControl
         }
     }
 
-    private unsafe void RenderDropletThumb(byte* pRender, float v)
+    /// <summary>
+    /// Renders a simple, clean minimalist circular dot slider thumb.
+    /// Proportioned to diameter ~10.5px (radius 5.0f, expanding to 5.6f when active),
+    /// perfectly centered on the slider track groove with smooth subpixel antialiasing
+    /// and a soft elevation drop shadow.
+    /// </summary>
+    private unsafe void RenderDotThumb(byte* pRender, float v)
     {
         int thumbY = SliderBottom - (int)(v * SliderTravel);
         thumbY = Math.Clamp(thumbY, SliderTop, SliderBottom);
 
         bool isInteracting = _isDraggingSlider || _isPointerOverSlider;
-        float bulbR = isInteracting ? 9.5f : 8.5f;
-        float hTop = isInteracting ? 18.0f : 16.0f;
-        float hBot = isInteracting ? 11.5f : 10.5f;
+        float radius = isInteracting ? 5.6f : 5.0f;
 
-        int minX = SliderCenterX - 14;
-        int maxX = SliderCenterX + 14;
-        int minY = thumbY - (int)hTop - 2;
-        int maxY = thumbY + (int)hBot + 4;
+        int minX = SliderCenterX - 8;
+        int maxX = SliderCenterX + 8;
+        int minY = thumbY - 8;
+        int maxY = thumbY + 8;
 
         for (int y = minY; y <= maxY; y++)
         {
@@ -614,72 +669,41 @@ public sealed partial class PixelDitherThemeControl : UserControl
 
                 float dx = x - SliderCenterX;
                 float dy = y - thumbY;
-
-                bool inside = false;
-                float normDist = 0f;
-
-                if (dy >= 0f)
-                {
-                    // Bottom rounded bulb
-                    float dSq = (dx * dx) + (dy * dy);
-                    if (dSq <= bulbR * bulbR)
-                    {
-                        inside = true;
-                        normDist = (float)Math.Sqrt(dSq) / bulbR;
-                    }
-                }
-                else
-                {
-                    // Tapered droplet apex
-                    float t = -dy / hTop;
-                    if (t <= 1.0f)
-                    {
-                        float maxDx = bulbR * (1.0f - (float)Math.Pow(t, 1.3));
-                        if (Math.Abs(dx) <= maxDx)
-                        {
-                            inside = true;
-                            normDist = Math.Abs(dx) / (maxDx + 0.001f);
-                        }
-                    }
-                }
+                float dist = (float)Math.Sqrt((dx * dx) + (dy * dy));
 
                 int offset = rowOffset + (x * 4);
 
-                // Elevation drop shadow beneath and to right
-                if (!inside && dy > 1f)
+                // Subtle soft drop shadow beneath and to bottom-right
+                if (dist > radius)
                 {
-                    float shadowDx = dx - 1.5f;
-                    float shadowDy = dy - 1.5f;
-                    float sDist = (float)Math.Sqrt((shadowDx * shadowDx) + (shadowDy * shadowDy));
-                    if (sDist <= bulbR + 3.0f)
+                    float sDist = (float)Math.Sqrt(((dx - 0.5f) * (dx - 0.5f)) + ((dy - 1.2f) * (dy - 1.2f)));
+                    if (sDist <= radius + 2.0f)
                     {
-                        float sFalloff = (1.0f - (sDist / (bulbR + 3.0f))) * 0.45f;
-                        pRender[offset + 0] = (byte)(pRender[offset + 0] * (1.0f - sFalloff));
-                        pRender[offset + 1] = (byte)(pRender[offset + 1] * (1.0f - sFalloff));
-                        pRender[offset + 2] = (byte)(pRender[offset + 2] * (1.0f - sFalloff));
+                        float shadowAlpha = (1.0f - ((sDist - radius) / 2.0f)) * 0.35f;
+                        pRender[offset + 0] = (byte)(pRender[offset + 0] * (1.0f - shadowAlpha));
+                        pRender[offset + 1] = (byte)(pRender[offset + 1] * (1.0f - shadowAlpha));
+                        pRender[offset + 2] = (byte)(pRender[offset + 2] * (1.0f - shadowAlpha));
                     }
                     continue;
                 }
 
-                if (inside)
-                {
-                    // Refractive liquid glass droplet shading
-                    float rim = Math.Clamp((normDist - 0.65f) / 0.35f, 0.0f, 1.0f);
+                // Clean minimalist circular dot with smooth subpixel antialiasing
+                float alpha = Math.Clamp(radius + 0.5f - dist, 0.0f, 1.0f);
 
-                    // Specular glint on upper-left curve
-                    float glintD = (float)Math.Sqrt(((dx - (-3.0f)) * (dx - (-3.0f))) + ((dy - (-3.0f)) * (dy - (-3.0f))));
-                    float glint = (float)Math.Pow(Math.Clamp(1.0f - (glintD / 2.6f), 0.0f, 1.0f), 2.0);
+                // Subtle clean luminance gradient: top 255 pure white, bottom 242 light silver
+                float tGrad = Math.Clamp((dy / radius) * 0.5f + 0.5f, 0.0f, 1.0f);
+                int dotB = (int)(245.0f - (tGrad * 10.0f));
+                int dotG = (int)(248.0f - (tGrad * 8.0f));
+                int dotR = 255;
 
-                    // Crystal core with ambient refraction
-                    int dropB = Math.Clamp((int)(240 + (rim * 15) + (glint * 15)), 0, 255);
-                    int dropG = Math.Clamp((int)(245 + (rim * 10) + (glint * 10)), 0, 255);
-                    int dropR = 255;
+                int baseB = pRender[offset + 0];
+                int baseG = pRender[offset + 1];
+                int baseR = pRender[offset + 2];
 
-                    pRender[offset + 0] = (byte)dropB;
-                    pRender[offset + 1] = (byte)dropG;
-                    pRender[offset + 2] = (byte)dropR;
-                    pRender[offset + 3] = 255;
-                }
+                pRender[offset + 0] = (byte)((baseB * (1.0f - alpha)) + (dotB * alpha));
+                pRender[offset + 1] = (byte)((baseG * (1.0f - alpha)) + (dotG * alpha));
+                pRender[offset + 2] = (byte)((baseR * (1.0f - alpha)) + (dotR * alpha));
+                pRender[offset + 3] = 255;
             }
         }
     }

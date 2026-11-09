@@ -39,6 +39,47 @@ public static class ThemeColorInterpolator
     }
 
     /// <summary>
+    /// Ken Perlin's C2-continuous SmootherStep curve: 6u^5 - 15u^4 + 10u^3.
+    /// Provides zero 1st and 2nd derivatives at boundaries, eliminating all transition kinks and abrupt color jumps.
+    /// </summary>
+    public static double SmootherStep(double u)
+    {
+        double clamped = Math.Clamp(u, 0.0, 1.0);
+        return clamped * clamped * clamped * (clamped * (clamped * 6.0 - 15.0) + 10.0);
+    }
+
+    /// <summary>
+    /// Smooth continuous 3-stop perceptual color interpolation across Day -> Twilight -> Night using C2 SmootherStep easing.
+    /// Eliminates all derivative inflection jumps at the Twilight keyframe.
+    /// </summary>
+    public static ThemeColor SmoothInterpolate(ThemeColor day, ThemeColor twilight, ThemeColor night, double t)
+    {
+        double clamped = Math.Clamp(t, 0.0, 1.0);
+        double factor;
+        ThemeColor c1, c2;
+
+        if (clamped <= 0.5)
+        {
+            factor = SmootherStep(clamped / 0.5);
+            c1 = day;
+            c2 = twilight;
+        }
+        else
+        {
+            factor = SmootherStep((clamped - 0.5) / 0.5);
+            c1 = twilight;
+            c2 = night;
+        }
+
+        byte a = (byte)(c1.A + ((c2.A - c1.A) * factor));
+        byte r = (byte)(c1.R + ((c2.R - c1.R) * factor));
+        byte g = (byte)(c1.G + ((c2.G - c1.G) * factor));
+        byte b = (byte)(c1.B + ((c2.B - c1.B) * factor));
+
+        return new ThemeColor(a, r, g, b);
+    }
+
+    /// <summary>
     /// Smooth continuous 5-stop perceptual color interpolation across the 0–100% theme progression:
     /// Stop 0 (0% Day) -> Stop 1 (25% Muted Green) -> Stop 2 (50% Sunset Twilight) -> Stop 3 (75% Deep Indigo) -> Stop 4 (100% Obsidian Night).
     /// Uses cubic Hermite smoothstep to eliminate color banding and avoid desaturated middle values.

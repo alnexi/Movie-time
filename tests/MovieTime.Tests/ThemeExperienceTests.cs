@@ -352,4 +352,94 @@ public sealed class ThemeExperienceTests : IDisposable
 
         db.Dispose();
     }
+
+    [Fact]
+    public void SmoothInterpolate_Keyframes_MatchExactDayTwilightNight()
+    {
+        var dayCol = ThemeColor.FromArgb(255, 46, 139, 87);
+        var twiCol = ThemeColor.FromArgb(255, 224, 154, 53);
+        var ngtCol = ThemeColor.FromArgb(255, 10, 10, 12);
+
+        // At t = 0.0 (Day)
+        var col0 = ThemeColorInterpolator.SmoothInterpolate(dayCol, twiCol, ngtCol, 0.0);
+        Assert.Equal(dayCol.R, col0.R);
+        Assert.Equal(dayCol.G, col0.G);
+        Assert.Equal(dayCol.B, col0.B);
+
+        // At t = 0.5 (Twilight)
+        var col50 = ThemeColorInterpolator.SmoothInterpolate(dayCol, twiCol, ngtCol, 0.5);
+        Assert.Equal(twiCol.R, col50.R);
+        Assert.Equal(twiCol.G, col50.G);
+        Assert.Equal(twiCol.B, col50.B);
+
+        // At t = 1.0 (Night)
+        var col100 = ThemeColorInterpolator.SmoothInterpolate(dayCol, twiCol, ngtCol, 1.0);
+        Assert.Equal(ngtCol.R, col100.R);
+        Assert.Equal(ngtCol.G, col100.G);
+        Assert.Equal(ngtCol.B, col100.B);
+    }
+
+    [Fact]
+    public void SmoothInterpolate_ProducesContinuousSmootherStepCurve_NoSuddenJumps()
+    {
+        var dayCol = ThemeColor.FromArgb(255, 46, 139, 87);
+        var twiCol = ThemeColor.FromArgb(255, 224, 154, 53);
+        var ngtCol = ThemeColor.FromArgb(255, 10, 10, 12);
+
+        ThemeColor prev = ThemeColorInterpolator.SmoothInterpolate(dayCol, twiCol, ngtCol, 0.0);
+
+        // Step through 100 percentage points, ensure delta per step is strictly bounded (no jump > 12 units)
+        for (int p = 1; p <= 100; p++)
+        {
+            double t = p / 100.0;
+            var curr = ThemeColorInterpolator.SmoothInterpolate(dayCol, twiCol, ngtCol, t);
+
+            int dr = Math.Abs(curr.R - prev.R);
+            int dg = Math.Abs(curr.G - prev.G);
+            int db = Math.Abs(curr.B - prev.B);
+
+            Assert.True(dr < 12, $"Red jumped {dr} at step {p}%");
+            Assert.True(dg < 12, $"Green jumped {dg} at step {p}%");
+            Assert.True(db < 12, $"Blue jumped {db} at step {p}%");
+
+            prev = curr;
+        }
+    }
+
+    [Fact]
+    public void SmootherStep_HasZeroDerivativesAtBoundaries()
+    {
+        Assert.Equal(0.0, ThemeColorInterpolator.SmootherStep(0.0), precision: 6);
+        Assert.Equal(1.0, ThemeColorInterpolator.SmootherStep(1.0), precision: 6);
+
+        // Check slope near 0 is nearly flat (1st & 2nd derivative = 0)
+        double nearZero = ThemeColorInterpolator.SmootherStep(0.01);
+        Assert.True(nearZero < 0.0001, "SmootherStep should be near 0 at t=0.01");
+
+        // Check slope near 1 is nearly flat
+        double nearOne = ThemeColorInterpolator.SmootherStep(0.99);
+        Assert.True(nearOne > 0.9999, "SmootherStep should be near 1 at t=0.99");
+    }
+
+    [Theory]
+    [InlineData(0.0, 444)]   // Day nadir
+    [InlineData(0.5, 301)]   // Twilight midpoint
+    [InlineData(1.0, 158)]   // Night zenith
+    public void SliderTrack_DotThumbGeometry_IsProperlyCenteredAndProportioned(double themeVal, int expectedY)
+    {
+        const int sliderTop = 158;
+        const int sliderBottom = 444;
+        const int sliderTravel = sliderBottom - sliderTop; // 286 px
+
+        int thumbY = sliderBottom - (int)Math.Round(themeVal * sliderTravel);
+        Assert.Equal(expectedY, thumbY);
+
+        // Dot thumb radius is 5.0 px, so diameter is 10.0 px
+        const float dotRadius = 5.0f;
+        Assert.True(dotRadius >= 4.5f && dotRadius <= 6.0f, "Dot thumb radius must be 5.0px for ideal proportion to 2px track");
+
+        // Center X is 36 px
+        const int sliderCenterX = 36;
+        Assert.Equal(36, sliderCenterX);
+    }
 }

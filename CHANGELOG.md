@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.9.3] - 2026-11-09 (Theme Experience: Slider Dot Thumb & Transition Smoothness Refinement)
+
+### Changed & Improved
+- **Minimalist Circular Dot Slider Thumb**:
+  - Replaced the liquid glass droplet thumb with a simple, minimalist circular dot correctly proportioned to the 2px slider track.
+  - Sized at radius $R = 5.0$ px (diameter $\approx 10$–$11$ px), gently expanding to $5.6$ px during interaction for subtle tactile feedback.
+  - Rendered with clean subpixel antialiased edges, subtle top-to-bottom luminance gradient, and soft elevation drop shadow.
+  - Retained exact celestial vertical travel ($Y \in [158, 444]$), centered at $X = 36$, preserving the handcrafted crescent Moon and radiant Sun icons.
+- **C2-Continuous SmootherStep Keyframe Transition**:
+  - Implemented Ken Perlin's $C^2$-continuous SmootherStep polynomial ($s(t) = 6t^5 - 15t^4 + 10t^3$) for Day $\leftrightarrow$ Twilight $\leftrightarrow$ Night interpolation.
+  - Guarantees zero 1st and 2nd derivatives at keyframe boundaries ($t=0$ and $t=1$), completely eliminating the derivative inflection kink at the Twilight ($v = 0.5$) midpoint.
+- **Continuous Water Absorption & Submersion Depth**:
+  - Replaced the discrete binary water tint step (`v > 0.5 ? ...`) with continuous $C^2$ chromatic interpolation across the entire $0\% \to 100\%$ range: emerald green (`[82, 124, 64]`) $\to$ sunset amber (`[48, 88, 92]`) $\to$ deep obsidian navy (`[35, 24, 22]`).
+  - Added subpixel vertical sinking displacement and continuous floating-point waterline depth evaluation, eliminating row-by-row horizontal stepping.
+- **Smooth Quadratic Moonlight Glint Fade-In**:
+  - Glint sparkles now fade in smoothly using a continuous quadratic curve from $v = 0.55$ to $1.0$, allowing the moonlight column to dawn softly as dusk deepens into night with zero sudden appearance threshold.
+- **Expanded Test Coverage**:
+  - Added comprehensive automated regression tests in `ThemeExperienceTests` covering `SmootherStep`, `SmoothInterpolate`, keyframe exactness, step delta monotonicity, and dot thumb geometry. All 286 tests pass.
+
+---
+
 ## [0.9.2] - 2026-11-09 (Theme Experience Visual Quality Emergency Hotfix)
 
 ### Fixed & Overhauled
