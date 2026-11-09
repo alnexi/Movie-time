@@ -8,7 +8,7 @@
     mc:Ignorable="d"
     d:DataContext="{d:DesignInstance Type=vm:TvShowsViewModel}">
 
-    <Grid Background="#0A0A0C">
+    <Grid Background="{ThemeResource AppBackgroundBrush}">
         <Grid.RowDefinitions>
             <!-- 1. Header Bar: Home Pill, Title, Search, Sort -->
             <RowDefinition Height="Auto" />
@@ -27,30 +27,30 @@
             <!-- Top-Left Floating Home Pill & Title -->
             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
                 <Button Command="{x:Bind ViewModel.NavigateHomeCommand, Mode=OneWay}"
-                        Background="#60181820"
-                        BorderBrush="#30FFFFFF"
+                        Background="{ThemeResource AppCardBackgroundBrush}"
+                        BorderBrush="{ThemeResource AppBorderBrush}"
                         BorderThickness="1"
                         CornerRadius="18"
                         Padding="14,6,18,6">
                     <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                        <FontIcon Glyph="&#xE76B;" FontSize="11" Foreground="#C0C0C8" />
-                        <FontIcon Glyph="&#xE838;" FontSize="13" Foreground="#FFFFFF" />
-                        <TextBlock Text="Home" FontSize="13" FontWeight="SemiBold" Foreground="#FFFFFF" />
+                        <FontIcon Glyph="&#xE76B;" FontSize="11" Foreground="{ThemeResource AppTextSecondaryBrush}" />
+                        <FontIcon Glyph="&#xE838;" FontSize="13" Foreground="{ThemeResource AppTextPrimaryBrush}" />
+                        <TextBlock Text="Home" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource AppTextPrimaryBrush}" />
                     </StackPanel>
                 </Button>
 
                 <TextBlock Text="TV Shows"
                            FontSize="24"
                            FontWeight="Bold"
-                           Foreground="#FFFFFF"
+                           Foreground="{ThemeResource AppTextPrimaryBrush}"
                            VerticalAlignment="Center" />
             </StackPanel>
 
             <!-- Search Box & Sort Controls -->
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
                 <!-- Search Box Pill -->
-                <Border Background="#1C1C24"
-                        BorderBrush="#25FFFFFF"
+                <Border Background="{ThemeResource AppCardBackgroundBrush}"
+                        BorderBrush="{ThemeResource AppBorderBrush}"
                         BorderThickness="1"
                         CornerRadius="17"
                         Height="34"

@@ -1,15 +1,17 @@
 <UserControl
     x:Class="MovieTime.App.Views.MovieDetailsView"
+    x:Name="MovieDetailsRootView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:controls="using:MovieTime.App.Controls"
     xmlns:vm="using:MovieTime.App.ViewModels"
+    xmlns:entities="using:MovieTime.Core.Entities"
     mc:Ignorable="d"
     d:DataContext="{d:DesignInstance Type=vm:MovieDetailsViewModel}">
 
-    <Grid Background="#0A0A0C">
+    <Grid Background="{ThemeResource AppBackgroundBrush}">
         <!-- Main Scrollable Content Container -->
         <ScrollViewer HorizontalScrollBarVisibility="Disabled"
                       VerticalScrollBarVisibility="Auto"
@@ -222,6 +224,43 @@
                                         <FontIcon Glyph="&#xE72B;" FontSize="11" />
                                         <TextBlock Text="Back to Movies" />
                                     </StackPanel>
+                                </Button>
+
+                                <!-- Add to Playlist Action -->
+                                <Button Background="{ThemeResource AppGlassFillBrush}"
+                                        Foreground="{ThemeResource AppTextPrimaryBrush}"
+                                        BorderBrush="{ThemeResource AppBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="18"
+                                        Padding="16,10"
+                                        FontWeight="Medium"
+                                        FontSize="13">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE8D6;" FontSize="12" />
+                                        <TextBlock Text="Add to Playlist" />
+                                    </StackPanel>
+                                    <Button.Flyout>
+                                        <Flyout>
+                                            <StackPanel Width="220" Spacing="8">
+                                                <TextBlock Text="Choose Playlist" FontWeight="Bold" FontSize="14" Foreground="{ThemeResource AppTextPrimaryBrush}" />
+                                                <ItemsControl ItemsSource="{x:Bind ViewModel.AvailablePlaylists, Mode=OneWay}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate x:DataType="entities:Playlist">
+                                                            <Button Command="{Binding ElementName=MovieDetailsRootView, Path=ViewModel.AddToPlaylistCommand}"
+                                                                    CommandParameter="{x:Bind}"
+                                                                    HorizontalAlignment="Stretch"
+                                                                    HorizontalContentAlignment="Left"
+                                                                    Background="Transparent"
+                                                                    Padding="8,6"
+                                                                    Margin="0,2">
+                                                                <TextBlock Text="{x:Bind Name}" FontSize="13" Foreground="{ThemeResource AppTextPrimaryBrush}" TextTrimming="CharacterEllipsis" />
+                                                            </Button>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </Flyout>
+                                    </Button.Flyout>
                                 </Button>
                             </StackPanel>
 

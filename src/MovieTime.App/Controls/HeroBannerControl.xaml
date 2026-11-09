@@ -8,7 +8,10 @@
     mc:Ignorable="d"
     d:DataContext="{d:DesignInstance Type=vm:HeroBannerViewModel}">
 
-    <Grid x:Name="RootHeroGrid" Height="480" Background="#0A0A0C"
+    <Grid x:Name="RootHeroGrid" Height="480" Background="{ThemeResource AppBackgroundBrush}"
+          ManipulationMode="TranslateX,System"
+          ManipulationCompleted="OnHeroManipulationCompleted"
+          PointerWheelChanged="OnHeroPointerWheelChanged"
           PointerEntered="OnHeroPointerEntered"
           PointerExited="OnHeroPointerExited">
         <!-- 1. Cinematic Backdrop Canvas -->

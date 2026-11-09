@@ -26,6 +26,7 @@ public sealed class EpisodeItemViewModel : ObservableObject
 
     public bool HasDuration => !string.IsNullOrWhiteSpace(DurationDisplay);
     public bool HasQualityBadge => !string.IsNullOrWhiteSpace(QualityBadge);
+    public bool IsAvailable => !string.IsNullOrWhiteSpace(FilePath) && File.Exists(FilePath);
 
     public string DisplayTitle
     {

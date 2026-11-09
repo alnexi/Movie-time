@@ -26,6 +26,7 @@
   <ItemGroup>
     <Compile Include="..\..\src\MovieTime.App\Common\*.cs" LinkBase="Common" />
     <Compile Include="..\..\src\MovieTime.App\ViewModels\*.cs" LinkBase="ViewModels" />
+    <Compile Include="..\..\src\MovieTime.App\Services\WindowsOpenWithRegistrar.cs" LinkBase="Services" />
   </ItemGroup>
 
 </Project>

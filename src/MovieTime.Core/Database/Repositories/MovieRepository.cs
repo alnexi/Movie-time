@@ -42,6 +42,26 @@ public sealed class MovieRepository : IMovieRepository
             cleanTitle).ConfigureAwait(false);
     }
 
+    public async Task<List<Movie>> FindAllByTitleAndYearAsync(string title, int? year)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            return new List<Movie>();
+        }
+
+        var cleanTitle = title.Trim();
+        if (year.HasValue)
+        {
+            return await Connection.QueryAsync<Movie>(
+                "SELECT * FROM Movies WHERE Title = ? COLLATE NOCASE AND ReleaseYear = ?;",
+                cleanTitle, year.Value).ConfigureAwait(false);
+        }
+
+        return await Connection.QueryAsync<Movie>(
+            "SELECT * FROM Movies WHERE Title = ? COLLATE NOCASE AND ReleaseYear IS NULL;",
+            cleanTitle).ConfigureAwait(false);
+    }
+
     public Task<List<Movie>> GetAllAsync()
     {
         return Connection.Table<Movie>().ToListAsync();

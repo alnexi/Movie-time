@@ -16,6 +16,9 @@
             <SolidColorBrush x:Key="AppAccentBrush" Color="#FFFFFF" />
             <SolidColorBrush x:Key="AppBorderBrush" Color="#20FFFFFF" />
             <SolidColorBrush x:Key="AppGlassFillBrush" Color="#20FFFFFF" />
+
+            <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" xmlns:converters="using:MovieTime.App.Converters" />
+            <converters:BoolToVisibilityConverter x:Key="InverseBoolVisibilityConverter" Invert="True" xmlns:converters="using:MovieTime.App.Converters" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

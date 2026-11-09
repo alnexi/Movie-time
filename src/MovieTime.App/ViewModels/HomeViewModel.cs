@@ -304,6 +304,13 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
 
         SidebarItems.Add(new SidebarItemViewModel
         {
+            Title = "Playlists",
+            IconGlyph = "\uE8D6",
+            Command = new RelayCommand(() => OnSelectCategory("Playlists"))
+        });
+
+        SidebarItems.Add(new SidebarItemViewModel
+        {
             Title = "Library",
             IconGlyph = "\uE838",
             Command = new RelayCommand(() => OnSelectCategory("Library"))
@@ -454,6 +461,8 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
 
             Hero.PauseCommand = new RelayCommand(PauseHeroRotation);
             Hero.ResumeCommand = new RelayCommand(ResumeHeroRotation);
+            Hero.NextCommand = new RelayCommand(NextHeroItem);
+            Hero.PreviousCommand = new RelayCommand(PreviousHeroItem);
 
             if (_heroItems.Count > 1 && !_isRotationPaused)
             {
@@ -477,7 +486,12 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                     if (m == null) continue;
 
                     filesByMovieId.TryGetValue(m.Id, out var mFiles);
-                    var primaryFile = mFiles?.FirstOrDefault(f => f.Id == prog.MediaFileId) ??
+                    if (mFiles != null && mFiles.Count > 0 && mFiles.All(f => f.IsMissing))
+                    {
+                        continue;
+                    }
+
+                    var primaryFile = mFiles?.FirstOrDefault(f => f.Id == prog.MediaFileId && !f.IsMissing) ??
                                       mFiles?.FirstOrDefault(f => !f.IsMissing) ??
                                       mFiles?.FirstOrDefault();
 
@@ -561,7 +575,12 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                     var s = series.FirstOrDefault(x => x.Id == ep.SeriesId) ?? await _seriesRepository.GetByIdAsync(ep.SeriesId);
                     var season = await _seasonRepository.GetByIdAsync(ep.SeasonId);
                     var epFiles = allFiles.Where(f => f.EpisodeId == ep.Id).ToList();
-                    var primaryFile = epFiles.FirstOrDefault(f => f.Id == prog.MediaFileId) ??
+                    if (epFiles.Count > 0 && epFiles.All(f => f.IsMissing))
+                    {
+                        continue;
+                    }
+
+                    var primaryFile = epFiles.FirstOrDefault(f => f.Id == prog.MediaFileId && !f.IsMissing) ??
                                       epFiles.FirstOrDefault(f => !f.IsMissing) ??
                                       epFiles.FirstOrDefault();
 
@@ -654,7 +673,13 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
             foreach (var movie in movies)
             {
                 filesByMovieId.TryGetValue(movie.Id, out var mFiles);
+                if (mFiles != null && mFiles.Count > 0 && mFiles.All(f => f.IsMissing))
+                {
+                    continue;
+                }
+
                 var primaryFile = mFiles?.FirstOrDefault(f => !f.IsMissing) ?? mFiles?.FirstOrDefault();
+                if (mFiles != null && mFiles.Count > 0 && primaryFile == null) continue;
 
                 var card = new MediaCardViewModel
                 {
@@ -737,6 +762,14 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
 
         var nextIndex = (_currentHeroIndex + 1) % _heroItems.Count;
         SwitchToHeroIndex(nextIndex);
+    }
+
+    public void PreviousHeroItem()
+    {
+        if (_heroItems.Count <= 1) return;
+
+        var prevIndex = (_currentHeroIndex - 1 + _heroItems.Count) % _heroItems.Count;
+        SwitchToHeroIndex(prevIndex);
     }
 
     public void PauseHeroRotation()

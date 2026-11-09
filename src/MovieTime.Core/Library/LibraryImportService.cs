@@ -147,11 +147,26 @@ public sealed class LibraryImportService : ILibraryImportService
                     break;
                 }
 
-                // Verify physical directory accessibility
-                if (!Directory.Exists(root.Path))
+                // Verify physical drive readiness and directory accessibility (CRITICAL DRIVE SAFETY: safeguard against disconnected drives)
+                var driveRoot = Path.GetPathRoot(root.Path);
+                bool isDriveReady = true;
+                if (!string.IsNullOrEmpty(driveRoot))
                 {
-                    _logger.LogWarning("Configured library root '{RootPath}' is currently inaccessible. Skipping root without modifying records.", root.Path);
-                    result.Errors.Add(new ScanError(root.Path, "Directory is not accessible on disk.", nameof(DirectoryNotFoundException)));
+                    try
+                    {
+                        var driveInfo = new DriveInfo(driveRoot);
+                        isDriveReady = driveInfo.IsReady;
+                    }
+                    catch
+                    {
+                        // In case querying drive properties fails, rely on Directory.Exists
+                    }
+                }
+
+                if (!isDriveReady || !Directory.Exists(root.Path))
+                {
+                    _logger.LogWarning("Configured library root '{RootPath}' is currently inaccessible (DriveReady={DriveReady}). Skipping root without modifying records to safeguard offline drives.", root.Path, isDriveReady);
+                    result.Errors.Add(new ScanError(root.Path, isDriveReady ? "Directory is not accessible on disk." : "Drive is offline or disconnected.", nameof(DirectoryNotFoundException)));
                     continue;
                 }
 
@@ -355,7 +370,21 @@ public sealed class LibraryImportService : ILibraryImportService
     {
         if (parsed.Classification == MediaClassification.Movie)
         {
-            var movie = await _movieRepository.FindByTitleAndYearAsync(parsed.Title, parsed.Year).ConfigureAwait(false);
+            // B-03: Identical filenames on different drives must remain distinct.
+            // Match against candidates that either belong to this scan root or have no files yet.
+            var candidateMovies = await _movieRepository.FindAllByTitleAndYearAsync(parsed.Title, parsed.Year).ConfigureAwait(false);
+            Movie? movie = null;
+
+            foreach (var cand in candidateMovies)
+            {
+                var existingFiles = await _mediaFileRepository.GetByMovieIdAsync(cand.Id).ConfigureAwait(false);
+                if (existingFiles.Count == 0 || existingFiles.Any(f => f.ScanRootId == mediaFile.ScanRootId))
+                {
+                    movie = cand;
+                    break;
+                }
+            }
+
             if (movie == null)
             {
                 movie = new Movie

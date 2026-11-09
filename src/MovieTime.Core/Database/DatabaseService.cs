@@ -48,7 +48,8 @@ public sealed class DatabaseService : IDatabaseService
         _migrations = new List<IDatabaseMigration>
         {
             new InitialSchemaMigration(),
-            new SchemaVersion2Migration()
+            new SchemaVersion2Migration(),
+            new SchemaVersion3Migration()
         };
     }
 

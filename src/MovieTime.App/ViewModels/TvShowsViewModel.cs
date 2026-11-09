@@ -147,18 +147,24 @@ public sealed class TvShowsViewModel : ObservableObject
             _allSeries.Clear();
 
             var seriesEntities = await _seriesRepository.GetAllAsync();
-            if (seriesEntities.Count == 0)
-            {
-                IsLibraryEmpty = true;
-                SeriesList.Clear();
-                OnPropertyChanged(nameof(TotalSeriesCount));
-                return;
-            }
+            var allFiles = await _mediaFileRepository.GetAllAsync();
 
             foreach (var series in seriesEntities)
             {
                 var seasons = await _seasonRepository.GetBySeriesIdAsync(series.Id);
                 var episodes = await _episodeRepository.GetBySeriesIdAsync(series.Id);
+                var seriesEpIds = episodes.Select(e => e.Id).ToHashSet();
+                var seriesFiles = allFiles.Where(f => f.EpisodeId.HasValue && seriesEpIds.Contains(f.EpisodeId.Value)).ToList();
+
+                // B-02: Do not display series in active library if all episode files are confirmed missing
+                if (seriesFiles.Count > 0 && seriesFiles.All(f => f.IsMissing))
+                {
+                    continue;
+                }
+
+                int epCount = seriesFiles.Count > 0
+                    ? episodes.Count(e => seriesFiles.Any(f => f.EpisodeId == e.Id && !f.IsMissing))
+                    : episodes.Count;
 
                 var card = new SeriesCardViewModel
                 {
@@ -167,7 +173,7 @@ public sealed class TvShowsViewModel : ObservableObject
                     StartYear = series.StartYear,
                     EndYear = series.EndYear,
                     SeasonCount = seasons.Count,
-                    EpisodeCount = episodes.Count,
+                    EpisodeCount = epCount,
                     PosterPath = series.PosterPath,
                     BackdropPath = series.BackdropPath,
                     SelectCommand = new RelayCommand(() => NavigationRequested?.Invoke($"SeriesDetails:{series.Id}"))

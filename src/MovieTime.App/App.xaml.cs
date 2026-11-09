@@ -111,6 +111,7 @@ public partial class App : Application
         services.AddTransient<TvShowsViewModel>();
         services.AddTransient<SeriesDetailsViewModel>();
         services.AddTransient<SettingsViewModel>();
+        services.AddTransient<PlaylistsViewModel>();
         services.AddTransient<PlayerViewModel>();
         services.AddTransient<MainWindow>();
 
@@ -120,6 +121,39 @@ public partial class App : Application
     protected override async void OnLaunched(LaunchActivatedEventArgs args)
     {
         _logger.LogInformation("Application launched. Initializing database and activating MainWindow. CommandLine: {Cmd}", Environment.CommandLine);
+
+        // 1. Single-Instance Coordination: Redirect if another instance is already running
+        try
+        {
+            var mainInstance = Microsoft.Windows.AppLifecycle.AppInstance.FindOrRegisterForKey("MovieTime_App_SingleInstance");
+            if (!mainInstance.IsCurrent)
+            {
+                _logger.LogInformation("Another instance of Movie Time is already running. Redirecting activation and exiting...");
+                var currentArgs = Microsoft.Windows.AppLifecycle.AppInstance.GetCurrent().GetActivatedEventArgs();
+                await mainInstance.RedirectActivationToAsync(currentArgs);
+                System.Diagnostics.Process.GetCurrentProcess().Kill();
+                return;
+            }
+
+            mainInstance.Activated += (s, e) =>
+            {
+                if (_window is MainWindow mw)
+                {
+                    mw.DispatcherQueue.TryEnqueue(() =>
+                    {
+                        mw.Activate();
+                        HandleExternalActivation(mw, e);
+                    });
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Single-instance coordination encountered a non-fatal error.");
+        }
+
+        // 2. Safely register Movie Time in Windows Explorer Open With menu
+        _ = Task.Run(() => WindowsOpenWithRegistrar.RegisterOpenWith(_logger));
 
         try
         {
@@ -156,6 +190,20 @@ public partial class App : Application
             _window.Activate();
             _logger.LogInformation("MainWindow activated successfully.");
 
+            // 3. Handle external file activation (Open With or command line file argument)
+            if (_window is MainWindow mainWindow)
+            {
+                try
+                {
+                    var currentArgs = Microsoft.Windows.AppLifecycle.AppInstance.GetCurrent().GetActivatedEventArgs();
+                    HandleExternalActivation(mainWindow, currentArgs);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Error checking initial activation arguments.");
+                }
+            }
+
             // Initiate non-blocking background artwork extraction for movies missing posters/backdrops
             _ = Task.Run(async () =>
             {
@@ -179,6 +227,38 @@ public partial class App : Application
             _logger.LogCritical(ex, "FATAL: Failed to resolve or activate MainWindow: {Message}\n{StackTrace}", ex.Message, ex.ToString());
             Log.CloseAndFlush();
             throw;
+        }
+    }
+
+    private void HandleExternalActivation(MainWindow mainWindow, Microsoft.Windows.AppLifecycle.AppActivationArguments? activatedArgs)
+    {
+        string? targetFile = null;
+
+        if (activatedArgs != null && activatedArgs.Kind == Microsoft.Windows.AppLifecycle.ExtendedActivationKind.File)
+        {
+            if (activatedArgs.Data is Windows.ApplicationModel.Activation.IFileActivatedEventArgs fileArgs && fileArgs.Files.Count > 0)
+            {
+                targetFile = fileArgs.Files[0].Path;
+            }
+        }
+
+        if (string.IsNullOrEmpty(targetFile))
+        {
+            var cmdArgs = Environment.GetCommandLineArgs();
+            if (cmdArgs.Length > 1)
+            {
+                var candidate = cmdArgs[1].Trim('\"');
+                if (File.Exists(candidate))
+                {
+                    targetFile = candidate;
+                }
+            }
+        }
+
+        if (!string.IsNullOrEmpty(targetFile) && File.Exists(targetFile))
+        {
+            _logger.LogInformation("Routing external file directly to Player: {FilePath}", targetFile);
+            mainWindow.NavigateToPlayer(targetFile, null, null);
         }
     }
 

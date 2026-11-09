@@ -41,7 +41,9 @@ public sealed class VlcPlayerService : IVlcPlayerService
     private long _durationMs;
     private float _positionRatio;
     private int _volume = 100;
+    private int _previousVolume = 100;
     private bool _isMuted;
+    private float _playbackRate = 1.0f;
     private bool _isDisposed;
 
     public bool IsInitialized => _libVlc != null && _mediaPlayer != null;
@@ -91,6 +93,12 @@ public sealed class VlcPlayerService : IVlcPlayerService
         private set => _isMuted = value;
     }
 
+    public float PlaybackRate
+    {
+        get => _playbackRate;
+        private set => _playbackRate = value;
+    }
+
     public IReadOnlyList<PlayerTrackInfo> AudioTracks { get; private set; } = Array.Empty<PlayerTrackInfo>();
     public IReadOnlyList<PlayerTrackInfo> SubtitleTracks { get; private set; } = Array.Empty<PlayerTrackInfo>();
 
@@ -110,6 +118,8 @@ public sealed class VlcPlayerService : IVlcPlayerService
     public event Action? MediaEnded;
     public event Action<long>? AudioDelayChanged;
     public event Action? SubtitleSettingsChanged;
+    public event Action<float>? PlaybackRateChanged;
+    public event Action<int, bool>? VolumeChanged;
 
     public VlcPlayerService(
         ISubtitleSettingsService? subtitleSettingsService = null,
@@ -274,9 +284,9 @@ public sealed class VlcPlayerService : IVlcPlayerService
         mp.ESAdded += OnTracksUpdated;
         mp.ESDeleted += OnTracksUpdated;
         mp.ESSelected += OnTracksUpdated;
-        mp.Muted += (s, e) => { _isMuted = true; };
-        mp.Unmuted += (s, e) => { _isMuted = false; };
-        mp.VolumeChanged += (s, e) => { _volume = (int)(e.Volume * 100); };
+        mp.Muted += (s, e) => { _isMuted = true; VolumeChanged?.Invoke(_volume, _isMuted); };
+        mp.Unmuted += (s, e) => { _isMuted = false; VolumeChanged?.Invoke(_volume, _isMuted); };
+        mp.VolumeChanged += (s, e) => { _volume = Math.Clamp((int)Math.Round(e.Volume * 100), 0, 200); VolumeChanged?.Invoke(_volume, _isMuted); };
     }
 
     private void UnhookMediaPlayerEvents(MediaPlayer mp)
@@ -364,6 +374,9 @@ public sealed class VlcPlayerService : IVlcPlayerService
                     _logger.LogDebug(ex, "Background media parsing completed with notice.");
                 }
             });
+
+            // Reset playback rate to 1.0x on new playback
+            SetPlaybackRate(1.0f);
 
             // Start playback
             var playStarted = _mediaPlayer.Play();
@@ -509,7 +522,12 @@ public sealed class VlcPlayerService : IVlcPlayerService
 
     public void SetVolume(int volume)
     {
-        _volume = Math.Clamp(volume, 0, 100);
+        _volume = Math.Clamp(volume, 0, 200);
+        if (_volume > 0)
+        {
+            _previousVolume = _volume;
+        }
+
         if (_mediaPlayer != null)
         {
             _mediaPlayer.Volume = _volume;
@@ -519,6 +537,7 @@ public sealed class VlcPlayerService : IVlcPlayerService
                 _isMuted = false;
             }
         }
+        VolumeChanged?.Invoke(_volume, _isMuted);
     }
 
     public void ToggleMute()
@@ -527,7 +546,27 @@ public sealed class VlcPlayerService : IVlcPlayerService
         {
             _isMuted = !_isMuted;
             _mediaPlayer.Mute = _isMuted;
+            if (!_isMuted && _volume == 0)
+            {
+                SetVolume(_previousVolume > 0 ? _previousVolume : 100);
+            }
         }
+        else
+        {
+            _isMuted = !_isMuted;
+        }
+        VolumeChanged?.Invoke(_volume, _isMuted);
+    }
+
+    public void SetPlaybackRate(float rate)
+    {
+        rate = (float)Math.Round(Math.Clamp(rate, 0.1f, 2.0f), 1);
+        _playbackRate = rate;
+        if (_mediaPlayer != null)
+        {
+            _mediaPlayer.SetRate(rate);
+        }
+        PlaybackRateChanged?.Invoke(_playbackRate);
     }
 
     public bool SetAudioTrack(int trackId)

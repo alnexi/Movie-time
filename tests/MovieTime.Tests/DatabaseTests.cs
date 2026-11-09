@@ -62,13 +62,13 @@ public sealed class DatabaseTests : IDisposable
         await dbService.InitializeAsync();
 
         Assert.True(dbService.IsInitialized);
-        Assert.Equal(2, dbService.CurrentSchemaVersion);
+        Assert.Equal(3, dbService.CurrentSchemaVersion);
         Assert.True(File.Exists(_databaseFilePath));
 
         // Verify SQLite PRAGMAs directly on connection
         var conn = dbService.GetConnection();
         var userVersion = await conn.ExecuteScalarAsync<int>("PRAGMA user_version;");
-        Assert.Equal(2, userVersion);
+        Assert.Equal(3, userVersion);
 
         var journalMode = await conn.ExecuteScalarAsync<string>("PRAGMA journal_mode;");
         Assert.Equal("wal", journalMode.ToLowerInvariant());
@@ -119,7 +119,7 @@ public sealed class DatabaseTests : IDisposable
         await dbService.InitializeAsync();
 
         Assert.True(dbService.IsInitialized);
-        Assert.Equal(2, dbService.CurrentSchemaVersion);
+        Assert.Equal(3, dbService.CurrentSchemaVersion);
     }
 
     [Fact]
@@ -135,7 +135,7 @@ public sealed class DatabaseTests : IDisposable
         await Task.WhenAll(tasks);
 
         Assert.True(dbService.IsInitialized);
-        Assert.Equal(2, dbService.CurrentSchemaVersion);
+        Assert.Equal(3, dbService.CurrentSchemaVersion);
     }
 
     [Fact]
@@ -363,7 +363,7 @@ public sealed class DatabaseTests : IDisposable
             await dbService2.InitializeAsync();
 
             Assert.True(dbService2.IsInitialized);
-            Assert.Equal(2, dbService2.CurrentSchemaVersion);
+            Assert.Equal(3, dbService2.CurrentSchemaVersion);
 
             var movies = await dbService2.GetAllAsync<Movie>();
             Assert.Single(movies);
@@ -406,13 +406,15 @@ public sealed class DatabaseTests : IDisposable
         await using var dbService = new DatabaseService(_storagePathService, _logger, rawDbPath);
         await dbService.InitializeAsync();
 
-        // 3. Verify upgraded to version 2
-        Assert.Equal(2, dbService.CurrentSchemaVersion);
+        // 3. Verify upgraded to latest version (version 3)
+        Assert.Equal(3, dbService.CurrentSchemaVersion);
 
-        // Verify ScanRoots table now exists
+        // Verify ScanRoots, Playlists, and PlaylistItems tables now exist
         var conn = dbService.GetConnection();
-        var tables = await conn.QueryScalarsAsync<string>("SELECT name FROM sqlite_master WHERE type='table' AND name='ScanRoots';");
+        var tables = await conn.QueryScalarsAsync<string>("SELECT name FROM sqlite_master WHERE type='table';");
         Assert.Contains("ScanRoots", tables);
+        Assert.Contains("Playlists", tables);
+        Assert.Contains("PlaylistItems", tables);
 
         // Verify existing MediaFile record was preserved and defaulted properly
         var mediaFiles = await dbService.GetAllAsync<MediaFile>();

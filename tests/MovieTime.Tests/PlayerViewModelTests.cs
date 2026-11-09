@@ -399,6 +399,117 @@ public sealed class PlayerViewModelTests : IDisposable
         Assert.Equal("04:15", vm.CurrentTimeDisplay);
         Assert.Equal("-00:45", vm.RemainingTimeDisplay);
     }
+
+    [Fact]
+    public void PlaybackSpeed_IncrementsDecrementsAndClampsBetween01And20()
+    {
+        var vm = CreateViewModel();
+
+        // Default 1.0x
+        Assert.Equal(1.0f, vm.PlaybackRate);
+        Assert.Equal("1.0x", vm.PlaybackRateDisplay);
+
+        // Increase speed
+        vm.IncreaseSpeedCommand.Execute(null);
+        Assert.Equal(1.1f, vm.PlaybackRate);
+        Assert.Equal("1.1x", vm.PlaybackRateDisplay);
+        Assert.True(vm.IsSpeedHudVisible);
+        Assert.Equal("1.1x", vm.SpeedHudText);
+
+        // Decrease speed twice
+        vm.DecreaseSpeedCommand.Execute(null);
+        vm.DecreaseSpeedCommand.Execute(null);
+        Assert.Equal(0.9f, vm.PlaybackRate);
+        Assert.Equal("0.9x", vm.PlaybackRateDisplay);
+
+        // Upper clamp at 2.0x
+        vm.SetPlaybackRate(2.5f);
+        Assert.Equal(2.0f, vm.PlaybackRate);
+
+        // Lower clamp at 0.1x
+        vm.SetPlaybackRate(0.05f);
+        Assert.Equal(0.1f, vm.PlaybackRate);
+    }
+
+    [Fact]
+    public void Volume_Supports0To200Percent_ClampsCorrectly_AndRestoresOnMuteToggle()
+    {
+        var vm = CreateViewModel();
+
+        // Default 100%
+        Assert.Equal(100, vm.Volume);
+        Assert.Equal("100%", vm.VolumePercentDisplay);
+
+        // Amplification up to 200%
+        vm.SetVolume(150);
+        Assert.Equal(150, vm.Volume);
+        Assert.Equal("150%", vm.VolumePercentDisplay);
+
+        // Upper clamp at 200%
+        vm.SetVolume(250);
+        Assert.Equal(200, vm.Volume);
+        Assert.Equal("200%", vm.VolumePercentDisplay);
+
+        // Lower clamp at 0%
+        vm.SetVolume(-10);
+        Assert.Equal(0, vm.Volume);
+        Assert.Equal("0%", vm.VolumePercentDisplay);
+
+        // Increment volume
+        vm.IncreaseVolume(25);
+        Assert.Equal(25, vm.Volume);
+
+        // Toggle mute
+        vm.ToggleMuteCommand.Execute(null);
+        Assert.True(vm.IsMuted);
+
+        vm.ToggleMuteCommand.Execute(null);
+        Assert.False(vm.IsMuted);
+    }
+    [Fact]
+    public async Task PlayerViewModel_PlaylistQueue_SupportsNextAndPreviousNavigation()
+    {
+        var file1 = Path.Combine(_tempDir, "p1.mkv");
+        var file2 = Path.Combine(_tempDir, "p2.mkv");
+        File.WriteAllText(file1, "mock1");
+        File.WriteAllText(file2, "mock2");
+
+        var vm = new PlayerViewModel(
+            _fakePlayer,
+            _movieRepository,
+            _mediaFileRepository,
+            _progressRepository,
+            NullLogger<PlayerViewModel>.Instance);
+
+        var queue = new List<(string FilePath, int? MovieId, string Title)>
+        {
+            (file1, 1, "Movie 1"),
+            (file2, 2, "Movie 2")
+        };
+
+        await vm.InitializeWithPlaylistAsync(file1, 1, queue, 0);
+
+        Assert.True(vm.HasPlaylistQueue);
+        Assert.True(vm.HasNextInPlaylist);
+        Assert.False(vm.HasPreviousInPlaylist);
+        Assert.Equal("1 of 2", vm.PlaylistProgressDisplay);
+
+        // Advance to next
+        await vm.PlayNextInPlaylistAsync();
+
+        Assert.False(vm.HasNextInPlaylist);
+        Assert.True(vm.HasPreviousInPlaylist);
+        Assert.Equal("2 of 2", vm.PlaylistProgressDisplay);
+        Assert.Equal(file2, _fakePlayer.LastOpenedFile);
+
+        // Go back to previous
+        await vm.PlayPreviousInPlaylistAsync();
+
+        Assert.True(vm.HasNextInPlaylist);
+        Assert.False(vm.HasPreviousInPlaylist);
+        Assert.Equal("1 of 2", vm.PlaylistProgressDisplay);
+        Assert.Equal(file1, _fakePlayer.LastOpenedFile);
+    }
 }
 
 /// <summary>
@@ -434,6 +545,8 @@ internal sealed class FakeVlcPlayerService : IVlcPlayerService
     public SubtitleSettings CurrentSubtitleSettings { get; set; } = new();
 
 #pragma warning disable CS0067
+    public float PlaybackRate { get; set; } = 1.0f;
+
     public event Action<PlayerState>? StateChanged;
     public event Action<long, float>? PositionChanged;
     public event Action<long>? DurationChanged;
@@ -442,6 +555,8 @@ internal sealed class FakeVlcPlayerService : IVlcPlayerService
     public event Action? MediaEnded;
     public event Action<long>? AudioDelayChanged;
     public event Action? SubtitleSettingsChanged;
+    public event Action<float>? PlaybackRateChanged;
+    public event Action<int, bool>? VolumeChanged;
 #pragma warning restore CS0067
 
     public Task<bool> AddExternalAudioAsync(string audioFilePath)
@@ -551,12 +666,20 @@ internal sealed class FakeVlcPlayerService : IVlcPlayerService
 
     public void SetVolume(int volume)
     {
-        Volume = volume;
+        Volume = Math.Clamp(volume, 0, 200);
+        VolumeChanged?.Invoke(Volume, IsMuted);
     }
 
     public void ToggleMute()
     {
         IsMuted = !IsMuted;
+        VolumeChanged?.Invoke(Volume, IsMuted);
+    }
+
+    public void SetPlaybackRate(float rate)
+    {
+        PlaybackRate = (float)Math.Round(Math.Clamp(rate, 0.1f, 2.0f), 1);
+        PlaybackRateChanged?.Invoke(PlaybackRate);
     }
 
     public bool SetAudioTrack(int trackId)

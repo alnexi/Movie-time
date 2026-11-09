@@ -9,7 +9,7 @@
     mc:Ignorable="d"
     d:DataContext="{d:DesignInstance Type=vm:HomeViewModel}">
 
-    <Grid Background="#0A0A0C">
+    <Grid Background="{ThemeResource AppBackgroundBrush}">
         <!-- 1. Main Scrollable Content Canvas (Hero + Movie Rows) -->
         <ScrollViewer HorizontalScrollBarVisibility="Disabled"
                       VerticalScrollBarVisibility="Auto"
@@ -20,8 +20,8 @@
 
                 <!-- Empty Library Guidance Callout (when no local files scanned yet) -->
                 <Border Visibility="{x:Bind ViewModel.IsLibraryEmpty, Mode=OneWay}"
-                        Background="#14141A"
-                        BorderBrush="#25FFFFFF"
+                        Background="{ThemeResource AppCardBackgroundBrush}"
+                        BorderBrush="{ThemeResource AppBorderBrush}"
                         BorderThickness="1"
                         CornerRadius="14"
                         Margin="48,8,48,8"
@@ -31,25 +31,25 @@
                                 Width="40"
                                 Height="40"
                                 CornerRadius="10"
-                                Background="#2A2A38"
+                                Background="{ThemeResource AppGlassFillBrush}"
                                 Margin="0,0,16,0">
-                            <FontIcon Glyph="&#xE714;" FontSize="20" Foreground="#E0E0FF" />
+                            <FontIcon Glyph="&#xE714;" FontSize="20" Foreground="{ThemeResource AppAccentBrush}" />
                         </Border>
 
                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
                             <TextBlock Text="No Local Movies Found"
                                        FontSize="14"
                                        FontWeight="SemiBold"
-                                       Foreground="#FFFFFF" />
+                                       Foreground="{ThemeResource AppTextPrimaryBrush}" />
                             <TextBlock Text="Connect your storage drives and add an MLibrary folder in Settings to start cataloging and enjoying your local media collection."
                                        FontSize="12"
-                                       Foreground="#8E8E93" />
+                                       Foreground="{ThemeResource AppTextSecondaryBrush}" />
                         </StackPanel>
 
                         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                             <Button Command="{x:Bind ViewModel.ManageLibrariesCommand}"
-                                    Background="#FFFFFF"
-                                    Foreground="#000000"
+                                    Background="{ThemeResource AppTextPrimaryBrush}"
+                                    Foreground="{ThemeResource AppBackgroundBrush}"
                                     CornerRadius="12"
                                     Padding="16,8"
                                     FontSize="12"
@@ -60,8 +60,10 @@
                                 </StackPanel>
                             </Button>
                             <Button Command="{x:Bind ViewModel.RefreshLibraryCommand}"
-                                    Background="#25FFFFFF"
-                                    Foreground="#FFFFFF"
+                                    Background="{ThemeResource AppCardBackgroundBrush}"
+                                    Foreground="{ThemeResource AppTextPrimaryBrush}"
+                                    BorderBrush="{ThemeResource AppBorderBrush}"
+                                    BorderThickness="1"
                                     CornerRadius="12"
                                     Padding="14,8"
                                     FontSize="12"
@@ -92,15 +94,15 @@
                 HorizontalAlignment="Left"
                 VerticalAlignment="Top"
                 Margin="36,28,0,0"
-                Background="#60181820"
-                BorderBrush="#30FFFFFF"
+                Background="{ThemeResource AppCardBackgroundBrush}"
+                BorderBrush="{ThemeResource AppBorderBrush}"
                 BorderThickness="1"
                 CornerRadius="18"
                 Padding="12,6,16,6">
             <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                <FontIcon Glyph="&#xE76B;" FontSize="11" Foreground="#C0C0C8" />
-                <FontIcon Glyph="&#xE80F;" FontSize="14" Foreground="#FFFFFF" />
-                <TextBlock Text="Home" FontSize="13" FontWeight="SemiBold" Foreground="#FFFFFF" />
+                <FontIcon Glyph="&#xE76B;" FontSize="11" Foreground="{ThemeResource AppTextSecondaryBrush}" />
+                <FontIcon Glyph="&#xE80F;" FontSize="14" Foreground="{ThemeResource AppTextPrimaryBrush}" />
+                <TextBlock Text="Home" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource AppTextPrimaryBrush}" />
             </StackPanel>
         </Button>
 

@@ -47,6 +47,10 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
     private bool _isPlaying;
     private bool _isMuted;
     private int _volume = 100;
+    private float _playbackRate = 1.0f;
+    private bool _isSpeedHudVisible;
+    private string _speedHudText = "1.0x Speed";
+    private System.Threading.Timer? _speedHudTimer;
     private bool _isControlsVisible = true;
     private bool _isAudioMenuOpen;
     private bool _isSubtitleMenuOpen;
@@ -175,8 +179,37 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
             if (SetProperty(ref _volume, value))
             {
                 OnPropertyChanged(nameof(VolumeGlyph));
+                OnPropertyChanged(nameof(VolumePercentDisplay));
             }
         }
+    }
+
+    public string VolumePercentDisplay => $"{Volume}%";
+
+    public float PlaybackRate
+    {
+        get => _playbackRate;
+        set
+        {
+            if (SetProperty(ref _playbackRate, value))
+            {
+                OnPropertyChanged(nameof(PlaybackRateDisplay));
+            }
+        }
+    }
+
+    public string PlaybackRateDisplay => $"{PlaybackRate:0.0}x";
+
+    public bool IsSpeedHudVisible
+    {
+        get => _isSpeedHudVisible;
+        set => SetProperty(ref _isSpeedHudVisible, value);
+    }
+
+    public string SpeedHudText
+    {
+        get => _speedHudText;
+        set => SetProperty(ref _speedHudText, value);
     }
 
     public string VolumeGlyph => IsMuted || Volume == 0 ? "\uE74F" : Volume < 50 ? "\uE993" : "\uE995";
@@ -373,6 +406,14 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
     public ICommand SetSubtitleBackgroundCommand { get; }
     public ICommand SetSubtitlePositionCommand { get; }
     public ICommand ResetSubtitleSettingsCommand { get; }
+    public ICommand IncreaseSpeedCommand { get; }
+    public ICommand DecreaseSpeedCommand { get; }
+    public ICommand SetPlaybackRateCommand { get; }
+    public ICommand IncreaseVolumeCommand { get; }
+    public ICommand DecreaseVolumeCommand { get; }
+    public ICommand SetVolumeCommand { get; }
+    public ICommand PlayNextInPlaylistCommand { get; }
+    public ICommand PlayPreviousInPlaylistCommand { get; }
 
     public PlayerViewModel(
         IVlcPlayerService playerService,
@@ -428,6 +469,14 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
         SetSubtitleBackgroundCommand = new RelayCommand<SubtitleBackground>(async b => await SetSubtitleBackgroundAsync(b));
         SetSubtitlePositionCommand = new RelayCommand<SubtitlePosition>(async p => await SetSubtitlePositionAsync(p));
         ResetSubtitleSettingsCommand = new RelayCommand(async () => await ResetSubtitleSettingsAsync());
+        IncreaseSpeedCommand = new RelayCommand(IncreaseSpeed);
+        DecreaseSpeedCommand = new RelayCommand(DecreaseSpeed);
+        SetPlaybackRateCommand = new RelayCommand<float>(SetPlaybackRate);
+        IncreaseVolumeCommand = new RelayCommand(() => IncreaseVolume(5));
+        DecreaseVolumeCommand = new RelayCommand(() => DecreaseVolume(5));
+        SetVolumeCommand = new RelayCommand<int>(SetVolume);
+        PlayNextInPlaylistCommand = new RelayCommand(async () => await PlayNextInPlaylistAsync());
+        PlayPreviousInPlaylistCommand = new RelayCommand(async () => await PlayPreviousInPlaylistAsync());
 
         HookPlayerEvents();
     }
@@ -442,6 +491,8 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
         _playerService.MediaEnded += OnPlayerMediaEnded;
         _playerService.AudioDelayChanged += OnPlayerAudioDelayChanged;
         _playerService.SubtitleSettingsChanged += OnPlayerSubtitleSettingsChanged;
+        _playerService.PlaybackRateChanged += OnPlayerPlaybackRateChanged;
+        _playerService.VolumeChanged += OnPlayerVolumeChanged;
     }
 
     private void UnhookPlayerEvents()
@@ -454,6 +505,8 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
         _playerService.MediaEnded -= OnPlayerMediaEnded;
         _playerService.AudioDelayChanged -= OnPlayerAudioDelayChanged;
         _playerService.SubtitleSettingsChanged -= OnPlayerSubtitleSettingsChanged;
+        _playerService.PlaybackRateChanged -= OnPlayerPlaybackRateChanged;
+        _playerService.VolumeChanged -= OnPlayerVolumeChanged;
     }
 
     public async Task InitializeAsync(string filePath, int? movieId = null, int? episodeId = null)
@@ -688,7 +741,18 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
         _playerService.SetVolume(volume);
         Volume = _playerService.Volume;
         IsMuted = _playerService.IsMuted;
+        OnPropertyChanged(nameof(VolumePercentDisplay));
         TriggerInteraction();
+    }
+
+    public void IncreaseVolume(int step = 5)
+    {
+        SetVolume(Volume + step);
+    }
+
+    public void DecreaseVolume(int step = 5)
+    {
+        SetVolume(Volume - step);
     }
 
     public void SeekToPercentage(int percent)
@@ -1016,13 +1080,118 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
         });
     }
 
+    private List<(string FilePath, int? MovieId, string Title)> _playlistQueue = new();
+    private int _playlistIndex = -1;
+
+    public bool HasPlaylistQueue => _playlistQueue.Count > 1;
+    public bool HasNextInPlaylist => _playlistQueue.Count > 0 && _playlistIndex < _playlistQueue.Count - 1;
+    public bool HasPreviousInPlaylist => _playlistQueue.Count > 0 && _playlistIndex > 0;
+    public string PlaylistProgressDisplay => _playlistQueue.Count > 0 ? $"{_playlistIndex + 1} of {_playlistQueue.Count}" : string.Empty;
+
+    public async Task InitializeWithPlaylistAsync(string filePath, int? movieId, List<(string FilePath, int? MovieId, string Title)> queue, int startIndex)
+    {
+        _playlistQueue = queue ?? new();
+        _playlistIndex = startIndex;
+        OnPropertyChanged(nameof(HasPlaylistQueue));
+        OnPropertyChanged(nameof(HasNextInPlaylist));
+        OnPropertyChanged(nameof(HasPreviousInPlaylist));
+        OnPropertyChanged(nameof(PlaylistProgressDisplay));
+
+        await InitializeAsync(filePath, movieId, null).ConfigureAwait(false);
+    }
+
+    public async Task PlayNextInPlaylistAsync()
+    {
+        if (HasNextInPlaylist)
+        {
+            _playlistIndex++;
+            OnPropertyChanged(nameof(HasNextInPlaylist));
+            OnPropertyChanged(nameof(HasPreviousInPlaylist));
+            OnPropertyChanged(nameof(PlaylistProgressDisplay));
+
+            var next = _playlistQueue[_playlistIndex];
+            await InitializeAsync(next.FilePath, next.MovieId, null).ConfigureAwait(false);
+        }
+    }
+
+    public async Task PlayPreviousInPlaylistAsync()
+    {
+        if (HasPreviousInPlaylist)
+        {
+            _playlistIndex--;
+            OnPropertyChanged(nameof(HasNextInPlaylist));
+            OnPropertyChanged(nameof(HasPreviousInPlaylist));
+            OnPropertyChanged(nameof(PlaylistProgressDisplay));
+
+            var prev = _playlistQueue[_playlistIndex];
+            await InitializeAsync(prev.FilePath, prev.MovieId, null).ConfigureAwait(false);
+        }
+    }
+
     private void OnPlayerMediaEnded()
+    {
+        RunOnUi(async () =>
+        {
+            await SaveProgressAsync(isFinished: true);
+            if (HasNextInPlaylist)
+            {
+                await PlayNextInPlaylistAsync();
+            }
+            else
+            {
+                IsPlaying = false;
+                IsControlsVisible = true;
+            }
+        });
+    }
+
+    public void IncreaseSpeed()
+    {
+        var next = (float)Math.Round(Math.Min(2.0f, PlaybackRate + 0.1f), 1);
+        SetPlaybackRate(next);
+    }
+
+    public void DecreaseSpeed()
+    {
+        var next = (float)Math.Round(Math.Max(0.1f, PlaybackRate - 0.1f), 1);
+        SetPlaybackRate(next);
+    }
+
+    public void SetPlaybackRate(float rate)
+    {
+        rate = (float)Math.Round(Math.Clamp(rate, 0.1f, 2.0f), 1);
+        _playerService.SetPlaybackRate(rate);
+        PlaybackRate = rate;
+        ShowSpeedHud($"{rate:0.0}x");
+    }
+
+    private void ShowSpeedHud(string text)
+    {
+        SpeedHudText = text;
+        IsSpeedHudVisible = true;
+        _speedHudTimer?.Dispose();
+        _speedHudTimer = new System.Threading.Timer(_ =>
+        {
+            RunOnUi(() => IsSpeedHudVisible = false);
+        }, null, 2000, System.Threading.Timeout.Infinite);
+    }
+
+
+    private void OnPlayerPlaybackRateChanged(float rate)
     {
         RunOnUi(() =>
         {
-            _ = SaveProgressAsync(isFinished: true);
-            IsPlaying = false;
-            IsControlsVisible = true;
+            PlaybackRate = rate;
+        });
+    }
+
+    private void OnPlayerVolumeChanged(int volume, bool isMuted)
+    {
+        RunOnUi(() =>
+        {
+            Volume = volume;
+            IsMuted = isMuted;
+            OnPropertyChanged(nameof(VolumePercentDisplay));
         });
     }
 

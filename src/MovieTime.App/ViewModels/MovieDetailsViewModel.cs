@@ -21,9 +21,14 @@ public sealed class MovieDetailsViewModel : ObservableObject
 {
     private readonly IMovieRepository _movieRepository;
     private readonly IMediaFileRepository _mediaFileRepository;
+    private readonly IPlaylistRepository? _playlistRepository;
     private readonly IArtworkPipelineService? _artworkPipelineService;
     private readonly IDispatcherService? _dispatcher;
     private readonly ILogger<MovieDetailsViewModel> _logger;
+
+    public ObservableCollection<Playlist> AvailablePlaylists { get; } = new();
+    public ICommand AddToPlaylistCommand { get; }
+    public ICommand LoadAvailablePlaylistsCommand { get; }
 
     private int _movieId;
     private string _title = string.Empty;
@@ -194,7 +199,7 @@ public sealed class MovieDetailsViewModel : ObservableObject
         IMovieRepository movieRepository,
         IMediaFileRepository mediaFileRepository,
         ILogger<MovieDetailsViewModel>? logger = null)
-        : this(movieRepository, mediaFileRepository, null, null, logger)
+        : this(movieRepository, mediaFileRepository, null, null, null, logger)
     {
     }
 
@@ -203,12 +208,14 @@ public sealed class MovieDetailsViewModel : ObservableObject
         IMediaFileRepository mediaFileRepository,
         IArtworkPipelineService? artworkPipelineService,
         IDispatcherService? dispatcher = null,
+        IPlaylistRepository? playlistRepository = null,
         ILogger<MovieDetailsViewModel>? logger = null)
     {
         _movieRepository = movieRepository ?? throw new ArgumentNullException(nameof(movieRepository));
         _mediaFileRepository = mediaFileRepository ?? throw new ArgumentNullException(nameof(mediaFileRepository));
         _artworkPipelineService = artworkPipelineService;
         _dispatcher = dispatcher;
+        _playlistRepository = playlistRepository;
         _logger = logger ?? NullLogger<MovieDetailsViewModel>.Instance;
 
         if (_artworkPipelineService != null)
@@ -225,6 +232,45 @@ public sealed class MovieDetailsViewModel : ObservableObject
             {
                 await LoadMovieAsync(m.Id);
             }
+        });
+
+        LoadAvailablePlaylistsCommand = new AsyncRelayCommand(LoadAvailablePlaylistsAsync);
+        AddToPlaylistCommand = new AsyncRelayCommand<Playlist>(AddToPlaylistAsync);
+    }
+
+    private void RunOnUi(Action action)
+    {
+        if (_dispatcher != null)
+        {
+            _dispatcher.RunOnUi(action);
+        }
+        else
+        {
+            action();
+        }
+    }
+
+    public async Task LoadAvailablePlaylistsAsync()
+    {
+        if (_playlistRepository == null) return;
+        var list = await _playlistRepository.GetAllAsync().ConfigureAwait(false);
+        RunOnUi(() =>
+        {
+            AvailablePlaylists.Clear();
+            foreach (var p in list)
+            {
+                AvailablePlaylists.Add(p);
+            }
+        });
+    }
+
+    public async Task AddToPlaylistAsync(Playlist? playlist)
+    {
+        if (playlist == null || _playlistRepository == null || MovieId <= 0) return;
+        await _playlistRepository.AddItemAsync(playlist.Id, MovieId).ConfigureAwait(false);
+        RunOnUi(() =>
+        {
+            PlaybackStatusMessage = $"Added to \"{playlist.Name}\"";
         });
     }
 
@@ -294,11 +340,14 @@ public sealed class MovieDetailsViewModel : ObservableObject
                 MediaFiles.Add(fileVm);
             }
 
-            SelectedMediaFile = MediaFiles.FirstOrDefault();
+            SelectedMediaFile = MediaFiles.FirstOrDefault(f => !f.IsMissing && File.Exists(f.FilePath)) ?? MediaFiles.FirstOrDefault();
             OnPropertyChanged(nameof(HasMultipleFiles));
 
             // Load local recommendations ("More from your library" - real local movies only)
             await LoadRecommendationsAsync(movie.Id);
+
+            // Refresh available playlists for quick add
+            await LoadAvailablePlaylistsAsync();
         }
         catch (Exception ex)
         {
@@ -317,15 +366,20 @@ public sealed class MovieDetailsViewModel : ObservableObject
         try
         {
             var allMovies = await _movieRepository.GetAllAsync();
+            var allFiles = await _mediaFileRepository.GetAllAsync();
+            var presentMovieIds = allFiles
+                .Where(f => f.MovieId.HasValue && !f.IsMissing)
+                .Select(f => f.MovieId!.Value)
+                .ToHashSet();
+
             var candidates = allMovies
-                .Where(m => m.Id != currentMovieId)
-                .Take(10)
+                .Where(m => m.Id != currentMovieId && (allFiles.Count == 0 || presentMovieIds.Contains(m.Id)))
                 .ToList();
 
             foreach (var rec in candidates)
             {
-                var files = await _mediaFileRepository.GetByMovieIdAsync(rec.Id);
-                var primaryFile = files.FirstOrDefault();
+                var files = allFiles.Where(f => f.MovieId == rec.Id).ToList();
+                var primaryFile = files.FirstOrDefault(f => !f.IsMissing) ?? files.FirstOrDefault();
 
                 string? quality = null;
                 if (primaryFile != null)

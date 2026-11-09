@@ -125,4 +125,56 @@ public sealed partial class HeroBannerControl : UserControl
     {
         ViewModel?.DetailsCommand?.Execute(null);
     }
+
+    private long _lastGestureTime = 0;
+
+    private void OnHeroManipulationCompleted(object sender, ManipulationCompletedRoutedEventArgs e)
+    {
+        var now = Environment.TickCount64;
+        if (now - _lastGestureTime < 350) return;
+
+        var cumulativeX = e.Cumulative.Translation.X;
+        var velocityX = e.Velocities.Linear.X;
+
+        // Two-finger swipe detection
+        if (cumulativeX < -40 || velocityX < -0.3)
+        {
+            _lastGestureTime = now;
+            ViewModel?.NextCommand?.Execute(null);
+            e.Handled = true;
+        }
+        else if (cumulativeX > 40 || velocityX > 0.3)
+        {
+            _lastGestureTime = now;
+            ViewModel?.PreviousCommand?.Execute(null);
+            e.Handled = true;
+        }
+    }
+
+    private void OnHeroPointerWheelChanged(object sender, PointerRoutedEventArgs e)
+    {
+        var currentPoint = e.GetCurrentPoint(this);
+        var isHorizontal = currentPoint.Properties.IsHorizontalMouseWheel;
+        var delta = currentPoint.Properties.MouseWheelDelta;
+
+        // Precision touchpad horizontal swipe or Shift+Wheel horizontal pan
+        if (isHorizontal && Math.Abs(delta) > 20)
+        {
+            var now = Environment.TickCount64;
+            if (now - _lastGestureTime < 350) return;
+
+            if (delta < 0)
+            {
+                _lastGestureTime = now;
+                ViewModel?.NextCommand?.Execute(null);
+                e.Handled = true;
+            }
+            else if (delta > 0)
+            {
+                _lastGestureTime = now;
+                ViewModel?.PreviousCommand?.Execute(null);
+                e.Handled = true;
+            }
+        }
+    }
 }

@@ -183,6 +183,7 @@ public sealed class MoviesViewModel : ObservableObject
     public ICommand PlayMovieCommand { get; }
     public ICommand GoToDetailsCommand { get; }
     public ICommand DismissQuickActionCommand { get; }
+    public ICommand NavigatePlaylistsCommand { get; }
     public ICommand RefreshLibraryCommand { get; }
     public ICommand ManageLibrariesCommand { get; }
 
@@ -235,6 +236,7 @@ public sealed class MoviesViewModel : ObservableObject
         DismissQuickActionCommand = new RelayCommand(OnDismissQuickAction);
         RefreshLibraryCommand = new AsyncRelayCommand(RefreshLibraryAsync);
         ManageLibrariesCommand = new RelayCommand(() => NavigationRequested?.Invoke("Settings"));
+        NavigatePlaylistsCommand = new RelayCommand(() => NavigationRequested?.Invoke("Playlists"));
 
         InitializeCategories();
     }
@@ -353,25 +355,25 @@ public sealed class MoviesViewModel : ObservableObject
             await _databaseService.InitializeAsync();
 
             var movies = await _movieRepository.GetAllAsync();
+            var allFiles = await _mediaFileRepository.GetAllAsync();
+            var filesByMovieId = allFiles
+                .Where(f => f.MovieId.HasValue)
+                .GroupBy(f => f.MovieId!.Value)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
             AllMovies.Clear();
-
-            if (movies.Count == 0)
-            {
-                IsLibraryEmpty = true;
-                DisplayedMovies.Clear();
-                UpdateCategoryCounts();
-                OnPropertyChanged(nameof(TotalMovieCount));
-                OnPropertyChanged(nameof(DisplayedMovieCount));
-                OnPropertyChanged(nameof(MovieCountSummary));
-                return;
-            }
-
-            IsLibraryEmpty = false;
 
             foreach (var movie in movies)
             {
-                var files = await _mediaFileRepository.GetByMovieIdAsync(movie.Id);
-                var primaryFile = files.FirstOrDefault();
+                filesByMovieId.TryGetValue(movie.Id, out var files);
+
+                // B-02: Exclude confirmed missing media from active library view
+                if (files != null && files.Count > 0 && files.All(f => f.IsMissing))
+                {
+                    continue;
+                }
+
+                var primaryFile = files?.FirstOrDefault(f => !f.IsMissing) ?? files?.FirstOrDefault();
 
                 string? qualityTag = null;
                 string? resolutionDisplay = null;
@@ -425,6 +427,19 @@ public sealed class MoviesViewModel : ObservableObject
                 AllMovies.Add(posterVm);
             }
 
+            if (AllMovies.Count == 0)
+            {
+                IsLibraryEmpty = true;
+                DisplayedMovies.Clear();
+                UpdateCategoryCounts();
+                OnPropertyChanged(nameof(TotalMovieCount));
+                OnPropertyChanged(nameof(DisplayedMovieCount));
+                OnPropertyChanged(nameof(MovieCountSummary));
+                return;
+            }
+
+            IsLibraryEmpty = false;
+
             UpdateCategoryCounts();
             ApplyFiltersAndSorting();
         }
@@ -447,7 +462,7 @@ public sealed class MoviesViewModel : ObservableObject
             category.Count = category.CategoryKey switch
             {
                 "All" => AllMovies.Count,
-                "Recent" => Math.Min(AllMovies.Count, 15),
+                "Recent" => AllMovies.Count,
                 "4K" => AllMovies.Count(m => m.QualityTag != null && (m.QualityTag.Contains("4K") || m.QualityTag.Contains("1080"))),
                 "Action" => AllMovies.Count(m => MatchesGenreKeyword(m.Title, "action", "adventure", "war", "battle")),
                 "Comedy" => AllMovies.Count(m => MatchesGenreKeyword(m.Title, "comedy", "funny", "laugh")),
@@ -476,7 +491,7 @@ public sealed class MoviesViewModel : ObservableObject
         // 1. Category Filter
         query = SelectedCategory switch
         {
-            "Recent" => query.OrderByDescending(m => m.CreatedAt).Take(20),
+            "Recent" => query.OrderByDescending(m => m.CreatedAt),
             "4K" => query.Where(m => m.QualityTag != null && (m.QualityTag.Contains("4K") || m.QualityTag.Contains("1080"))),
             "Action" => query.Where(m => MatchesGenreKeyword(m.Title, "action", "adventure", "war", "battle")),
             "Comedy" => query.Where(m => MatchesGenreKeyword(m.Title, "comedy", "funny", "laugh")),

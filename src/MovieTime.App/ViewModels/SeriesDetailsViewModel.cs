@@ -351,8 +351,7 @@ public sealed class SeriesDetailsViewModel : ObservableObject
             foreach (var ep in orderedEpisodes)
             {
                 var mediaFiles = await _mediaFileRepository.GetByEpisodeIdAsync(ep.Id);
-                var primaryFile = mediaFiles.FirstOrDefault(f => !f.IsMissing && File.Exists(f.FilePath))
-                                  ?? mediaFiles.FirstOrDefault();
+                var primaryFile = mediaFiles.FirstOrDefault(f => !f.IsMissing && File.Exists(f.FilePath));
 
                 var progress = await _progressRepository.GetByEpisodeIdAsync(ep.Id);
 
@@ -387,7 +386,7 @@ public sealed class SeriesDetailsViewModel : ObservableObject
 
                 epVm.PlayCommand = new RelayCommand(() =>
                 {
-                    if (!string.IsNullOrWhiteSpace(epVm.FilePath))
+                    if (!string.IsNullOrWhiteSpace(epVm.FilePath) && File.Exists(epVm.FilePath))
                     {
                         PlaybackRequested?.Invoke(epVm.FilePath, epVm.EpisodeId);
                     }
@@ -416,7 +415,7 @@ public sealed class SeriesDetailsViewModel : ObservableObject
             if (prog != null && !prog.IsFinished && prog.PositionPercentage > 0.02 && prog.PositionPercentage < 0.92)
             {
                 var files = await _mediaFileRepository.GetByEpisodeIdAsync(ep.Id);
-                var file = files.FirstOrDefault(f => !f.IsMissing && File.Exists(f.FilePath)) ?? files.FirstOrDefault();
+                var file = files.FirstOrDefault(f => !f.IsMissing && File.Exists(f.FilePath));
                 if (file != null)
                 {
                     candidate = new EpisodeItemViewModel
@@ -444,7 +443,7 @@ public sealed class SeriesDetailsViewModel : ObservableObject
                 if (prog == null || !prog.IsFinished)
                 {
                     var files = await _mediaFileRepository.GetByEpisodeIdAsync(ep.Id);
-                    var file = files.FirstOrDefault(f => !f.IsMissing && File.Exists(f.FilePath)) ?? files.FirstOrDefault();
+                    var file = files.FirstOrDefault(f => !f.IsMissing && File.Exists(f.FilePath));
                     if (file != null)
                     {
                         candidate = new EpisodeItemViewModel

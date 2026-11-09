@@ -18,6 +18,7 @@ public interface IVlcPlayerService : IDisposable
     float PositionRatio { get; }
     int Volume { get; }
     bool IsMuted { get; }
+    float PlaybackRate { get; }
 
     IReadOnlyList<PlayerTrackInfo> AudioTracks { get; }
     IReadOnlyList<PlayerTrackInfo> SubtitleTracks { get; }
@@ -38,6 +39,7 @@ public interface IVlcPlayerService : IDisposable
     void SeekRelative(long deltaMs);
     void SetVolume(int volume);
     void ToggleMute();
+    void SetPlaybackRate(float rate);
     bool SetAudioTrack(int trackId);
     bool SetSubtitleTrack(int trackId);
 
@@ -58,4 +60,6 @@ public interface IVlcPlayerService : IDisposable
     event Action? MediaEnded;
     event Action<long>? AudioDelayChanged;
     event Action? SubtitleSettingsChanged;
+    event Action<float>? PlaybackRateChanged;
+    event Action<int, bool>? VolumeChanged;
 }

@@ -11,6 +11,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.9.4] - 2026-11-10 (Complete Stabilization, Phase 6 TV Shows, Playlists & Windows Integration)
+
+### Added
+- **Persistent Movie Playlists (I-04)**:
+  - SQLite database schema migration (v3) adding `Playlists` and `PlaylistItems` tables with indexing.
+  - Full CRUD operations: Create, Rename, Delete playlists; Add/Remove movies; Reorder items (Move Up / Move Down).
+  - Apple TV-inspired `PlaylistsView` with split navigation, playlist statistics, and empty guidance states.
+  - "Add to Playlist" quick-flyout action in `MovieDetailsView`.
+  - Continuous sequential playback: automatic seamless transition to the next movie upon completion.
+  - Player HUD transport controls updated with Previous / Next Playlist item buttons and position badge (`N of Total`).
+- **Approved Sailboat Application Icon (I-05)**:
+  - Integrated the approved white sailboat line art on black branding asset across all platform targets.
+  - Multi-resolution `app.ico` (16, 24, 32, 48, 64, 128, 256 px) embedded as application icon in `MovieTime.App.exe`.
+  - Window titlebar and taskbar icons dynamically set via WinUI 3 `AppWindow.SetIcon()`.
+  - Updated desktop shortcut (`Movie Time.lnk`) with the new icon.
+- **Windows Explorer "Open With" Integration (I-06)**:
+  - Non-destructive, elevation-free `HKCU` registry association across 11 video extensions (`.mp4`, `.mkv`, `.avi`, `.mov`, `.wmv`, `.webm`, `.m4v`, `.ts`, `.flv`, `.3gp`, `.ogv`).
+  - Single-instance activation coordination via Windows App SDK `AppInstance.FindOrRegisterForKey()` and `RedirectActivationToAsync()`.
+  - External video files open directly in the embedded LibVLC player without polluting `MLibrary` or scan roots.
+- **Home Hero Two-Finger Gesture (B-04)**:
+  - Touchpad and touch two-finger horizontal swipe gesture support with debounce and velocity thresholds.
+  - Shift+Wheel and horizontal wheel support without disrupting native vertical scroll.
+
+### Fixed & Stabilized
+- **Library Scalability & Unlimited Movies (B-01)**:
+  - Eliminated artificial limits across scanner, SQLite repositories, and UI virtualization.
+  - Replaced $O(N)$ sequential queries in `MoviesViewModel` with $O(1)$ batch query.
+- **Missing Media Reconciliation & Disconnected Drive Safety (B-02)**:
+  - Missing media items properly filtered out of active catalog views.
+  - Added Windows `DriveInfo.IsReady` check in `LibraryImportService` to ensure unplugged external drives are never deleted or marked missing.
+- **New Movie Import & Instant Refresh (B-03)**:
+  - Added "Scan Now" button with immediate catalog refresh without restarting.
+  - Resolved multi-root duplicate filename collisions by incorporating scan-root verification.
+- **Global Dynamic Theme Integration (B-05)**:
+  - Replaced hardcoded `#0A0A0C` background across views with dynamic `{ThemeResource AppBackgroundBrush}`.
+  - Live palette propagation across Home, Movies, TV Shows, Movie Details, Series Details, Settings, Sidebar, and Dialogs.
+  - The approved pixel-art boat, seagull, water, and circular dot thumb Theme Experience remains completely intact.
+- **Player Keyboard Shortcuts & HUD (B-06, I-02, I-03)**:
+  - Verified responsive keyboard shortcuts: Space/K (play/pause), J/L (seek ±10s), Left/Right (seek ±5s), Up/Down (volume ±5%), F (fullscreen), M (mute), 0-9 (percentage jump), Esc/Backspace (exit).
+  - Playback speed control from 0.1x to 2.0x in 0.1x increments with 2-second fading HUD banner.
+  - Minimal volume slider supporting 0–200% software audio amplification via LibVLC.
+
+---
+
 ## [0.9.3] - 2026-11-09 (Theme Experience: Slider Dot Thumb & Transition Smoothness Refinement)
 
 ### Changed & Improved

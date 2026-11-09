@@ -39,5 +39,10 @@
         <views:PlayerView x:Name="MainPlayerView"
                           ViewModel="{x:Bind PlayerViewModel, Mode=OneWay}"
                           Visibility="Collapsed" />
+
+        <!-- 8. Apple TV-Inspired Playlists Screen -->
+        <views:PlaylistsView x:Name="MainPlaylistsView"
+                             ViewModel="{x:Bind PlaylistsViewModel, Mode=OneWay}"
+                             Visibility="Collapsed" />
     </Grid>
 </Window>

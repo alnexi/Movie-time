@@ -22,6 +22,7 @@ public sealed class LocalMediaFileItemViewModel : ObservableObject
     public string? VideoCodec { get; set; }
     public string? AudioCodec { get; set; }
     public string? ContainerFormat { get; set; }
+    public bool IsMissing { get; set; }
 
     public bool IsSelected
     {
@@ -96,6 +97,7 @@ public sealed class LocalMediaFileItemViewModel : ObservableObject
             VideoCodec = file.VideoCodec,
             AudioCodec = file.AudioCodec,
             ContainerFormat = container,
+            IsMissing = file.IsMissing,
             IsSelected = isSelected
         };
     }

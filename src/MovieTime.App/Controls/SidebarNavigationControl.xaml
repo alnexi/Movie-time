@@ -24,8 +24,8 @@
 
         <!-- Frosted Glass Card -->
         <Border CornerRadius="22"
-                Background="#E8141418"
-                BorderBrush="#25FFFFFF"
+                Background="{ThemeResource AppCardBackgroundBrush}"
+                BorderBrush="{ThemeResource AppBorderBrush}"
                 BorderThickness="1"
                 Padding="16,18">
             <Grid RowDefinitions="Auto,Auto,*,Auto">
@@ -33,20 +33,20 @@
                 <Grid Grid.Row="0" Margin="4,0,4,18">
                     <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                         <!-- Profile Avatar Circle -->
-                        <Border Width="30" Height="30" CornerRadius="15" Background="#3A3A46">
-                            <FontIcon Glyph="&#xE77B;" FontSize="15" Foreground="#FFFFFF" />
+                        <Border Width="30" Height="30" CornerRadius="15" Background="{ThemeResource AppGlassFillBrush}">
+                            <FontIcon Glyph="&#xE77B;" FontSize="15" Foreground="{ThemeResource AppTextPrimaryBrush}" />
                         </Border>
                         <TextBlock Text="Movie Time"
                                    FontSize="13"
                                    FontWeight="SemiBold"
-                                   Foreground="#FFFFFF"
+                                   Foreground="{ThemeResource AppTextPrimaryBrush}"
                                    VerticalAlignment="Center" />
                     </StackPanel>
 
                     <!-- Time display on right -->
                     <TextBlock Text="{x:Bind ViewModel.CurrentTimeText, Mode=OneWay}"
                                FontSize="12"
-                               Foreground="#8E8E93"
+                               Foreground="{ThemeResource AppTextSecondaryBrush}"
                                HorizontalAlignment="Right"
                                VerticalAlignment="Center" />
                 </Grid>

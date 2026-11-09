@@ -278,12 +278,12 @@ public sealed partial class PlayerView : UserControl
                 break;
 
             case VirtualKey.Up:
-                vm.SetVolume(Math.Min(100, vm.Volume + 5));
+                vm.IncreaseVolume(5);
                 e.Handled = true;
                 break;
 
             case VirtualKey.Down:
-                vm.SetVolume(Math.Max(0, vm.Volume - 5));
+                vm.DecreaseVolume(5);
                 e.Handled = true;
                 break;
 
@@ -294,6 +294,21 @@ public sealed partial class PlayerView : UserControl
 
             case VirtualKey.F:
                 vm.ToggleFullscreenCommand.Execute(null);
+                e.Handled = true;
+                break;
+
+            // Speed Control Shortcuts: + / = / ] to speed up, - / _ / [ to slow down
+            case (VirtualKey)187:
+            case (VirtualKey)221:
+            case VirtualKey.Add:
+                vm.IncreaseSpeed();
+                e.Handled = true;
+                break;
+
+            case (VirtualKey)189:
+            case (VirtualKey)219:
+            case VirtualKey.Subtract:
+                vm.DecreaseSpeed();
                 e.Handled = true;
                 break;
 
@@ -359,6 +374,7 @@ public sealed partial class PlayerView : UserControl
                 break;
 
             case VirtualKey.Escape:
+            case VirtualKey.Back:
                 if (vm.IsFullscreen)
                 {
                     vm.ToggleFullscreenCommand.Execute(null);

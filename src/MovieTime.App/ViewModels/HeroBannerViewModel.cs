@@ -29,6 +29,8 @@ public sealed class HeroBannerViewModel : ObservableObject
     private ICommand? _detailsCommand;
     private ICommand? _pauseCommand;
     private ICommand? _resumeCommand;
+    private ICommand? _nextCommand;
+    private ICommand? _previousCommand;
 
     public string Title
     {
@@ -167,6 +169,18 @@ public sealed class HeroBannerViewModel : ObservableObject
     {
         get => _resumeCommand;
         set => SetProperty(ref _resumeCommand, value);
+    }
+
+    public ICommand? NextCommand
+    {
+        get => _nextCommand;
+        set => SetProperty(ref _nextCommand, value);
+    }
+
+    public ICommand? PreviousCommand
+    {
+        get => _previousCommand;
+        set => SetProperty(ref _previousCommand, value);
     }
 
     private void UpdateActiveDot()
