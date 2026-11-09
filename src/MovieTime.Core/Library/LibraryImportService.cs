@@ -381,11 +381,18 @@ public sealed class LibraryImportService : ILibraryImportService
                 series = new Series
                 {
                     Title = parsed.Title,
+                    StartYear = parsed.Year,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
                 await _seriesRepository.InsertAsync(series).ConfigureAwait(false);
                 result.SeriesCreated++;
+            }
+            else if (series.StartYear == null && parsed.Year.HasValue)
+            {
+                series.StartYear = parsed.Year;
+                series.UpdatedAt = DateTime.UtcNow;
+                await _seriesRepository.UpdateAsync(series).ConfigureAwait(false);
             }
 
             var seasonNum = parsed.SeasonNumber ?? 1;
@@ -396,6 +403,7 @@ public sealed class LibraryImportService : ILibraryImportService
                 {
                     SeriesId = series.Id,
                     SeasonNumber = seasonNum,
+                    Title = seasonNum == 0 ? "Specials" : $"Season {seasonNum}",
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -417,6 +425,13 @@ public sealed class LibraryImportService : ILibraryImportService
                 };
                 await _episodeRepository.InsertAsync(episode).ConfigureAwait(false);
                 result.EpisodesCreated++;
+            }
+            else if (!string.IsNullOrWhiteSpace(parsed.EpisodeTitle) &&
+                     (string.IsNullOrWhiteSpace(episode.Title) || episode.Title.Equals($"Episode {epNum}", StringComparison.OrdinalIgnoreCase)))
+            {
+                episode.Title = parsed.EpisodeTitle;
+                episode.UpdatedAt = DateTime.UtcNow;
+                await _episodeRepository.UpdateAsync(episode).ConfigureAwait(false);
             }
 
             mediaFile.MovieId = null;

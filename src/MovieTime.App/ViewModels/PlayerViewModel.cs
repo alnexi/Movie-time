@@ -24,11 +24,16 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
     private readonly IMovieRepository _movieRepository;
     private readonly IMediaFileRepository _mediaFileRepository;
     private readonly IPlaybackProgressRepository _progressRepository;
+    private readonly IEpisodeRepository? _episodeRepository;
+    private readonly ISeriesRepository? _seriesRepository;
+    private readonly ISeasonRepository? _seasonRepository;
     private readonly IFilePickerService? _filePickerService;
     private readonly ILogger<PlayerViewModel> _logger;
     private readonly IDispatcherService? _dispatcher;
 
     private int _movieId;
+    private int _episodeId;
+    private int _seriesId;
     private int _mediaFileId;
     private string _filePath = string.Empty;
     private string _movieTitle = string.Empty;
@@ -74,6 +79,7 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
     public event Action<bool>? FullscreenToggled;
 
     public int MovieId => _movieId;
+    public int EpisodeId => _episodeId;
     public int MediaFileId => _mediaFileId;
     public string FilePath => _filePath;
 
@@ -375,12 +381,18 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
         IPlaybackProgressRepository progressRepository,
         ILogger<PlayerViewModel>? logger = null,
         IDispatcherService? dispatcher = null,
-        IFilePickerService? filePickerService = null)
+        IFilePickerService? filePickerService = null,
+        IEpisodeRepository? episodeRepository = null,
+        ISeriesRepository? seriesRepository = null,
+        ISeasonRepository? seasonRepository = null)
     {
         _playerService = playerService ?? throw new ArgumentNullException(nameof(playerService));
         _movieRepository = movieRepository ?? throw new ArgumentNullException(nameof(movieRepository));
         _mediaFileRepository = mediaFileRepository ?? throw new ArgumentNullException(nameof(mediaFileRepository));
         _progressRepository = progressRepository ?? throw new ArgumentNullException(nameof(progressRepository));
+        _episodeRepository = episodeRepository;
+        _seriesRepository = seriesRepository;
+        _seasonRepository = seasonRepository;
         _logger = logger ?? NullLogger<PlayerViewModel>.Instance;
         _dispatcher = dispatcher;
         _filePickerService = filePickerService;
@@ -444,10 +456,11 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
         _playerService.SubtitleSettingsChanged -= OnPlayerSubtitleSettingsChanged;
     }
 
-    public async Task InitializeAsync(string filePath, int? movieId = null)
+    public async Task InitializeAsync(string filePath, int? movieId = null, int? episodeId = null)
     {
         _filePath = filePath ?? string.Empty;
         _movieId = movieId ?? 0;
+        _episodeId = episodeId ?? 0;
         HasError = false;
         ErrorMessage = null;
         IsControlsVisible = true;
@@ -460,7 +473,7 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
             return;
         }
 
-        // 1. Resolve Movie and MediaFile metadata from SQLite
+        // 1. Resolve Movie, TV Episode, and MediaFile metadata from SQLite
         await ResolveMetadataAsync();
 
         // 2. Check for saved resume position in SQLite
@@ -477,7 +490,7 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
                 if (savedMs > 10_000 && (totalMs <= 0 || savedMs < totalMs - 30_000))
                 {
                     resumePositionMs = savedMs;
-                    _logger.LogInformation("Resuming movie from saved progress: {Seconds}s", resumePositionMs / 1000);
+                    _logger.LogInformation("Resuming media from saved progress: {Seconds}s", resumePositionMs / 1000);
                 }
             }
         }
@@ -494,9 +507,16 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
     private async Task ResolveMetadataAsync()
     {
         Movie? movie = null;
+        Episode? episode = null;
+
         if (_movieId > 0)
         {
             movie = await _movieRepository.GetByIdAsync(_movieId);
+        }
+
+        if (_episodeId > 0 && _episodeRepository != null)
+        {
+            episode = await _episodeRepository.GetByIdAsync(_episodeId);
         }
 
         MediaFile? mediaFile = null;
@@ -511,10 +531,39 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
                     _movieId = mediaFile.MovieId.Value;
                     movie = await _movieRepository.GetByIdAsync(_movieId);
                 }
+                if (episode == null && mediaFile.EpisodeId.HasValue && _episodeRepository != null)
+                {
+                    _episodeId = mediaFile.EpisodeId.Value;
+                    episode = await _episodeRepository.GetByIdAsync(_episodeId);
+                }
             }
         }
 
-        if (movie != null)
+        if (episode != null)
+        {
+            _seriesId = episode.SeriesId;
+            Season? season = _seasonRepository != null ? await _seasonRepository.GetByIdAsync(episode.SeasonId) : null;
+            Series? series = _seriesRepository != null ? await _seriesRepository.GetByIdAsync(episode.SeriesId) : null;
+
+            MovieTitle = series?.Title ?? "TV Episode";
+            var sNum = season?.SeasonNumber ?? 1;
+            var parts = new System.Collections.Generic.List<string>
+            {
+                $"Season {sNum}, Episode {episode.EpisodeNumber} • {episode.Title}"
+            };
+
+            if (mediaFile != null)
+            {
+                if (mediaFile.VideoHeight >= 2160 || mediaFile.VideoWidth >= 3840) parts.Add("4K UHD");
+                else if (mediaFile.VideoHeight >= 1080 || mediaFile.VideoWidth >= 1920) parts.Add("1080p HD");
+                else if (mediaFile.VideoHeight >= 720 || mediaFile.VideoWidth >= 1280) parts.Add("720p HD");
+
+                if (!string.IsNullOrWhiteSpace(mediaFile.VideoCodec)) parts.Add(mediaFile.VideoCodec.ToUpperInvariant());
+            }
+
+            ContextSubtitle = string.Join(" • ", parts);
+        }
+        else if (movie != null)
         {
             MovieTitle = movie.Title;
             var parts = new System.Collections.Generic.List<string>();
@@ -830,7 +879,18 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
             FullscreenToggled?.Invoke(false);
         }
 
-        NavigationRequested?.Invoke(_movieId > 0 ? $"MovieDetails:{_movieId}" : "Movies");
+        if (_seriesId > 0)
+        {
+            NavigationRequested?.Invoke($"SeriesDetails:{_seriesId}");
+        }
+        else if (_episodeId > 0)
+        {
+            NavigationRequested?.Invoke("TVShows");
+        }
+        else
+        {
+            NavigationRequested?.Invoke(_movieId > 0 ? $"MovieDetails:{_movieId}" : "Movies");
+        }
     }
 
     private async Task SaveProgressAsync(bool isFinished)
@@ -848,7 +908,7 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
                 isFinished = true;
             }
 
-            await _progressRepository.SaveProgressAsync(_mediaFileId, _movieId > 0 ? _movieId : null, posTicks, durTicks, isFinished);
+            await _progressRepository.SaveProgressAsync(_mediaFileId, _movieId > 0 ? _movieId : null, posTicks, durTicks, isFinished, _episodeId > 0 ? _episodeId : null);
             _lastSavedProgressTime = DateTime.UtcNow;
             _logger.LogDebug("Saved playback progress for media file {FileId}: {Pos} / {Dur}", _mediaFileId, _positionMs, _durationMs);
         }

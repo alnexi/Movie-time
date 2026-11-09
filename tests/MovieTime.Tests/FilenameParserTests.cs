@@ -858,4 +858,194 @@ public sealed class FilenameParserTests : IDisposable
     }
 
     #endregion
+
+    #region Category 14: Phase 6 TV Episode Recognition Tests
+
+    [Fact]
+    public void Parse_TV_TheWire_PrimaryExample_ExtractsAllRequiredMetadata()
+    {
+        // Primary Task 2 specification example
+        var result = _parser.Parse("The.Wire.S01E08.Lessons.REMASTERED.720p.WEB-DL.2CH.x265.HEVC.PSA.AvaMovie.mkv");
+
+        Assert.Equal(MediaClassification.TvEpisode, result.Classification);
+        Assert.Equal("The Wire", result.Title);
+        Assert.Equal(1, result.SeasonNumber);
+        Assert.Equal(8, result.EpisodeNumber);
+        Assert.Equal("Lessons", result.EpisodeTitle);
+        Assert.Contains("720p", result.DetectedTechnicalTags);
+        Assert.Contains("web-dl", result.DetectedTechnicalTags, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains("x265", result.DetectedTechnicalTags, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains("hevc", result.DetectedTechnicalTags, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains("2ch", result.DetectedTechnicalTags, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains("remastered", result.DetectedTechnicalTags, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains("psa", result.DetectedTechnicalTags, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains("avamovie", result.DetectedTechnicalTags, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("Remastered", result.Edition);
+        Assert.Equal(ParseConfidence.High, result.Confidence);
+    }
+
+    [Fact]
+    public void Parse_TV_TheWire_Lessons720p_ExtractsEpisodeTitle()
+    {
+        var result = _parser.Parse("The.Wire.S01E08.Lessons.720p.mkv");
+
+        Assert.Equal(MediaClassification.TvEpisode, result.Classification);
+        Assert.Equal("The Wire", result.Title);
+        Assert.Equal(1, result.SeasonNumber);
+        Assert.Equal(8, result.EpisodeNumber);
+        Assert.Equal("Lessons", result.EpisodeTitle);
+        Assert.Contains("720p", result.DetectedTechnicalTags);
+    }
+
+    [Fact]
+    public void Parse_TV_TheWire_S1E8_ShortNotation_ExtractsSeasonAndEpisode()
+    {
+        var result = _parser.Parse("The.Wire.S1E8.mkv");
+
+        Assert.Equal(MediaClassification.TvEpisode, result.Classification);
+        Assert.Equal("The Wire", result.Title);
+        Assert.Equal(1, result.SeasonNumber);
+        Assert.Equal(8, result.EpisodeNumber);
+        Assert.Null(result.EpisodeTitle);
+    }
+
+    [Fact]
+    public void Parse_TV_TheWire_HyphenDelimitedWithTitle_ExtractsCleanly()
+    {
+        var result = _parser.Parse("The Wire - S01E08 - Lessons.mkv");
+
+        Assert.Equal(MediaClassification.TvEpisode, result.Classification);
+        Assert.Equal("The Wire", result.Title);
+        Assert.Equal(1, result.SeasonNumber);
+        Assert.Equal(8, result.EpisodeNumber);
+        Assert.Equal("Lessons", result.EpisodeTitle);
+    }
+
+    [Fact]
+    public void Parse_TV_TheWire_NumberXNotation_ExtractsTitleAndEpisode()
+    {
+        var result = _parser.Parse("The.Wire.1x08.Lessons.mkv");
+
+        Assert.Equal(MediaClassification.TvEpisode, result.Classification);
+        Assert.Equal("The Wire", result.Title);
+        Assert.Equal(1, result.SeasonNumber);
+        Assert.Equal(8, result.EpisodeNumber);
+        Assert.Equal("Lessons", result.EpisodeTitle);
+    }
+
+    [Fact]
+    public void Parse_TV_TheWire_VerbalSeasonEpisode_ExtractsCorrectly()
+    {
+        var result = _parser.Parse("The Wire Season 1 Episode 8.mkv");
+
+        Assert.Equal(MediaClassification.TvEpisode, result.Classification);
+        Assert.Equal("The Wire", result.Title);
+        Assert.Equal(1, result.SeasonNumber);
+        Assert.Equal(8, result.EpisodeNumber);
+    }
+
+    [Fact]
+    public void Parse_TV_TheWire_MultiEpisode_E08E09_ExtractsBothEpisodes()
+    {
+        var result = _parser.Parse("The.Wire.S01E08E09.mkv");
+
+        Assert.Equal(MediaClassification.TvEpisode, result.Classification);
+        Assert.Equal("The Wire", result.Title);
+        Assert.Equal(1, result.SeasonNumber);
+        Assert.Equal(8, result.EpisodeNumber);
+        Assert.Equal(9, result.EndEpisodeNumber);
+        Assert.True(result.IsMultiEpisode);
+        Assert.Equal(new[] { 8, 9 }, result.EpisodeNumbers);
+    }
+
+    [Fact]
+    public void Parse_TV_TheWire_MultiEpisode_E08_Hyphen_E09()
+    {
+        var result = _parser.Parse("The.Wire.S01E08-E09.mkv");
+
+        Assert.Equal(MediaClassification.TvEpisode, result.Classification);
+        Assert.Equal("The Wire", result.Title);
+        Assert.Equal(1, result.SeasonNumber);
+        Assert.Equal(8, result.EpisodeNumber);
+        Assert.Equal(9, result.EndEpisodeNumber);
+        Assert.True(result.IsMultiEpisode);
+        Assert.Equal(new[] { 8, 9 }, result.EpisodeNumbers);
+    }
+
+    [Fact]
+    public void Parse_TV_TheWire_MultiEpisode_E08_Hyphen_09()
+    {
+        var result = _parser.Parse("The.Wire.S01E08-09.mkv");
+
+        Assert.Equal(MediaClassification.TvEpisode, result.Classification);
+        Assert.Equal("The Wire", result.Title);
+        Assert.Equal(1, result.SeasonNumber);
+        Assert.Equal(8, result.EpisodeNumber);
+        Assert.Equal(9, result.EndEpisodeNumber);
+        Assert.True(result.IsMultiEpisode);
+        Assert.Equal(new[] { 8, 9 }, result.EpisodeNumbers);
+    }
+
+    [Fact]
+    public void Parse_TV_TheWire_MultiEpisode_E08_Hyphen_E10_ThreeEpisodes()
+    {
+        var result = _parser.Parse("The.Wire.S01E08-E10.mkv");
+
+        Assert.Equal(MediaClassification.TvEpisode, result.Classification);
+        Assert.Equal("The Wire", result.Title);
+        Assert.Equal(1, result.SeasonNumber);
+        Assert.Equal(8, result.EpisodeNumber);
+        Assert.Equal(10, result.EndEpisodeNumber);
+        Assert.True(result.IsMultiEpisode);
+        Assert.Equal(new[] { 8, 9, 10 }, result.EpisodeNumbers);
+    }
+
+    [Fact]
+    public void Parse_TV_TheWire_Specials_S00E01()
+    {
+        var result = _parser.Parse("The.Wire.S00E01.mkv");
+
+        Assert.Equal(MediaClassification.TvEpisode, result.Classification);
+        Assert.Equal("The Wire", result.Title);
+        Assert.Equal(0, result.SeasonNumber);
+        Assert.Equal(1, result.EpisodeNumber);
+        Assert.False(result.IsMultiEpisode);
+    }
+
+    [Fact]
+    public void Parse_TV_TheWire_SeasonPack_S01()
+    {
+        var result = _parser.Parse("The.Wire.S01.mkv");
+
+        Assert.Equal(MediaClassification.TvSeason, result.Classification);
+        Assert.Equal("The Wire", result.Title);
+        Assert.Equal(1, result.SeasonNumber);
+        Assert.Null(result.EpisodeNumber);
+    }
+
+    [Fact]
+    public void Parse_TV_NoEpisodeTitle_DoesNotFabricateTitleFromTechnicalTags()
+    {
+        var result = _parser.Parse("The.Wire.S01E08.720p.WEB-DL.HEVC.mkv");
+
+        Assert.Equal(MediaClassification.TvEpisode, result.Classification);
+        Assert.Equal("The Wire", result.Title);
+        Assert.Equal(1, result.SeasonNumber);
+        Assert.Equal(8, result.EpisodeNumber);
+        Assert.Null(result.EpisodeTitle); // Crucial: must NOT be "720p" or "WEB-DL"
+    }
+
+    [Fact]
+    public void Parse_TV_ProperRepack_DoesNotFabricateTitleFromSceneTags()
+    {
+        var result = _parser.Parse("The.Wire.S01E08.PROPER.720p.HDTV.x264.mkv");
+
+        Assert.Equal(MediaClassification.TvEpisode, result.Classification);
+        Assert.Equal("The Wire", result.Title);
+        Assert.Equal(1, result.SeasonNumber);
+        Assert.Equal(8, result.EpisodeNumber);
+        Assert.Null(result.EpisodeTitle); // Crucial: must NOT be "PROPER"
+    }
+
+    #endregion
 }

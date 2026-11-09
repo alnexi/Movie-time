@@ -6,6 +6,8 @@ namespace MovieTime.Core.Artwork;
 public sealed class ArtworkExtractionResult
 {
     public int MovieId { get; init; }
+    public int? SeriesId { get; init; }
+    public int? EpisodeId { get; init; }
     public string? PosterPath { get; init; }
     public string? BackdropPath { get; init; }
     public bool HasEmbeddedArtwork { get; init; }

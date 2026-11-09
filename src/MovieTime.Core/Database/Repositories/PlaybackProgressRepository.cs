@@ -36,7 +36,16 @@ public sealed class PlaybackProgressRepository : IPlaybackProgressRepository
             .ConfigureAwait(false);
     }
 
-    public async Task<int> SaveProgressAsync(int mediaFileId, int? movieId, long positionTicks, long durationTicks, bool isFinished)
+    public async Task<PlaybackProgress?> GetByEpisodeIdAsync(int episodeId)
+    {
+        return await Connection.Table<PlaybackProgress>()
+            .Where(p => p.EpisodeId == episodeId)
+            .OrderByDescending(p => p.LastWatchedAt)
+            .FirstOrDefaultAsync()
+            .ConfigureAwait(false);
+    }
+
+    public async Task<int> SaveProgressAsync(int mediaFileId, int? movieId, long positionTicks, long durationTicks, bool isFinished, int? episodeId = null)
     {
         var existing = await GetByMediaFileIdAsync(mediaFileId).ConfigureAwait(false);
         var percentage = durationTicks > 0 ? (double)positionTicks / durationTicks : 0.0;
@@ -47,6 +56,7 @@ public sealed class PlaybackProgressRepository : IPlaybackProgressRepository
             {
                 MediaFileId = mediaFileId,
                 MovieId = movieId,
+                EpisodeId = episodeId,
                 PositionTicks = positionTicks,
                 DurationTicks = durationTicks,
                 PositionPercentage = percentage,
@@ -58,6 +68,7 @@ public sealed class PlaybackProgressRepository : IPlaybackProgressRepository
         }
 
         existing.MovieId = movieId ?? existing.MovieId;
+        existing.EpisodeId = episodeId ?? existing.EpisodeId;
         existing.PositionTicks = positionTicks;
         existing.DurationTicks = durationTicks > 0 ? durationTicks : existing.DurationTicks;
         existing.PositionPercentage = percentage;

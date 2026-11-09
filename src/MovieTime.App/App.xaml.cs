@@ -106,6 +106,8 @@ public partial class App : Application
         services.AddTransient<HomeViewModel>();
         services.AddTransient<MoviesViewModel>();
         services.AddTransient<MovieDetailsViewModel>();
+        services.AddTransient<TvShowsViewModel>();
+        services.AddTransient<SeriesDetailsViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<PlayerViewModel>();
         services.AddTransient<MainWindow>();

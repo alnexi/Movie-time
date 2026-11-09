@@ -11,9 +11,20 @@ namespace MovieTime.Core.Artwork;
 public interface IArtworkPipelineService
 {
     event Action<int, string?, string?>? ArtworkUpdated;
+    event Action<int, string?, string?>? SeriesArtworkUpdated;
 
     Task<ArtworkExtractionResult> ProcessMovieArtworkAsync(
         int movieId,
+        bool forceRegenerate = false,
+        CancellationToken cancellationToken = default);
+
+    Task<ArtworkExtractionResult> ProcessSeriesArtworkAsync(
+        int seriesId,
+        bool forceRegenerate = false,
+        CancellationToken cancellationToken = default);
+
+    Task<ArtworkExtractionResult> ProcessEpisodeArtworkAsync(
+        int episodeId,
         bool forceRegenerate = false,
         CancellationToken cancellationToken = default);
 

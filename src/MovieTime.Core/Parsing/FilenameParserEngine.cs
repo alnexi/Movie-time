@@ -45,9 +45,28 @@ public sealed class FilenameParserEngine : IFilenameParserEngine
         @"x265", @"h\.?265", @"hevc", @"x264", @"h\.?264", @"avc", @"av1", @"xvid", @"divx", @"vc-?1", @"10bit", @"8bit",
         // Audio
         @"dts-?hd\s*ma", @"dts-?hd", @"dts", @"truehd", @"atmos", @"eac3", @"ac3", @"aac", @"flac", @"mp3",
-        @"dd5\.1", @"dd\+", @"5\.1", @"7\.1", @"2\.0",
+        @"dd5\.1", @"dd\+", @"5\.1", @"7\.1", @"2\.0", @"2ch", @"6ch", @"8ch",
         // Dynamic Range
-        @"hdr10\+", @"hdr10", @"hdr", @"dolby\s*vision", @"\bdv\b"
+        @"hdr10\+", @"hdr10", @"hdr", @"dolby\s*vision", @"\bdv\b",
+        // Common Scene / Release Tags
+        @"remastered", @"remaster", @"proper", @"repack", @"rerip", @"psa", @"avamovie"
+    };
+
+    // Technical / release boundary for cutoff after episode code
+    private const string TechnicalCutoffPattern =
+        @"(?:\d{3,4}p|4k|uhd|bluray|blu-?ray|web-?dl|webrip|web|remux|hdtv|dvdrip|x264|x265|h\.?264|h\.?265|hevc|avc|av1|aac|dts|ac3|eac3|truehd|atmos|flac|10bit|8bit|hdr|remastered|proper|repack|2ch)";
+
+    // Known isolated tokens that represent technical/scene tags, not human episode titles
+    private static readonly HashSet<string> KnownTechnicalTokens = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "2160p", "4k", "uhd", "1080p", "1080i", "720p", "576p", "480p", "sd",
+        "remux", "bluray", "blu-ray", "bdrip", "brrip", "web-dl", "webrip", "web", "webdl",
+        "hdrip", "dvdrip", "dvd", "hdtv", "pdtv", "dsr", "vob",
+        "x265", "h265", "h.265", "hevc", "x264", "h264", "h.264", "avc", "av1", "xvid", "divx", "vc1", "vc-1", "10bit", "8bit",
+        "dts", "dtshd", "dts-hd", "truehd", "atmos", "eac3", "ac3", "aac", "flac", "mp3", "dd5.1", "dd+", "5.1", "7.1", "2.0", "2ch", "6ch", "8ch",
+        "hdr10+", "hdr10", "hdr", "dv", "dolby", "vision",
+        "remastered", "remaster", "proper", "repack", "rerip", "real", "internal", "unrated", "extended", "theatrical",
+        "psa", "avamovie"
     };
 
     // Edition / Version keywords
@@ -73,23 +92,23 @@ public sealed class FilenameParserEngine : IFilenameParserEngine
 
     #region Precompiled Regular Expressions
 
-    // TV SxxExx: e.g. Breaking.Bad.S02E03, Show.S01E01-E02, Show.S01E01E02, Show.S01E01-02
+    // TV SxxExx: e.g. Breaking.Bad.S02E03, Show.S01E01-E02, Show.S01E01E02, Show.S01E01-02, The.Wire.S00E01
     private static readonly Regex TvStandardRegex = new(
-        @"^(?<series>.+?)[._\s-]+[sS](?<season>\d{1,3})[eE](?<episode>\d{1,4})(?:(?:[-_~]|e|E|to)(?:[eE]?(?<endEpisode>\d{1,4})))?(?:[._\s-]+(?<epTitle>[^\[\(\n\r]+?))?(?:[._\s-]+(?:\d{3,4}p|4k|bluray|web-?dl|webrip|x264|x265|hevc|aac|dts|remastered).*)?$",
+        @"^(?<series>.+?)[._\s-]+[sS](?<season>\d{1,3})[eE](?<episode>\d{1,4})(?:(?:[-_~]|e|E|to)(?:[eE]?(?<endEpisode>\d{1,4})))?(?:[._\s-]+(?<epTitle>[^\[\(\n\r]+?))?(?:[._\s-]+" + TechnicalCutoffPattern + @".*)?$",
         RegexOptions.IgnoreCase | RegexOptions.Compiled,
         RegexTimeout
     );
 
-    // TV Multi-part 1x02 or 01x02: e.g. Game.of.Thrones.1x02, Show.1x02-03
+    // TV Multi-part 1x02 or 01x02: e.g. Game.of.Thrones.1x02, Show.1x02-03, The.Wire.1x08.Lessons
     private static readonly Regex TvNumberXNumberRegex = new(
-        @"^(?<series>.+?)[._\s-]+(?<season>\d{1,2})x(?<episode>\d{1,4})(?:-(?<endEpisode>\d{1,4}))?(?:[._\s-]+(?<epTitle>[^\[\(\n\r]+?))?(?:[._\s-]+(?:\d{3,4}p|4k|bluray|web-?dl|webrip|x264|x265|hevc|aac|dts).*)?$",
+        @"^(?<series>.+?)[._\s-]+(?<season>\d{1,2})x(?<episode>\d{1,4})(?:-(?<endEpisode>\d{1,4}))?(?:[._\s-]+(?<epTitle>[^\[\(\n\r]+?))?(?:[._\s-]+" + TechnicalCutoffPattern + @".*)?$",
         RegexOptions.IgnoreCase | RegexOptions.Compiled,
         RegexTimeout
     );
 
-    // TV Verbal: e.g. Show.Name.Season.2.Episode.3, Show Name - Season 2 Episode 3 - Title
+    // TV Verbal: e.g. Show.Name.Season.2.Episode.3, Show Name Season 1 Episode 8
     private static readonly Regex TvVerbalRegex = new(
-        @"^(?<series>.+?)[._\s-]+[sS]eason[._\s-]+(?<season>\d{1,2})[._\s-]+[eE]pisode[._\s-]+(?<episode>\d{1,4})(?:[._\s-]+(?<epTitle>[^\[\(\n\r]+?))?(?:[._\s-]+(?:\d{3,4}p|4k|bluray|web-?dl|webrip|x264|x265|hevc|aac|dts).*)?$",
+        @"^(?<series>.+?)[._\s-]+[sS]eason[._\s-]+(?<season>\d{1,2})[._\s-]+[eE]pisode[._\s-]+(?<episode>\d{1,4})(?:[._\s-]+(?<epTitle>[^\[\(\n\r]+?))?(?:[._\s-]+" + TechnicalCutoffPattern + @".*)?$",
         RegexOptions.IgnoreCase | RegexOptions.Compiled,
         RegexTimeout
     );
@@ -373,6 +392,7 @@ public sealed class FilenameParserEngine : IFilenameParserEngine
                     episodeNumber: episode,
                     endEpisodeNumber: endEpisode,
                     episodeTitle: cleanEpisodeTitle,
+                    edition: ExtractEdition(rawName),
                     detectedTechnicalTags: technicalTags,
                     releaseGroup: releaseGroup
                 );
@@ -708,8 +728,18 @@ public sealed class FilenameParserEngine : IFilenameParserEngine
         return text;
     }
 
-    private static string CleanEpisodeTitle(string rawEpTitle)
+    private static bool IsPurelyTechnicalOrSceneTag(string text)
     {
+        if (string.IsNullOrWhiteSpace(text)) return false;
+        var tokens = text.Split(new[] { ' ', '.', '-', '_' }, StringSplitOptions.RemoveEmptyEntries);
+        if (tokens.Length == 0) return false;
+        return tokens.All(t => KnownTechnicalTokens.Contains(t));
+    }
+
+    private static string? CleanEpisodeTitle(string rawEpTitle)
+    {
+        if (string.IsNullOrWhiteSpace(rawEpTitle)) return null;
+
         var text = CleanTitle(rawEpTitle);
 
         // Remove residual technical tags
@@ -718,7 +748,12 @@ public sealed class FilenameParserEngine : IFilenameParserEngine
             text = Regex.Replace(text, $@"\b{tagPattern}\b.*$", string.Empty, RegexOptions.IgnoreCase | RegexOptions.Compiled, RegexTimeout);
         }
 
-        return text.Trim(' ', '-', '_', '.');
+        var trimmed = text.Trim(' ', '-', '_', '.');
+        if (string.IsNullOrWhiteSpace(trimmed)) return null;
+
+        if (IsPurelyTechnicalOrSceneTag(trimmed)) return null;
+
+        return trimmed;
     }
 
     private static IReadOnlyList<string> ExtractTechnicalTags(string input)
@@ -771,6 +806,23 @@ public sealed class FilenameParserEngine : IFilenameParserEngine
             if (!IsTechnicalTag(group) && group.Length >= 2)
             {
                 return group;
+            }
+        }
+
+        // Check for scene release tag at end after known technical tags (e.g. .PSA.AvaMovie -> AvaMovie)
+        var tokens = input.Split(new[] { '.', '-', '_', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        if (tokens.Length > 2)
+        {
+            var last = tokens[^1];
+            if (!IsTechnicalTag(last) && last.Length >= 2 && last.Length <= 15 && !char.IsDigit(last[0]))
+            {
+                for (int i = tokens.Length - 2; i >= Math.Max(0, tokens.Length - 5); i--)
+                {
+                    if (IsTechnicalTag(tokens[i]))
+                    {
+                        return last;
+                    }
+                }
             }
         }
 

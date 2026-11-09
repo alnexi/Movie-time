@@ -4,7 +4,7 @@
 
 [![.NET](https://img.shields.io/badge/.NET-10.0%20LTS%20(x64)-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![Windows App SDK](https://img.shields.io/badge/WinUI%203-Windows%20App%20SDK%201.7-0078D7?logo=windows)](https://learn.microsoft.com/en-us/windows/apps/winui/winui3/)
-[![Tests](https://img.shields.io/badge/Unit%20Tests-242%20Passed-brightgreen)](https://github.com/alnexi/Movie-time)
+[![Tests](https://img.shields.io/badge/Unit%20Tests-263%20Passed-brightgreen)](https://github.com/alnexi/Movie-time)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
@@ -147,6 +147,14 @@ Unlike cluttered streaming apps or heavy web-wrapped wrappers, Movie Time is bui
   - **Deterministic Collision-Safe Caching**: Normalized path + file size + UTC modified timestamp SHA256 deterministic key generation. Caches all extracted assets under `%LocalAppData%\MovieTime\Artwork\Posters\` and `Backdrops\`; original user video directories are never modified.
   - **Multi-Drive Support & Real-Time Event Dispatching**: Differentiates identical filenames on separate drives; dispatches `ArtworkUpdated` events to refresh `HeroBannerControl`, `MoviePosterCardControl`, and `MediaCardControl` in real time.
   - **Expanded Test Suite**: 235 automated unit tests validating all format parsers, quality scoring algorithms, cache invalidation rules, and pipeline coordinators.
+* **Phase 6 TV Show & Season/Episode Detail Experience (v0.8.0)**:
+  - **Deterministic TV Episode Recognition**: Advanced filename pattern parsing covering standard scene releases (`The.Wire.S01E08.Lessons.REMASTERED.720p.WEB-DL.2CH.x265.HEVC.PSA.AvaMovie.mkv`), `1x08`, `Season 1 Episode 8`, multi-episode packs (`S01E08E09`), and Specials (`S00E01`). Strict token cutoff bounds reliably extract authentic episode titles (`Lessons`) while discarding technical noise without fabricating metadata.
+  - **Hierarchical SQLite Relational Synchronization**: Scanned episodes automatically associate with `Series`, `Season`, and `Episode` records in SQLite, tracking actual video files via `MediaFile` foreign keys without duplicate entities on rescans.
+  - **Apple TV-Inspired TV Shows Library (`TvShowsView`)**: 2:3 vertical poster grid displaying series title, release years, season counts, and episode counts with real-time search filtering, multi-criteria sorting (`Title`, `Year`, `Recently Added`), and empty state handling.
+  - **Cinematic Series Details Experience (`SeriesDetailsView`)**: Atmospheric full-bleed hero banner with genuine extracted backdrops and posters, smart `▶ Resume / Play Next Up` action button, interactive season pill selector tabs, and 16:9 episode list cards with duration, quality badges (`4K UHD`, `1080p`, `720p`), progress indicator bars, and candidate video frame thumbnails.
+  - **Episode Playback & Discrete Resume Progress**: Full LibVLC embedded player integration displaying series title and episode context (`Season 1, Episode 8 • Lessons • 720p`), persisting resume checkpoints to SQLite keyed by `EpisodeId`, and returning smoothly to Series Details upon exit.
+  - **Home & Continue Watching Integration**: Dedicated "TV Shows" shelf on Home navigating directly to series details, plus automatic population of in-progress episodes in "Continue Watching" with instant one-click resume.
+  - **Expanded Test Suite**: 263 automated unit tests validating episode filename parsing, database hierarchies, view models, and playback resume tracking.
 
 ---
 
@@ -161,8 +169,8 @@ MovieTime/
 │   │   ├── Common/                # MVVM ObservableObject & RelayCommand
 │   │   ├── Controls/              # HeroBanner, MediaCard, MoviePosterCard, MediaRow, SidebarNavigation
 │   │   ├── Services/              # VlcPlayerService, WicImageProcessingService, WindowsVideoFrameExtractor
-│   │   ├── ViewModels/            # Presentation Models (HomeViewModel, MoviesViewModel, MovieDetailsViewModel, SettingsViewModel, PlayerViewModel)
-│   │   ├── Views/                 # Full-screen views (HomeView, MoviesView, MovieDetailsView, SettingsView, PlayerView)
+│   │   ├── ViewModels/            # Presentation Models (HomeViewModel, MoviesViewModel, TvShowsViewModel, SeriesDetailsViewModel, MovieDetailsViewModel, SettingsViewModel, PlayerViewModel)
+│   │   ├── Views/                 # Full-screen views (HomeView, MoviesView, TvShowsView, SeriesDetailsView, MovieDetailsView, SettingsView, PlayerView)
 │   │   ├── MainWindow.xaml        # Edge-to-edge window host & navigation coordinator
 │   │   └── App.xaml               # Composition Root & DI configuration
 │   │
@@ -178,7 +186,7 @@ MovieTime/
 │       └── Services/              # StoragePathService & AppEnvironment
 │
 └── tests/
-    └── MovieTime.Tests/           # Unit & Integration Tests (235 tests)
+    └── MovieTime.Tests/           # Unit & Integration Tests (263 tests)
 ```
 
 ### Key Components

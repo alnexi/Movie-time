@@ -18,6 +18,9 @@ public sealed class ArtworkPipelineService : IArtworkPipelineService
 {
     private readonly IMovieRepository _movieRepository;
     private readonly IMediaFileRepository _mediaFileRepository;
+    private readonly ISeriesRepository? _seriesRepository;
+    private readonly ISeasonRepository? _seasonRepository;
+    private readonly IEpisodeRepository? _episodeRepository;
     private readonly IEmbeddedArtworkExtractor _embeddedExtractor;
     private readonly IVideoFrameExtractor? _frameExtractor;
     private readonly IImageQualityEvaluator _qualityEvaluator;
@@ -28,6 +31,7 @@ public sealed class ArtworkPipelineService : IArtworkPipelineService
     private readonly SemaphoreSlim _batchLock = new(1, 1);
 
     public event Action<int, string?, string?>? ArtworkUpdated;
+    public event Action<int, string?, string?>? SeriesArtworkUpdated;
 
     public ArtworkPipelineService(
         IMovieRepository movieRepository,
@@ -38,6 +42,23 @@ public sealed class ArtworkPipelineService : IArtworkPipelineService
         IVideoFrameExtractor? frameExtractor = null,
         IImageProcessingService? imageProcessor = null,
         ILogger<ArtworkPipelineService>? logger = null)
+        : this(movieRepository, mediaFileRepository, embeddedExtractor, qualityEvaluator, storageService,
+               frameExtractor, imageProcessor, null, null, null, logger)
+    {
+    }
+
+    public ArtworkPipelineService(
+        IMovieRepository movieRepository,
+        IMediaFileRepository mediaFileRepository,
+        IEmbeddedArtworkExtractor embeddedExtractor,
+        IImageQualityEvaluator qualityEvaluator,
+        IArtworkStorageService storageService,
+        IVideoFrameExtractor? frameExtractor,
+        IImageProcessingService? imageProcessor,
+        ISeriesRepository? seriesRepository,
+        ISeasonRepository? seasonRepository,
+        IEpisodeRepository? episodeRepository,
+        ILogger<ArtworkPipelineService>? logger = null)
     {
         _movieRepository = movieRepository ?? throw new ArgumentNullException(nameof(movieRepository));
         _mediaFileRepository = mediaFileRepository ?? throw new ArgumentNullException(nameof(mediaFileRepository));
@@ -46,6 +67,9 @@ public sealed class ArtworkPipelineService : IArtworkPipelineService
         _storageService = storageService ?? throw new ArgumentNullException(nameof(storageService));
         _frameExtractor = frameExtractor;
         _imageProcessor = imageProcessor;
+        _seriesRepository = seriesRepository;
+        _seasonRepository = seasonRepository;
+        _episodeRepository = episodeRepository;
         _logger = logger ?? NullLogger<ArtworkPipelineService>.Instance;
     }
 
@@ -274,6 +298,387 @@ public sealed class ArtworkPipelineService : IArtworkPipelineService
         };
     }
 
+    public async Task<ArtworkExtractionResult> ProcessSeriesArtworkAsync(
+        int seriesId,
+        bool forceRegenerate = false,
+        CancellationToken cancellationToken = default)
+    {
+        if (_seriesRepository == null || _episodeRepository == null)
+        {
+            return new ArtworkExtractionResult
+            {
+                SeriesId = seriesId,
+                IsPosterFallback = true,
+                IsBackdropFallback = true,
+                StatusMessage = "Repository not available"
+            };
+        }
+
+        var series = await _seriesRepository.GetByIdAsync(seriesId).ConfigureAwait(false);
+        if (series == null)
+        {
+            return new ArtworkExtractionResult
+            {
+                SeriesId = seriesId,
+                IsPosterFallback = true,
+                IsBackdropFallback = true,
+                StatusMessage = "Series not found"
+            };
+        }
+
+        var episodes = await _episodeRepository.GetBySeriesIdAsync(seriesId).ConfigureAwait(false);
+        var orderedEpisodes = episodes
+            .OrderBy(e => e.SeasonId)
+            .ThenBy(e => e.EpisodeNumber)
+            .ToList();
+
+        MediaFile? primaryFile = null;
+        foreach (var ep in orderedEpisodes)
+        {
+            var files = await _mediaFileRepository.GetByEpisodeIdAsync(ep.Id).ConfigureAwait(false);
+            var file = files.FirstOrDefault(f => !f.IsMissing && File.Exists(f.FilePath));
+            if (file != null)
+            {
+                primaryFile = file;
+                break;
+            }
+        }
+
+        if (primaryFile == null || string.IsNullOrWhiteSpace(primaryFile.FilePath) || !File.Exists(primaryFile.FilePath))
+        {
+            series.IsPosterFallback = true;
+            series.IsBackdropFallback = true;
+            series.PosterPath = null;
+            series.BackdropPath = null;
+            await _seriesRepository.UpdateAsync(series).ConfigureAwait(false);
+            SeriesArtworkUpdated?.Invoke(series.Id, null, null);
+
+            return new ArtworkExtractionResult
+            {
+                SeriesId = seriesId,
+                IsPosterFallback = true,
+                IsBackdropFallback = true,
+                StatusMessage = "Physical media file missing on disk"
+            };
+        }
+
+        var fileHash = _storageService.ComputeMediaHash(primaryFile.FilePath, primaryFile.SizeBytes, primaryFile.FileModifiedAt);
+
+        // 1. Cache Reuse Check
+        if (!forceRegenerate)
+        {
+            var hasCachedPoster = _storageService.HasValidPoster(fileHash, out var cachedPoster);
+            var hasCachedBackdrop = _storageService.HasValidBackdrop(fileHash, out var cachedBackdrop);
+
+            if (hasCachedPoster && hasCachedBackdrop)
+            {
+                series.PosterPath = cachedPoster;
+                series.BackdropPath = cachedBackdrop;
+                series.IsPosterFallback = false;
+                series.IsBackdropFallback = false;
+                series.UpdatedAt = DateTime.UtcNow;
+                await _seriesRepository.UpdateAsync(series).ConfigureAwait(false);
+
+                SeriesArtworkUpdated?.Invoke(series.Id, cachedPoster, cachedBackdrop);
+
+                return new ArtworkExtractionResult
+                {
+                    SeriesId = seriesId,
+                    PosterPath = cachedPoster,
+                    BackdropPath = cachedBackdrop,
+                    WasCached = true,
+                    StatusMessage = "Loaded from disk cache"
+                };
+            }
+        }
+
+        string? posterPath = null;
+        string? backdropPath = null;
+        bool hasEmbedded = false;
+
+        try
+        {
+            var embeddedBytes = await _embeddedExtractor.ExtractEmbeddedArtworkAsync(primaryFile.FilePath, cancellationToken).ConfigureAwait(false);
+            if (embeddedBytes != null && embeddedBytes.Length > 0)
+            {
+                byte[] posterBytes = embeddedBytes;
+                if (_imageProcessor != null)
+                {
+                    posterBytes = await _imageProcessor.CropAndScaleToPosterAsync(embeddedBytes, 600, 900, cancellationToken).ConfigureAwait(false);
+                }
+
+                if (posterBytes.Length > 0)
+                {
+                    posterPath = await _storageService.SavePosterAsync(fileHash, posterBytes, cancellationToken).ConfigureAwait(false);
+                    hasEmbedded = true;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to extract embedded artwork for series {SeriesId} file: {FilePath}", seriesId, primaryFile.FilePath);
+        }
+
+        if (_frameExtractor != null && _imageProcessor != null)
+        {
+            try
+            {
+                var durationMs = primaryFile.DurationTicks > 0
+                    ? primaryFile.DurationTicks / TimeSpan.TicksPerMillisecond
+                    : 0L;
+
+                var candidates = await _frameExtractor.ExtractCandidateFramesAsync(primaryFile.FilePath, durationMs, cancellationToken).ConfigureAwait(false);
+                if (candidates.Count > 0)
+                {
+                    CandidateVideoFrame? bestCandidate = null;
+                    var bestScore = -1.0;
+
+                    foreach (var candidate in candidates)
+                    {
+                        byte[]? bgra = candidate.BgraPixels;
+                        var w = candidate.Width;
+                        var h = candidate.Height;
+
+                        if (bgra == null && candidate.ImageBytes.Length > 0)
+                        {
+                            var decoded = await _imageProcessor.DecodeToBgraAsync(candidate.ImageBytes, cancellationToken).ConfigureAwait(false);
+                            w = decoded.width;
+                            h = decoded.height;
+                            bgra = decoded.bgraPixels;
+                        }
+
+                        if (bgra != null && w > 0 && h > 0)
+                        {
+                            var score = _qualityEvaluator.Evaluate(bgra, w, h);
+                            candidate.QualityScore = score;
+
+                            if (score.OverallScore > bestScore)
+                            {
+                                bestScore = score.OverallScore;
+                                bestCandidate = candidate;
+                            }
+
+                            if (score.IsAcceptable)
+                            {
+                                bestCandidate = candidate;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (bestCandidate != null && (bestCandidate.QualityScore == null || bestCandidate.QualityScore.IsUsable))
+                    {
+                        var backdropBytes = await _imageProcessor.CropAndScaleToBackdropAsync(bestCandidate.ImageBytes, 1920, 1080, cancellationToken).ConfigureAwait(false);
+                        if (backdropBytes.Length > 0)
+                        {
+                            backdropPath = await _storageService.SaveBackdropAsync(fileHash, backdropBytes, cancellationToken).ConfigureAwait(false);
+                        }
+
+                        if (string.IsNullOrEmpty(posterPath))
+                        {
+                            var derivedPoster = await _imageProcessor.CropAndScaleToPosterAsync(bestCandidate.ImageBytes, 600, 900, cancellationToken).ConfigureAwait(false);
+                            if (derivedPoster.Length > 0)
+                            {
+                                posterPath = await _storageService.SavePosterAsync(fileHash, derivedPoster, cancellationToken).ConfigureAwait(false);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to extract video frame for series {SeriesId} file: {FilePath}", seriesId, primaryFile.FilePath);
+            }
+        }
+
+        series.PosterPath = posterPath;
+        series.BackdropPath = backdropPath;
+        series.IsPosterFallback = string.IsNullOrEmpty(posterPath);
+        series.IsBackdropFallback = string.IsNullOrEmpty(backdropPath);
+        series.UpdatedAt = DateTime.UtcNow;
+
+        await _seriesRepository.UpdateAsync(series).ConfigureAwait(false);
+        SeriesArtworkUpdated?.Invoke(series.Id, posterPath, backdropPath);
+
+        return new ArtworkExtractionResult
+        {
+            SeriesId = seriesId,
+            PosterPath = posterPath,
+            BackdropPath = backdropPath,
+            HasEmbeddedArtwork = hasEmbedded,
+            IsPosterFallback = series.IsPosterFallback,
+            IsBackdropFallback = series.IsBackdropFallback,
+            WasCached = false,
+            StatusMessage = "Extracted successfully"
+        };
+    }
+
+    public async Task<ArtworkExtractionResult> ProcessEpisodeArtworkAsync(
+        int episodeId,
+        bool forceRegenerate = false,
+        CancellationToken cancellationToken = default)
+    {
+        if (_episodeRepository == null)
+        {
+            return new ArtworkExtractionResult
+            {
+                EpisodeId = episodeId,
+                IsPosterFallback = true,
+                StatusMessage = "Repository not available"
+            };
+        }
+
+        var episode = await _episodeRepository.GetByIdAsync(episodeId).ConfigureAwait(false);
+        if (episode == null)
+        {
+            return new ArtworkExtractionResult
+            {
+                EpisodeId = episodeId,
+                IsPosterFallback = true,
+                StatusMessage = "Episode not found"
+            };
+        }
+
+        var mediaFiles = await _mediaFileRepository.GetByEpisodeIdAsync(episodeId).ConfigureAwait(false);
+        var primaryFile = mediaFiles.FirstOrDefault(f => !f.IsMissing && File.Exists(f.FilePath))
+                          ?? mediaFiles.FirstOrDefault();
+
+        if (primaryFile == null || string.IsNullOrWhiteSpace(primaryFile.FilePath) || !File.Exists(primaryFile.FilePath))
+        {
+            episode.ThumbnailPath = null;
+            episode.IsThumbnailFallback = true;
+            await _episodeRepository.UpdateAsync(episode).ConfigureAwait(false);
+
+            return new ArtworkExtractionResult
+            {
+                EpisodeId = episodeId,
+                IsPosterFallback = true,
+                StatusMessage = "Physical media file missing on disk"
+            };
+        }
+
+        var fileHash = _storageService.ComputeMediaHash(primaryFile.FilePath, primaryFile.SizeBytes, primaryFile.FileModifiedAt);
+
+        if (!forceRegenerate && _storageService.HasValidPoster(fileHash, out var cachedThumb))
+        {
+            episode.ThumbnailPath = cachedThumb;
+            episode.IsThumbnailFallback = false;
+            episode.UpdatedAt = DateTime.UtcNow;
+            await _episodeRepository.UpdateAsync(episode).ConfigureAwait(false);
+
+            return new ArtworkExtractionResult
+            {
+                EpisodeId = episodeId,
+                PosterPath = cachedThumb,
+                WasCached = true,
+                StatusMessage = "Loaded from disk cache"
+            };
+        }
+
+        string? thumbPath = null;
+        bool hasEmbedded = false;
+
+        try
+        {
+            var embeddedBytes = await _embeddedExtractor.ExtractEmbeddedArtworkAsync(primaryFile.FilePath, cancellationToken).ConfigureAwait(false);
+            if (embeddedBytes != null && embeddedBytes.Length > 0)
+            {
+                byte[] finalBytes = embeddedBytes;
+                if (_imageProcessor != null)
+                {
+                    finalBytes = await _imageProcessor.CropAndScaleToBackdropAsync(embeddedBytes, 640, 360, cancellationToken).ConfigureAwait(false);
+                }
+
+                if (finalBytes.Length > 0)
+                {
+                    hasEmbedded = true;
+                    thumbPath = await _storageService.SavePosterAsync(fileHash, finalBytes, cancellationToken).ConfigureAwait(false);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to extract embedded artwork for episode {EpisodeId}", episodeId);
+        }
+
+        if (thumbPath == null && _frameExtractor != null && _imageProcessor != null)
+        {
+            try
+            {
+                var durationMs = primaryFile.DurationTicks > 0
+                    ? primaryFile.DurationTicks / TimeSpan.TicksPerMillisecond
+                    : 0L;
+
+                var candidates = await _frameExtractor.ExtractCandidateFramesAsync(primaryFile.FilePath, durationMs, cancellationToken).ConfigureAwait(false);
+                if (candidates.Count > 0)
+                {
+                    CandidateVideoFrame? bestCandidate = null;
+                    var bestScore = -1.0;
+
+                    foreach (var candidate in candidates)
+                    {
+                        byte[]? bgra = candidate.BgraPixels;
+                        var w = candidate.Width;
+                        var h = candidate.Height;
+
+                        if (bgra == null && candidate.ImageBytes.Length > 0)
+                        {
+                            var decoded = await _imageProcessor.DecodeToBgraAsync(candidate.ImageBytes, cancellationToken).ConfigureAwait(false);
+                            w = decoded.width;
+                            h = decoded.height;
+                            bgra = decoded.bgraPixels;
+                        }
+
+                        if (bgra != null && w > 0 && h > 0)
+                        {
+                            var score = _qualityEvaluator.Evaluate(bgra, w, h);
+                            candidate.QualityScore = score;
+
+                            if (score.OverallScore > bestScore)
+                            {
+                                bestScore = score.OverallScore;
+                                bestCandidate = candidate;
+                            }
+
+                            if (score.IsAcceptable)
+                            {
+                                bestCandidate = candidate;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (bestCandidate != null && (bestCandidate.QualityScore == null || bestCandidate.QualityScore.IsUsable))
+                    {
+                        var thumbBytes = await _imageProcessor.CropAndScaleToBackdropAsync(bestCandidate.ImageBytes, 640, 360, cancellationToken).ConfigureAwait(false);
+                        if (thumbBytes.Length > 0)
+                        {
+                            thumbPath = await _storageService.SavePosterAsync(fileHash, thumbBytes, cancellationToken).ConfigureAwait(false);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to extract video frame for episode {EpisodeId}", episodeId);
+            }
+        }
+
+        episode.ThumbnailPath = thumbPath;
+        episode.IsThumbnailFallback = string.IsNullOrEmpty(thumbPath);
+        episode.UpdatedAt = DateTime.UtcNow;
+        await _episodeRepository.UpdateAsync(episode).ConfigureAwait(false);
+
+        return new ArtworkExtractionResult
+        {
+            EpisodeId = episodeId,
+            PosterPath = thumbPath,
+            HasEmbeddedArtwork = hasEmbedded,
+            IsPosterFallback = episode.IsThumbnailFallback,
+            StatusMessage = "Processed episode artwork"
+        };
+    }
+
     public async Task ProcessPendingLibraryArtworkAsync(
         IProgress<ArtworkPipelineProgress>? progress = null,
         CancellationToken cancellationToken = default)
@@ -332,6 +737,69 @@ public sealed class ArtworkPipelineService : IArtworkPipelineService
 
                 processed++;
                 progress?.Report(new ArtworkPipelineProgress(total, processed, extracted, fallback, movie.Title));
+            }
+
+            if (_seriesRepository != null)
+            {
+                try
+                {
+                    var allSeries = await _seriesRepository.GetAllAsync().ConfigureAwait(false);
+                    var pendingSeries = allSeries.Where(s =>
+                        string.IsNullOrEmpty(s.PosterPath) ||
+                        string.IsNullOrEmpty(s.BackdropPath) ||
+                        s.IsPosterFallback ||
+                        s.IsBackdropFallback ||
+                        !File.Exists(s.PosterPath) ||
+                        !File.Exists(s.BackdropPath)).ToList();
+
+                    foreach (var show in pendingSeries)
+                    {
+                        if (cancellationToken.IsCancellationRequested) break;
+                        try
+                        {
+                            await ProcessSeriesArtworkAsync(show.Id, forceRegenerate: false, cancellationToken).ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Failed to process artwork for series {Id} ({Title})", show.Id, show.Title);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error processing pending series artwork.");
+                }
+            }
+
+            if (_episodeRepository != null)
+            {
+                try
+                {
+                    var allEpisodes = await _episodeRepository.GetBySeriesIdAsync(0).ConfigureAwait(false); // or iterate per series
+                    // Or retrieve all series and get episodes
+                    var allSeries = await (_seriesRepository?.GetAllAsync() ?? Task.FromResult(new System.Collections.Generic.List<Series>())).ConfigureAwait(false);
+                    foreach (var s in allSeries)
+                    {
+                        if (cancellationToken.IsCancellationRequested) break;
+                        var eps = await _episodeRepository.GetBySeriesIdAsync(s.Id).ConfigureAwait(false);
+                        foreach (var ep in eps.Where(e => string.IsNullOrEmpty(e.ThumbnailPath) || e.IsThumbnailFallback || !File.Exists(e.ThumbnailPath)))
+                        {
+                            if (cancellationToken.IsCancellationRequested) break;
+                            try
+                            {
+                                await ProcessEpisodeArtworkAsync(ep.Id, forceRegenerate: false, cancellationToken).ConfigureAwait(false);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning(ex, "Failed to process artwork for episode {Id}", ep.Id);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error processing pending episode thumbnails.");
+                }
             }
 
             _logger.LogInformation("Completed batch artwork pipeline. Processed: {P}/{Total}, Extracted: {Ext}, Fallbacks: {Fb}",

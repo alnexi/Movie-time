@@ -25,7 +25,17 @@
                                 ViewModel="{x:Bind MovieDetailsViewModel, Mode=OneWay}"
                                 Visibility="Collapsed" />
 
-        <!-- 5. Native Hardware-Accelerated Cinematic Player (Apple TV Specification) -->
+        <!-- 5. Apple TV-Inspired TV Shows Library Screen -->
+        <views:TvShowsView x:Name="MainTvShowsView"
+                           ViewModel="{x:Bind TvShowsViewModel, Mode=OneWay}"
+                           Visibility="Collapsed" />
+
+        <!-- 6. Apple TV-Inspired Series Details Screen -->
+        <views:SeriesDetailsView x:Name="MainSeriesDetailsView"
+                                 ViewModel="{x:Bind SeriesDetailsViewModel, Mode=OneWay}"
+                                 Visibility="Collapsed" />
+
+        <!-- 7. Native Hardware-Accelerated Cinematic Player (Apple TV Specification) -->
         <views:PlayerView x:Name="MainPlayerView"
                           ViewModel="{x:Bind PlayerViewModel, Mode=OneWay}"
                           Visibility="Collapsed" />

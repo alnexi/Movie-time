@@ -10,6 +10,7 @@ public interface IPlaybackProgressRepository
 {
     Task<PlaybackProgress?> GetByMediaFileIdAsync(int mediaFileId);
     Task<PlaybackProgress?> GetByMovieIdAsync(int movieId);
-    Task<int> SaveProgressAsync(int mediaFileId, int? movieId, long positionTicks, long durationTicks, bool isFinished);
+    Task<PlaybackProgress?> GetByEpisodeIdAsync(int episodeId);
+    Task<int> SaveProgressAsync(int mediaFileId, int? movieId, long positionTicks, long durationTicks, bool isFinished, int? episodeId = null);
     Task<int> DeleteByMediaFileIdAsync(int mediaFileId);
 }

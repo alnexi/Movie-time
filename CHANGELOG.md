@@ -11,6 +11,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.8.0] - 2026-11-09 (Phase 6: TV Show & Season/Episode Detail Experience)
+
+### Added
+- **Deterministic TV Episode Filename Recognition (`FilenameParserEngine`)**:
+  - Implemented advanced multi-pattern TV recognition: standard scene tags (`The.Wire.S01E08.Lessons.REMASTERED.720p.WEB-DL.2CH.x265.HEVC.PSA.AvaMovie.mkv`), `1x08`, `Season 1 Episode 8`, multi-episode packs (`S01E08E09`, `S01E08-E09`), and Specials (`S00E01`).
+  - Added strict technical token cutoffs and boundary guards: accurately isolates authentic episode titles (`Lessons`) from release technical tags (`REMASTERED`, `720p`, `WEB-DL`, `2CH`, `x265`, `HEVC`, `PSA`, `AvaMovie`).
+  - Completely rejects false episode titles: filenames without genuine episode titles produce `null` episode titles instead of release tags (e.g. `720p`).
+  - Zero fabricated metadata: series names, season numbers, and episode numbers are parsed strictly from the local filename.
+- **Hierarchical Relational Synchronization (`LibraryImportService`)**:
+  - Scanned TV episodes automatically correlate with `Series`, `Season`, and `Episode` records in SQLite.
+  - Linked to physical media files via `MediaFile.EpisodeId` foreign-key tracking.
+  - Season 0 explicitly titled `"Specials"`; Season $N$ titled `"Season N"`.
+  - Re-scan refinement: updates generic episode titles (`Episode 8` -> `Lessons`) if improved naming is detected, without duplicating database entities.
+- **Dedicated TV Shows Library Screen (`TvShowsView` & `TvShowsViewModel`)**:
+  - Apple TV-inspired 2:3 vertical poster grid (`TvShowsView.xaml`) with smooth hover lift and focus border animation.
+  - Displays series title, release year span (`2002–2008`), season count, and episode count.
+  - Real-time instant title search filtering with empty search state feedback.
+  - Multi-criteria sorting: `Title (A-Z)`, `Release Year (Newest)`, and `Recently Added`.
+  - Empty library guidance with direct scan trigger.
+- **Cinematic TV Show Detail Experience (`SeriesDetailsView` & `SeriesDetailsViewModel`)**:
+  - Full-bleed edge-to-edge backdrop hero canvas with dark radial and linear vignette gradients.
+  - Smart `▶ Resume / Play Next Up` action button: automatically determines next episode to watch (prioritizing in-progress episodes, then first uncompleted episode, then Season 1 Episode 1).
+  - Fluid Season Selector capsule pill tabs with instant switching without page reloads.
+  - 16:9 episode list cards with episode number, genuine episode title, duration, quality badges (`4K UHD`, `1080p`, `720p`), progress indicator bar, and candidate video frame thumbnails.
+  - Seamless back navigation returning to the TV Shows catalog or Home.
+- **Episode Playback & Discrete Resume Tracking (`PlayerViewModel` & `PlaybackProgressRepository`)**:
+  - Extended embedded hardware-accelerated LibVLC player engine to support TV episodes.
+  - Contextual header presentation: resolves `Episode` -> `Season` -> `Series`, displaying series title and episode subtitle (`Season 1, Episode 8 • Lessons • 720p`).
+  - Discrete `PlaybackProgress` tracking keyed by `EpisodeId`, ensuring movie progress and episode progress never conflict.
+  - Back navigation returns seamlessly to `SeriesDetails:{seriesId}`.
+- **Series & Episode Local Artwork Pipeline (`ArtworkPipelineService`)**:
+  - Support for TV series and episode artwork processing: extracts embedded cover art and candidate video frame thumbnails.
+  - Dispatches `SeriesArtworkUpdated` events to refresh visible series cards and detail views in real time.
+- **Home Screen & Navigation Integration (`HomeViewModel` & `MainWindow`)**:
+  - Added dedicated "TV Shows" shelf on Home for direct navigation to series details.
+  - TV episodes with active playback progress automatically populate the "Continue Watching" row with formatted subtitles (`S01E08 • Lessons (45%)`) and one-click instant resume.
+  - Navigation routing in `MainWindow` for `TVShows`, `TV Shows`, and `SeriesDetails:{id}`.
+- **Unit Test Suite Expansion (`TvShowExperienceTests.cs`)**:
+  - Added comprehensive test suite for TV episode recognition, database hierarchy, progress persistence by episode, catalog search/sorting, series details season switching, Next Up resolution, and player episode playback.
+  - Test suite expanded from 242 to **263 passing unit tests** (0 failed, 0 skipped).
+
+---
+
 ## [0.7.1] - 2026-11-09 (Home Experience Fix & Dynamic Artwork Integration)
 
 ### Added

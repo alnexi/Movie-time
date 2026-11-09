@@ -55,6 +55,13 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
 
     public event Action<string>? NavigationRequested;
     public event Action<string, int?>? PlaybackRequested;
+    public event Action<string, int?, int?>? MediaPlaybackRequested;
+
+    private void RaisePlaybackRequested(string filePath, int? movieId, int? episodeId = null)
+    {
+        PlaybackRequested?.Invoke(filePath, movieId);
+        MediaPlaybackRequested?.Invoke(filePath, movieId, episodeId);
+    }
 
     public HeroBannerViewModel Hero
     {
@@ -429,7 +436,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
             {
                 if (!string.IsNullOrEmpty(Hero.TargetFilePath))
                 {
-                    PlaybackRequested?.Invoke(Hero.TargetFilePath, Hero.TargetMovieId);
+                    RaisePlaybackRequested(Hero.TargetFilePath, Hero.TargetMovieId);
                 }
                 else if (Hero.TargetMovieId > 0)
                 {
@@ -464,87 +471,174 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
             var continueRow = new MediaRowViewModel { Title = "Continue Watching" };
             foreach (var prog in progressList.Take(10))
             {
-                if (!prog.MovieId.HasValue) continue;
-
-                var m = movies.FirstOrDefault(x => x.Id == prog.MovieId.Value);
-                if (m == null) continue;
-
-                filesByMovieId.TryGetValue(m.Id, out var mFiles);
-                var primaryFile = mFiles?.FirstOrDefault(f => f.Id == prog.MediaFileId) ??
-                                  mFiles?.FirstOrDefault(f => !f.IsMissing) ??
-                                  mFiles?.FirstOrDefault();
-
-                if (primaryFile == null) continue;
-
-                long posSec = (long)TimeSpan.FromTicks(prog.PositionTicks).TotalSeconds;
-
-                // Check for cached position thumbnail
-                string? cachedThumb = null;
-                if (_artworkStorageService != null)
+                if (prog.MovieId.HasValue)
                 {
-                    var fileHash = _artworkStorageService.ComputeMediaHash(
-                        primaryFile.FilePath,
-                        primaryFile.SizeBytes,
-                        primaryFile.FileModifiedAt);
+                    var m = movies.FirstOrDefault(x => x.Id == prog.MovieId.Value);
+                    if (m == null) continue;
 
-                    if (_artworkStorageService.HasValidPositionThumbnail(fileHash, posSec, out var validPath))
+                    filesByMovieId.TryGetValue(m.Id, out var mFiles);
+                    var primaryFile = mFiles?.FirstOrDefault(f => f.Id == prog.MediaFileId) ??
+                                      mFiles?.FirstOrDefault(f => !f.IsMissing) ??
+                                      mFiles?.FirstOrDefault();
+
+                    if (primaryFile == null) continue;
+
+                    long posSec = (long)TimeSpan.FromTicks(prog.PositionTicks).TotalSeconds;
+
+                    // Check for cached position thumbnail
+                    string? cachedThumb = null;
+                    if (_artworkStorageService != null)
                     {
-                        cachedThumb = validPath;
+                        var fileHash = _artworkStorageService.ComputeMediaHash(
+                            primaryFile.FilePath,
+                            primaryFile.SizeBytes,
+                            primaryFile.FileModifiedAt);
+
+                        if (_artworkStorageService.HasValidPositionThumbnail(fileHash, posSec, out var validPath))
+                        {
+                            cachedThumb = validPath;
+                        }
                     }
-                }
 
-                var card = new MediaCardViewModel
-                {
-                    Id = m.Id,
-                    MovieId = m.Id,
-                    MediaFileId = prog.MediaFileId,
-                    FilePath = primaryFile.FilePath,
-                    FileSizeBytes = primaryFile.SizeBytes,
-                    FileModifiedUtc = primaryFile.FileModifiedAt,
-                    PositionTicks = prog.PositionTicks,
-                    DurationTicks = prog.DurationTicks,
-                    Title = m.Title,
-                    Subtitle = $"Continue • {Math.Round(prog.PositionPercentage * 100)}%",
-                    ProgressPercentage = prog.PositionPercentage,
-                    PositionThumbnailPath = cachedThumb,
-                    BackdropPath = m.BackdropPath,
-                    PosterPath = m.PosterPath,
-                    QualityTag = (primaryFile.VideoHeight >= 2160) ? "4K" : "1080p",
-                    IsMovie = true,
-                    IsSample = false,
-                    SelectCommand = new RelayCommand(() => NavigationRequested?.Invoke($"MovieDetails:{m.Id}")),
-                    DetailsCommand = new RelayCommand(() => NavigationRequested?.Invoke($"MovieDetails:{m.Id}")),
-                    PlayCommand = new RelayCommand(() => PlaybackRequested?.Invoke(primaryFile.FilePath, m.Id))
-                };
-
-                // Asynchronously extract and cache position thumbnail if not yet cached
-                if (cachedThumb == null && _hoverPreviewService != null)
-                {
-                    _ = Task.Run(async () =>
+                    var card = new MediaCardViewModel
                     {
-                        try
-                        {
-                            var extracted = await _hoverPreviewService.GetOrExtractPositionThumbnailAsync(
-                                primaryFile.FilePath,
-                                primaryFile.SizeBytes,
-                                primaryFile.FileModifiedAt,
-                                posSec);
+                        Id = m.Id,
+                        MovieId = m.Id,
+                        MediaFileId = prog.MediaFileId,
+                        FilePath = primaryFile.FilePath,
+                        FileSizeBytes = primaryFile.SizeBytes,
+                        FileModifiedUtc = primaryFile.FileModifiedAt,
+                        PositionTicks = prog.PositionTicks,
+                        DurationTicks = prog.DurationTicks,
+                        Title = m.Title,
+                        Subtitle = $"Continue \u2022 {Math.Round(prog.PositionPercentage * 100)}%",
+                        ProgressPercentage = prog.PositionPercentage,
+                        PositionThumbnailPath = cachedThumb,
+                        BackdropPath = m.BackdropPath,
+                        PosterPath = m.PosterPath,
+                        QualityTag = (primaryFile.VideoHeight >= 2160) ? "4K" : "1080p",
+                        IsMovie = true,
+                        IsSample = false,
+                        SelectCommand = new RelayCommand(() => NavigationRequested?.Invoke($"MovieDetails:{m.Id}")),
+                        DetailsCommand = new RelayCommand(() => NavigationRequested?.Invoke($"MovieDetails:{m.Id}")),
+                        PlayCommand = new RelayCommand(() => RaisePlaybackRequested(primaryFile.FilePath, m.Id, null))
+                    };
 
-                            if (!string.IsNullOrEmpty(extracted))
+                    // Asynchronously extract and cache position thumbnail if not yet cached
+                    if (cachedThumb == null && _hoverPreviewService != null)
+                    {
+                        _ = Task.Run(async () =>
+                        {
+                            try
                             {
-                                void SetThumb() => card.PositionThumbnailPath = extracted;
-                                if (_dispatcher != null) _dispatcher.RunOnUi(SetThumb);
-                                else SetThumb();
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogDebug(ex, "Background position thumbnail extraction skipped for {Path}", primaryFile.FilePath);
-                        }
-                    });
-                }
+                                var extracted = await _hoverPreviewService.GetOrExtractPositionThumbnailAsync(
+                                    primaryFile.FilePath,
+                                    primaryFile.SizeBytes,
+                                    primaryFile.FileModifiedAt,
+                                    posSec);
 
-                continueRow.Items.Add(card);
+                                if (!string.IsNullOrEmpty(extracted))
+                                {
+                                    void SetThumb() => card.PositionThumbnailPath = extracted;
+                                    if (_dispatcher != null) _dispatcher.RunOnUi(SetThumb);
+                                    else SetThumb();
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogDebug(ex, "Background position thumbnail extraction skipped for {Path}", primaryFile.FilePath);
+                            }
+                        });
+                    }
+
+                    continueRow.Items.Add(card);
+                }
+                else if (prog.EpisodeId.HasValue)
+                {
+                    var ep = await _episodeRepository.GetByIdAsync(prog.EpisodeId.Value);
+                    if (ep == null) continue;
+
+                    var s = series.FirstOrDefault(x => x.Id == ep.SeriesId) ?? await _seriesRepository.GetByIdAsync(ep.SeriesId);
+                    var season = await _seasonRepository.GetByIdAsync(ep.SeasonId);
+                    var epFiles = allFiles.Where(f => f.EpisodeId == ep.Id).ToList();
+                    var primaryFile = epFiles.FirstOrDefault(f => f.Id == prog.MediaFileId) ??
+                                      epFiles.FirstOrDefault(f => !f.IsMissing) ??
+                                      epFiles.FirstOrDefault();
+
+                    if (primaryFile == null) continue;
+
+                    long posSec = (long)TimeSpan.FromTicks(prog.PositionTicks).TotalSeconds;
+
+                    string? cachedThumb = null;
+                    if (_artworkStorageService != null)
+                    {
+                        var fileHash = _artworkStorageService.ComputeMediaHash(
+                            primaryFile.FilePath,
+                            primaryFile.SizeBytes,
+                            primaryFile.FileModifiedAt);
+
+                        if (_artworkStorageService.HasValidPositionThumbnail(fileHash, posSec, out var validPath))
+                        {
+                            cachedThumb = validPath;
+                        }
+                    }
+
+                    var sNum = season?.SeasonNumber ?? 1;
+                    var epTitle = string.IsNullOrWhiteSpace(ep.Title) ? $"Episode {ep.EpisodeNumber}" : ep.Title;
+                    var showTitle = s?.Title ?? "TV Show";
+
+                    var card = new MediaCardViewModel
+                    {
+                        Id = ep.Id,
+                        EpisodeId = ep.Id,
+                        MediaFileId = prog.MediaFileId,
+                        FilePath = primaryFile.FilePath,
+                        FileSizeBytes = primaryFile.SizeBytes,
+                        FileModifiedUtc = primaryFile.FileModifiedAt,
+                        PositionTicks = prog.PositionTicks,
+                        DurationTicks = prog.DurationTicks,
+                        Title = showTitle,
+                        Subtitle = $"S{sNum}E{ep.EpisodeNumber} \u2022 {epTitle} ({Math.Round(prog.PositionPercentage * 100)}%)",
+                        ProgressPercentage = prog.PositionPercentage,
+                        PositionThumbnailPath = cachedThumb,
+                        BackdropPath = s?.BackdropPath ?? ep.ThumbnailPath,
+                        PosterPath = ep.ThumbnailPath ?? s?.PosterPath,
+                        QualityTag = (primaryFile.VideoHeight >= 2160) ? "4K" : "1080p",
+                        IsEpisode = true,
+                        IsSample = false,
+                        SelectCommand = new RelayCommand(() => NavigationRequested?.Invoke($"SeriesDetails:{s?.Id}")),
+                        DetailsCommand = new RelayCommand(() => NavigationRequested?.Invoke($"SeriesDetails:{s?.Id}")),
+                        PlayCommand = new RelayCommand(() => RaisePlaybackRequested(primaryFile.FilePath, null, ep.Id))
+                    };
+
+                    if (cachedThumb == null && _hoverPreviewService != null)
+                    {
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                var extracted = await _hoverPreviewService.GetOrExtractPositionThumbnailAsync(
+                                    primaryFile.FilePath,
+                                    primaryFile.SizeBytes,
+                                    primaryFile.FileModifiedAt,
+                                    posSec);
+
+                                if (!string.IsNullOrEmpty(extracted))
+                                {
+                                    void SetThumb() => card.PositionThumbnailPath = extracted;
+                                    if (_dispatcher != null) _dispatcher.RunOnUi(SetThumb);
+                                    else SetThumb();
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogDebug(ex, "Background position thumbnail extraction skipped for {Path}", primaryFile.FilePath);
+                            }
+                        });
+                    }
+
+                    continueRow.Items.Add(card);
+                }
             }
 
             if (continueRow.Items.Count > 0)
@@ -580,7 +674,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                     SelectCommand = new RelayCommand(() => NavigationRequested?.Invoke($"MovieDetails:{movie.Id}")),
                     DetailsCommand = new RelayCommand(() => NavigationRequested?.Invoke($"MovieDetails:{movie.Id}")),
                     PlayCommand = primaryFile != null
-                        ? new RelayCommand(() => PlaybackRequested?.Invoke(primaryFile.FilePath, movie.Id))
+                        ? new RelayCommand(() => RaisePlaybackRequested(primaryFile.FilePath, movie.Id, null))
                         : null
                 };
 
@@ -599,12 +693,13 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                 {
                     Id = show.Id,
                     Title = show.Title,
-                    Subtitle = "TV Series",
+                    Subtitle = show.StartYear.HasValue ? $"{show.StartYear.Value} \u2022 TV Series" : "TV Series",
                     PosterPath = show.PosterPath,
                     BackdropPath = show.BackdropPath,
                     IsEpisode = true,
                     IsSample = false,
-                    SelectCommand = new RelayCommand(() => NavigationRequested?.Invoke($"TVShows:{show.Id}"))
+                    SelectCommand = new RelayCommand(() => NavigationRequested?.Invoke($"SeriesDetails:{show.Id}")),
+                    DetailsCommand = new RelayCommand(() => NavigationRequested?.Invoke($"SeriesDetails:{show.Id}"))
                 };
 
                 tvRow.Items.Add(card);

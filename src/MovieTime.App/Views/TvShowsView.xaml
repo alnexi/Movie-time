@@ -1,0 +1,264 @@
+<UserControl
+    x:Class="MovieTime.App.Views.TvShowsView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:MovieTime.App.ViewModels"
+    mc:Ignorable="d"
+    d:DataContext="{d:DesignInstance Type=vm:TvShowsViewModel}">
+
+    <Grid Background="#0A0A0C">
+        <Grid.RowDefinitions>
+            <!-- 1. Header Bar: Home Pill, Title, Search, Sort -->
+            <RowDefinition Height="Auto" />
+            <!-- 2. Main Content Grid -->
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- ================= TOP HEADER BAR ================= -->
+        <Grid Grid.Row="0" Margin="36,24,36,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Top-Left Floating Home Pill & Title -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+                <Button Command="{x:Bind ViewModel.NavigateHomeCommand, Mode=OneWay}"
+                        Background="#60181820"
+                        BorderBrush="#30FFFFFF"
+                        BorderThickness="1"
+                        CornerRadius="18"
+                        Padding="14,6,18,6">
+                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <FontIcon Glyph="&#xE76B;" FontSize="11" Foreground="#C0C0C8" />
+                        <FontIcon Glyph="&#xE838;" FontSize="13" Foreground="#FFFFFF" />
+                        <TextBlock Text="Home" FontSize="13" FontWeight="SemiBold" Foreground="#FFFFFF" />
+                    </StackPanel>
+                </Button>
+
+                <TextBlock Text="TV Shows"
+                           FontSize="24"
+                           FontWeight="Bold"
+                           Foreground="#FFFFFF"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+
+            <!-- Search Box & Sort Controls -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <!-- Search Box Pill -->
+                <Border Background="#1C1C24"
+                        BorderBrush="#25FFFFFF"
+                        BorderThickness="1"
+                        CornerRadius="17"
+                        Height="34"
+                        Width="220"
+                        Padding="10,0">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <FontIcon Grid.Column="0"
+                                  Glyph="&#xE721;"
+                                  FontSize="13"
+                                  Foreground="#8E8E93"
+                                  VerticalAlignment="Center"
+                                  Margin="0,0,8,0" />
+                        <TextBox Grid.Column="1"
+                                 x:Name="SearchBox"
+                                 Text="{x:Bind ViewModel.SearchQuery, Mode=TwoWay}"
+                                 TextChanged="OnSearchTextChanged"
+                                 PlaceholderText="Search TV shows..."
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 FontSize="12"
+                                 Foreground="#FFFFFF"
+                                 VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+
+                <!-- Sort Pill Buttons (Title / Year / Recent) -->
+                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <Button Command="{x:Bind ViewModel.SetSortCommand, Mode=OneWay}"
+                            CommandParameter="Title"
+                            Background="#18FFFFFF"
+                            BorderThickness="0"
+                            CornerRadius="12"
+                            Padding="10,5">
+                        <TextBlock Text="A-Z" FontSize="11" FontWeight="SemiBold" Foreground="#CCCCCC" />
+                    </Button>
+                    <Button Command="{x:Bind ViewModel.SetSortCommand, Mode=OneWay}"
+                            CommandParameter="Year"
+                            Background="#18FFFFFF"
+                            BorderThickness="0"
+                            CornerRadius="12"
+                            Padding="10,5">
+                        <TextBlock Text="Year" FontSize="11" FontWeight="SemiBold" Foreground="#CCCCCC" />
+                    </Button>
+                    <Button Command="{x:Bind ViewModel.SetSortCommand, Mode=OneWay}"
+                            CommandParameter="RecentlyAdded"
+                            Background="#18FFFFFF"
+                            BorderThickness="0"
+                            CornerRadius="12"
+                            Padding="10,5">
+                        <TextBlock Text="Recent" FontSize="11" FontWeight="SemiBold" Foreground="#CCCCCC" />
+                    </Button>
+                </StackPanel>
+
+                <!-- Library Refresh Action -->
+                <Button Command="{x:Bind ViewModel.RefreshLibraryCommand, Mode=OneWay}"
+                        Background="#252535"
+                        BorderBrush="#35FFFFFF"
+                        BorderThickness="1"
+                        CornerRadius="16"
+                        Height="32"
+                        Width="32"
+                        Padding="0"
+                        ToolTipService.ToolTip="Scan library for new TV shows">
+                    <FontIcon Glyph="&#xE72C;" FontSize="13" Foreground="#FFFFFF" />
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- ================= MAIN CONTENT ================= -->
+        <Grid Grid.Row="1" Margin="36,0,36,24">
+            <!-- Loading Indicator -->
+            <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
+                          Width="48"
+                          Height="48"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Center"
+                          Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay}" />
+
+            <!-- Empty Library State -->
+            <StackPanel Visibility="{x:Bind ViewModel.IsLibraryEmpty, Mode=OneWay}"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="16">
+                <Border Width="80"
+                        Height="80"
+                        CornerRadius="40"
+                        Background="#14141E"
+                        BorderBrush="#25FFFFFF"
+                        BorderThickness="1"
+                        HorizontalAlignment="Center">
+                    <FontIcon Glyph="&#xE7F4;" FontSize="36" Foreground="#707080" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <TextBlock Text="No TV Shows in Library"
+                           FontSize="20"
+                           FontWeight="Bold"
+                           Foreground="#FFFFFF"
+                           HorizontalAlignment="Center" />
+                <TextBlock Text="Add folders containing TV shows in Settings to populate your library."
+                           FontSize="14"
+                           Foreground="#8E8E93"
+                           HorizontalAlignment="Center" />
+                <Button Command="{x:Bind ViewModel.RefreshLibraryCommand, Mode=OneWay}"
+                        Content="Scan Library Now"
+                        Background="#FFFFFF"
+                        Foreground="#000000"
+                        FontWeight="SemiBold"
+                        CornerRadius="18"
+                        Padding="20,8"
+                        HorizontalAlignment="Center"
+                        Margin="0,8,0,0" />
+            </StackPanel>
+
+            <!-- TV Shows Grid -->
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto"
+                          VerticalScrollMode="Enabled">
+                <GridView x:Name="SeriesGridView"
+                          ItemsSource="{x:Bind ViewModel.SeriesList, Mode=OneWay}"
+                          SelectionMode="None"
+                          IsItemClickEnabled="True"
+                          ItemClick="OnSeriesItemClick"
+                          Padding="0,8,0,32">
+                    <GridView.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ItemsWrapGrid Orientation="Horizontal"
+                                           MaximumRowsOrColumns="-1"
+                                           ItemWidth="200"
+                                           ItemHeight="340" />
+                        </ItemsPanelTemplate>
+                    </GridView.ItemsPanel>
+                    <GridView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:SeriesCardViewModel">
+                            <Button Command="{x:Bind SelectCommand}"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="0"
+                                    Margin="8,8,8,16"
+                                    HorizontalAlignment="Stretch"
+                                    VerticalAlignment="Stretch"
+                                    HorizontalContentAlignment="Stretch"
+                                    VerticalContentAlignment="Stretch">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="280" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Poster Card (2:3 Aspect Ratio) -->
+                                    <Border Grid.Row="0"
+                                            CornerRadius="10"
+                                            BorderBrush="#20FFFFFF"
+                                            BorderThickness="1"
+                                            Background="#14141E">
+                                        <Grid CornerRadius="10">
+                                            <!-- Genuine Local Poster Image -->
+                                            <Image Source="{x:Bind PosterPath, Mode=OneWay}"
+                                                   Stretch="UniformToFill"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"
+                                                   Visibility="{x:Bind HasPoster, Mode=OneWay}" />
+
+                                            <!-- Typographical Fallback Canvas -->
+                                            <Border Visibility="{x:Bind NeedsFallback, Mode=OneWay}"
+                                                    Background="#14141E"
+                                                    Padding="16">
+                                                <Grid>
+                                                    <FontIcon Glyph="&#xE7F4;"
+                                                              FontSize="48"
+                                                              Foreground="#20FFFFFF"
+                                                              HorizontalAlignment="Center"
+                                                              VerticalAlignment="Center" />
+                                                    <TextBlock Text="{x:Bind Title}"
+                                                               FontSize="15"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="#E0E0E8"
+                                                               TextWrapping="Wrap"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               MaxLines="3"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Bottom"
+                                                               TextAlignment="Center" />
+                                                </Grid>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Title -->
+                                    <TextBlock Grid.Row="1"
+                                               Text="{x:Bind Title}"
+                                               FontSize="14"
+                                               FontWeight="SemiBold"
+                                               Foreground="#FFFFFF"
+                                               TextTrimming="CharacterEllipsis"
+                                               Margin="0,8,0,2" />
+
+                                    <!-- Subtitle (Season count & Episode count) -->
+                                    <TextBlock Grid.Row="2"
+                                               Text="{x:Bind MetadataSubtitle}"
+                                               FontSize="12"
+                                               Foreground="#8E8E93"
+                                               TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </Button>
+                        </DataTemplate>
+                    </GridView.ItemTemplate>
+                </GridView>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>

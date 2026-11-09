@@ -16,6 +16,8 @@ public sealed partial class MainWindow : Window
     public MoviesViewModel MoviesViewModel { get; }
     public SettingsViewModel SettingsViewModel { get; }
     public MovieDetailsViewModel MovieDetailsViewModel { get; }
+    public TvShowsViewModel TvShowsViewModel { get; }
+    public SeriesDetailsViewModel SeriesDetailsViewModel { get; }
     public PlayerViewModel PlayerViewModel { get; }
 
     /// <summary>
@@ -28,6 +30,8 @@ public sealed partial class MainWindow : Window
         MoviesViewModel moviesViewModel,
         SettingsViewModel settingsViewModel,
         MovieDetailsViewModel movieDetailsViewModel,
+        TvShowsViewModel tvShowsViewModel,
+        SeriesDetailsViewModel seriesDetailsViewModel,
         PlayerViewModel playerViewModel,
         MovieTime.App.Common.IDispatcherService? dispatcherService = null)
     {
@@ -35,6 +39,8 @@ public sealed partial class MainWindow : Window
         MoviesViewModel = moviesViewModel ?? throw new ArgumentNullException(nameof(moviesViewModel));
         SettingsViewModel = settingsViewModel ?? throw new ArgumentNullException(nameof(settingsViewModel));
         MovieDetailsViewModel = movieDetailsViewModel ?? throw new ArgumentNullException(nameof(movieDetailsViewModel));
+        TvShowsViewModel = tvShowsViewModel ?? throw new ArgumentNullException(nameof(tvShowsViewModel));
+        SeriesDetailsViewModel = seriesDetailsViewModel ?? throw new ArgumentNullException(nameof(seriesDetailsViewModel));
         PlayerViewModel = playerViewModel ?? throw new ArgumentNullException(nameof(playerViewModel));
 
         this.InitializeComponent();
@@ -60,10 +66,14 @@ public sealed partial class MainWindow : Window
         // Subscribe to navigation and playback events
         HomeViewModel.NavigationRequested += OnNavigationRequested;
         HomeViewModel.PlaybackRequested += OnHomePlaybackRequested;
+        HomeViewModel.MediaPlaybackRequested += OnHomeMediaPlaybackRequested;
         MoviesViewModel.NavigationRequested += OnNavigationRequested;
+        TvShowsViewModel.NavigationRequested += OnNavigationRequested;
         SettingsViewModel.NavigationRequested += OnNavigationRequested;
         MovieDetailsViewModel.NavigationRequested += OnNavigationRequested;
         MovieDetailsViewModel.PlaybackRequested += OnMovieDetailsPlaybackRequested;
+        SeriesDetailsViewModel.NavigationRequested += OnNavigationRequested;
+        SeriesDetailsViewModel.PlaybackRequested += OnSeriesPlaybackRequested;
         PlayerViewModel.NavigationRequested += OnNavigationRequested;
         PlayerViewModel.FullscreenToggled += OnFullscreenToggled;
 
@@ -76,12 +86,22 @@ public sealed partial class MainWindow : Window
 
     private void OnHomePlaybackRequested(string filePath, int? movieId)
     {
-        NavigateToPlayer(filePath, movieId);
+        NavigateToPlayer(filePath, movieId, null);
+    }
+
+    private void OnHomeMediaPlaybackRequested(string filePath, int? movieId, int? episodeId)
+    {
+        NavigateToPlayer(filePath, movieId, episodeId);
     }
 
     private void OnMovieDetailsPlaybackRequested(string filePath)
     {
-        NavigateToPlayer(filePath, MovieDetailsViewModel.MovieId);
+        NavigateToPlayer(filePath, MovieDetailsViewModel.MovieId, null);
+    }
+
+    private void OnSeriesPlaybackRequested(string filePath, int episodeId)
+    {
+        NavigateToPlayer(filePath, null, episodeId);
     }
 
     private void OnFullscreenToggled(bool isFullscreen)
@@ -120,10 +140,39 @@ public sealed partial class MainWindow : Window
             return;
         }
 
+        if (target.StartsWith("SeriesDetails:", StringComparison.OrdinalIgnoreCase))
+        {
+            var idPart = target.Substring("SeriesDetails:".Length);
+            if (int.TryParse(idPart, out int seriesId))
+            {
+                NavigateToSeriesDetails(seriesId);
+                return;
+            }
+        }
+        else if (target.StartsWith("TVShows:", StringComparison.OrdinalIgnoreCase))
+        {
+            var idPart = target.Substring("TVShows:".Length);
+            if (int.TryParse(idPart, out int seriesId))
+            {
+                NavigateToSeriesDetails(seriesId);
+                return;
+            }
+        }
+        else if (string.Equals(target, "SeriesDetails", StringComparison.OrdinalIgnoreCase))
+        {
+            NavigateToSeriesDetails(null);
+            return;
+        }
+
         if (string.Equals(target, "Movies", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(target, "Library", StringComparison.OrdinalIgnoreCase))
         {
             NavigateToMovies();
+        }
+        else if (string.Equals(target, "TV Shows", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(target, "TVShows", StringComparison.OrdinalIgnoreCase))
+        {
+            NavigateToTvShows();
         }
         else if (string.Equals(target, "Home", StringComparison.OrdinalIgnoreCase))
         {
@@ -141,9 +190,24 @@ public sealed partial class MainWindow : Window
         MainHomeView.Visibility = Visibility.Collapsed;
         MainSettingsView.Visibility = Visibility.Collapsed;
         MainMovieDetailsView.Visibility = Visibility.Collapsed;
+        MainTvShowsView.Visibility = Visibility.Collapsed;
+        MainSeriesDetailsView.Visibility = Visibility.Collapsed;
         MainPlayerView.Visibility = Visibility.Collapsed;
         MainMoviesView.Visibility = Visibility.Visible;
         _ = MoviesViewModel.InitializeAsync();
+    }
+
+    public void NavigateToTvShows()
+    {
+        ExitPlayerMode();
+        MainHomeView.Visibility = Visibility.Collapsed;
+        MainMoviesView.Visibility = Visibility.Collapsed;
+        MainSettingsView.Visibility = Visibility.Collapsed;
+        MainMovieDetailsView.Visibility = Visibility.Collapsed;
+        MainSeriesDetailsView.Visibility = Visibility.Collapsed;
+        MainPlayerView.Visibility = Visibility.Collapsed;
+        MainTvShowsView.Visibility = Visibility.Visible;
+        _ = TvShowsViewModel.InitializeAsync();
     }
 
     public void NavigateToHome()
@@ -152,6 +216,8 @@ public sealed partial class MainWindow : Window
         MainMoviesView.Visibility = Visibility.Collapsed;
         MainSettingsView.Visibility = Visibility.Collapsed;
         MainMovieDetailsView.Visibility = Visibility.Collapsed;
+        MainTvShowsView.Visibility = Visibility.Collapsed;
+        MainSeriesDetailsView.Visibility = Visibility.Collapsed;
         MainPlayerView.Visibility = Visibility.Collapsed;
         MainHomeView.Visibility = Visibility.Visible;
         _ = HomeViewModel.InitializeAsync();
@@ -163,6 +229,8 @@ public sealed partial class MainWindow : Window
         MainHomeView.Visibility = Visibility.Collapsed;
         MainMoviesView.Visibility = Visibility.Collapsed;
         MainMovieDetailsView.Visibility = Visibility.Collapsed;
+        MainTvShowsView.Visibility = Visibility.Collapsed;
+        MainSeriesDetailsView.Visibility = Visibility.Collapsed;
         MainPlayerView.Visibility = Visibility.Collapsed;
         MainSettingsView.Visibility = Visibility.Visible;
         _ = SettingsViewModel.InitializeAsync();
@@ -174,18 +242,35 @@ public sealed partial class MainWindow : Window
         MainHomeView.Visibility = Visibility.Collapsed;
         MainMoviesView.Visibility = Visibility.Collapsed;
         MainSettingsView.Visibility = Visibility.Collapsed;
+        MainTvShowsView.Visibility = Visibility.Collapsed;
+        MainSeriesDetailsView.Visibility = Visibility.Collapsed;
         MainPlayerView.Visibility = Visibility.Collapsed;
         MainMovieDetailsView.Visibility = Visibility.Visible;
         _ = MovieDetailsViewModel.LoadMovieAsync(movieId);
     }
 
-    public void NavigateToPlayer(string filePath, int? movieId)
+    public void NavigateToSeriesDetails(int? seriesId)
+    {
+        ExitPlayerMode();
+        MainHomeView.Visibility = Visibility.Collapsed;
+        MainMoviesView.Visibility = Visibility.Collapsed;
+        MainSettingsView.Visibility = Visibility.Collapsed;
+        MainMovieDetailsView.Visibility = Visibility.Collapsed;
+        MainTvShowsView.Visibility = Visibility.Collapsed;
+        MainPlayerView.Visibility = Visibility.Collapsed;
+        MainSeriesDetailsView.Visibility = Visibility.Visible;
+        _ = SeriesDetailsViewModel.LoadSeriesAsync(seriesId);
+    }
+
+    public void NavigateToPlayer(string filePath, int? movieId = null, int? episodeId = null)
     {
         App.Logger?.LogInformation("NavigateToPlayer start: Collapsing views...");
         MainHomeView.Visibility = Visibility.Collapsed;
         MainMoviesView.Visibility = Visibility.Collapsed;
         MainSettingsView.Visibility = Visibility.Collapsed;
         MainMovieDetailsView.Visibility = Visibility.Collapsed;
+        MainTvShowsView.Visibility = Visibility.Collapsed;
+        MainSeriesDetailsView.Visibility = Visibility.Collapsed;
 
         App.Logger?.LogInformation("NavigateToPlayer: Setting MainPlayerView.Visibility = Visible...");
         MainPlayerView.Visibility = Visibility.Visible;
@@ -193,8 +278,8 @@ public sealed partial class MainWindow : Window
         App.Logger?.LogInformation("NavigateToPlayer: Calling EnsureVideoSurfaceAttached...");
         MainPlayerView.EnsureVideoSurfaceAttached();
 
-        App.Logger?.LogInformation("NavigateToPlayer: Calling PlayerViewModel.InitializeAsync...");
-        _ = PlayerViewModel.InitializeAsync(filePath, movieId);
+        App.Logger?.LogInformation("NavigateToPlayer: Calling PlayerViewModel.InitializeAsync with episodeId={EpId}...", episodeId);
+        _ = PlayerViewModel.InitializeAsync(filePath, movieId, episodeId);
         App.Logger?.LogInformation("NavigateToPlayer: Finished dispatching InitializeAsync.");
     }
 

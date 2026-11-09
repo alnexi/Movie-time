@@ -18,6 +18,7 @@ public sealed class MediaCardViewModel : ObservableObject
 
     public int Id { get; set; }
     public int? MovieId { get; set; }
+    public int? EpisodeId { get; set; }
     public int? MediaFileId { get; set; }
     public string? FilePath { get; set; }
     public long FileSizeBytes { get; set; }
