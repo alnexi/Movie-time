@@ -11,6 +11,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.9.0] - 2026-11-09 (Interactive Celestial Pixel Dither Theme Experience)
+
+### Added
+- **Interactive Celestial Pixel Dither Controller (`PixelDitherThemeControl`)**:
+  - Top-down oblique retro pixel-art water scene with ordered Bayer dithering, circular concentric wave geometry, wooden rowboat bow, and perched seagull.
+  - High-performance native WinUI 3 360×640 `WriteableBitmap` software blitter running at 60 FPS with zero external dependencies and sub-millisecond per-frame rasterization.
+  - Vertical Celestial Slider track with Moon zenith icon (`🌙`), Sun nadir icon (`☼`), solid dynamic track fill, and an 8-bit pixel thumb that morphs into an 8-bit gripping fist glove (`✊`) on hover and drag.
+- **Continuous 3-Palette Color Interpolation (`ThemeColorInterpolator` & `WinUiThemePaletteApplier`)**:
+  - Smooth mathematical interpolation across a continuous $[0.0, 1.0]$ domain:
+    - **Day ($V = 0.0$)**: Sunlit emerald green waters, bright highlights, light weathered wood boat, white seagull, crisp light theme (`ElementTheme.Light`).
+    - **Twilight ($V = 0.5$)**: Warm golden-amber sunset waters, warm teak boat, atmospheric twilight ambiance, warm dark theme (`ElementTheme.Dark`).
+    - **Night ($V = 1.0$)**: Deep obsidian midnight waters, shimmering vertical moonlight reflection column, dark silhouette boat, signature cinematic dark theme (`ElementTheme.Dark`).
+  - Continuous real-time updates for application background (`AppBackgroundBrush`), cards (`AppCardBackgroundBrush`), primary/secondary text (`AppTextPrimaryBrush`, `AppTextSecondaryBrush`), accent tones (`AppAccentBrush`), specular borders (`AppBorderBrush`), and translucent liquid glass fills (`AppGlassFillBrush`).
+- **Mouse-Reactive Physical Simulation**:
+  - Expanding circular water ripples generated dynamically from cursor movement, propagating outward and naturally attenuating over time.
+  - Layered spring-damped parallax shifting water and boat perspectives with pointer coordinates.
+  - Cursor proximity specular lighting casting subtle radial highlights onto water pixels.
+  - Idle ambient shimmer and dancing moonlight column glints.
+- **Settings Integration & Preferences Persistence (`ThemeManagerService` & `ThemeSettingsService`)**:
+  - Integrated into Movie Time Settings under a dedicated "Appearance & Atmosphere" section with live percentage indicator and mode descriptions.
+  - Quick-preset capsule buttons for `Day`, `Twilight`, and `Night`.
+  - Accessible toggles for **Reduced Motion** (suppresses ripple displacement and parallax while preserving palette transitions) and **Ambient Animation**.
+  - Local persistence to `%LocalAppData%\MovieTime\Config\theme_settings.json`.
+- **Comprehensive Test Suite Expansion (`ThemeExperienceTests`)**:
+  - Added unit test coverage for theme mode thresholds, continuous color interpolation math, persistence serialization, out-of-bounds value clamping, event notification triggering, and ViewModel synchronization (total tests increased to 277).
+
+---
+
 ## [0.8.0] - 2026-11-09 (Phase 6: TV Show & Season/Episode Detail Experience)
 
 ### Added

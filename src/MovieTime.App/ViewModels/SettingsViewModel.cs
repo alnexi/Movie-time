@@ -8,16 +8,18 @@ using Microsoft.Extensions.Logging.Abstractions;
 using MovieTime.App.Common;
 using MovieTime.Core.Library;
 using MovieTime.Core.Library.Models;
+using MovieTime.Core.Theme;
 
 namespace MovieTime.App.ViewModels;
 
 /// <summary>
-/// ViewModel managing the Settings and Multi-Drive MLibrary management system.
-/// Allows users to view, register, confirm, scan, and remove MLibrary folders across all local drives.
+/// ViewModel managing the Settings and Multi-Drive MLibrary management system,
+/// as well as the Celestial Pixel Dither theme experience.
 /// </summary>
 public sealed class SettingsViewModel : ObservableObject
 {
     private readonly IMLibraryManagerService _libraryManager;
+    private readonly IThemeManagerService? _themeManager;
     private readonly ILogger<SettingsViewModel> _logger;
 
     private bool _isLoading;
@@ -29,6 +31,56 @@ public sealed class SettingsViewModel : ObservableObject
     private MLibraryRegistrationPreview? _currentPreview;
 
     public event Action<string>? NavigationRequested;
+
+    public IThemeManagerService? ThemeManager => _themeManager;
+
+    public double CurrentThemeValue => _themeManager?.CurrentThemeValue ?? 1.0;
+    public AppThemeMode CurrentThemeMode => _themeManager?.CurrentMode ?? AppThemeMode.Night;
+    public string ThemePercentageText => $"{(int)(CurrentThemeValue * 100)}%";
+
+    public string ThemeModeTitle => CurrentThemeMode switch
+    {
+        AppThemeMode.Day => "Day \u2022 Sunlit Apple Light",
+        AppThemeMode.Twilight => "Twilight \u2022 Warm Sunset Glow",
+        _ => "Night \u2022 Obsidian Midnight (Apple TV)"
+    };
+
+    public string ThemeDescription => CurrentThemeMode switch
+    {
+        AppThemeMode.Day => "Vibrant emerald green waters, bright sunlight highlights, light weathered wood boat, white seagull, crisp light theme.",
+        AppThemeMode.Twilight => "Golden amber sunset atmosphere, warm teak boat, muted olive tones, atmospheric twilight ambiance.",
+        _ => "Deep obsidian navy waters, shimmering moonlight reflection column, dark silhouette boat, signature cinematic dark theme."
+    };
+
+    public bool ReducedMotion
+    {
+        get => _themeManager?.ReducedMotion ?? false;
+        set
+        {
+            if (_themeManager != null && _themeManager.ReducedMotion != value)
+            {
+                _ = _themeManager.SetReducedMotionAsync(value);
+                OnPropertyChanged(nameof(ReducedMotion));
+            }
+        }
+    }
+
+    public bool AmbientAnimationEnabled
+    {
+        get => _themeManager?.AmbientAnimationEnabled ?? true;
+        set
+        {
+            if (_themeManager != null && _themeManager.AmbientAnimationEnabled != value)
+            {
+                _ = _themeManager.SetAmbientAnimationAsync(value);
+                OnPropertyChanged(nameof(AmbientAnimationEnabled));
+            }
+        }
+    }
+
+    public ICommand SetDayThemeCommand { get; }
+    public ICommand SetTwilightThemeCommand { get; }
+    public ICommand SetNightThemeCommand { get; }
 
     public ObservableCollection<RegisteredMLibraryViewModel> RegisteredLibraries { get; } = new();
     public ObservableCollection<DriveStorageInfo> AvailableDrives { get; } = new();
@@ -138,9 +190,18 @@ public sealed class SettingsViewModel : ObservableObject
 
     public SettingsViewModel(
         IMLibraryManagerService libraryManager,
+        ILogger<SettingsViewModel>? logger)
+        : this(libraryManager, null, logger)
+    {
+    }
+
+    public SettingsViewModel(
+        IMLibraryManagerService libraryManager,
+        IThemeManagerService? themeManager = null,
         ILogger<SettingsViewModel>? logger = null)
     {
         _libraryManager = libraryManager ?? throw new ArgumentNullException(nameof(libraryManager));
+        _themeManager = themeManager;
         _logger = logger ?? NullLogger<SettingsViewModel>.Instance;
 
         LoadLibrariesCommand = new AsyncRelayCommand(LoadLibrariesAsync);
@@ -153,6 +214,22 @@ public sealed class SettingsViewModel : ObservableObject
         ScanSingleLibraryCommand = new AsyncRelayCommand<int>(ScanSingleLibraryAsync);
         NavigateHomeCommand = new RelayCommand(() => NavigationRequested?.Invoke("Home"));
         NavigateMoviesCommand = new RelayCommand(() => NavigationRequested?.Invoke("Movies"));
+
+        SetDayThemeCommand = new RelayCommand(() => _themeManager?.SetThemeValue(0.0));
+        SetTwilightThemeCommand = new RelayCommand(() => _themeManager?.SetThemeValue(0.5));
+        SetNightThemeCommand = new RelayCommand(() => _themeManager?.SetThemeValue(1.0));
+
+        if (_themeManager != null)
+        {
+            _themeManager.ThemeChanged += (val, mode) =>
+            {
+                OnPropertyChanged(nameof(CurrentThemeValue));
+                OnPropertyChanged(nameof(CurrentThemeMode));
+                OnPropertyChanged(nameof(ThemeModeTitle));
+                OnPropertyChanged(nameof(ThemeDescription));
+                OnPropertyChanged(nameof(ThemePercentageText));
+            };
+        }
     }
 
     public async Task InitializeAsync()

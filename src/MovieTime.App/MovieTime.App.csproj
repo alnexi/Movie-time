@@ -10,6 +10,7 @@
     <EnableMsixTooling>true</EnableMsixTooling>
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>$(NoWarn);NU1605</NoWarn>
   </PropertyGroup>
 
@@ -23,5 +24,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MovieTime.Core\MovieTime.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\Theme\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 </Project>

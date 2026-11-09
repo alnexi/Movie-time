@@ -68,6 +68,10 @@ public static class ServiceCollectionExtensions
         // Subtitle customization settings persistence
         services.AddSingleton<Playback.ISubtitleSettingsService, Playback.SubtitleSettingsService>();
 
+        // Theme customization settings persistence and manager
+        services.AddSingleton<Theme.IThemeSettingsService, Theme.ThemeSettingsService>();
+        services.AddSingleton<Theme.IThemeManagerService, Theme.ThemeManagerService>();
+
         // Artwork and thumbnail extraction pipeline
         services.AddSingleton<Artwork.IEmbeddedArtworkExtractor, Artwork.EmbeddedArtworkExtractor>();
         services.AddSingleton<Artwork.IImageQualityEvaluator, Artwork.ImageQualityEvaluator>();

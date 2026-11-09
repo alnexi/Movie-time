@@ -7,6 +7,15 @@
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
             </ResourceDictionary.MergedDictionaries>
+
+            <!-- Dynamic Theme Palette Brushes (interpolated in real time by ThemeManagerService) -->
+            <SolidColorBrush x:Key="AppBackgroundBrush" Color="#0A0A0C" />
+            <SolidColorBrush x:Key="AppCardBackgroundBrush" Color="#141418" />
+            <SolidColorBrush x:Key="AppTextPrimaryBrush" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="AppTextSecondaryBrush" Color="#8E8E93" />
+            <SolidColorBrush x:Key="AppAccentBrush" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="AppBorderBrush" Color="#20FFFFFF" />
+            <SolidColorBrush x:Key="AppGlassFillBrush" Color="#20FFFFFF" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

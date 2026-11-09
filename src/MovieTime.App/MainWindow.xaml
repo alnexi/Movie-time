@@ -5,7 +5,7 @@
     xmlns:views="using:MovieTime.App.Views"
     Title="Movie Time">
 
-    <Grid Background="#0A0A0C">
+    <Grid x:Name="RootWindowGrid" Background="{ThemeResource AppBackgroundBrush}">
         <!-- 1. Apple TV-Inspired Home Screen -->
         <views:HomeView x:Name="MainHomeView"
                         ViewModel="{x:Bind HomeViewModel, Mode=OneWay}" />

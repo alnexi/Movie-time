@@ -11,6 +11,7 @@ using MovieTime.Core;
 using MovieTime.Core.Extensions;
 using MovieTime.Core.Playback;
 using MovieTime.Core.Services;
+using MovieTime.Core.Theme;
 using Serilog;
 
 namespace MovieTime.App;
@@ -103,6 +104,7 @@ public partial class App : Application
         services.AddSingleton<MovieTime.Core.Artwork.IImageProcessingService, WicImageProcessingService>();
         services.AddSingleton<MovieTime.Core.Artwork.IVideoFrameExtractor, WindowsVideoFrameExtractor>();
         services.AddSingleton<MovieTime.Core.Artwork.IHoverPreviewService, MovieTime.Core.Artwork.HoverPreviewService>();
+        services.AddSingleton<MovieTime.Core.Theme.IThemePaletteApplier, WinUiThemePaletteApplier>();
         services.AddTransient<HomeViewModel>();
         services.AddTransient<MoviesViewModel>();
         services.AddTransient<MovieDetailsViewModel>();
@@ -133,6 +135,22 @@ public partial class App : Application
         {
             _logger.LogInformation("Attempting to resolve MainWindow from DI...");
             _window = Services.GetRequiredService<MainWindow>();
+
+            // Initialize and attach centralized ThemeManager before activation to prevent flash of wrong theme
+            try
+            {
+                var themeManager = Services.GetRequiredService<IThemeManagerService>();
+                await themeManager.InitializeAsync();
+                if (_window.Content is FrameworkElement root)
+                {
+                    themeManager.AttachRootElement(root);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to initialize ThemeManager during launch.");
+            }
+
             _logger.LogInformation("MainWindow resolved successfully. Activating...");
             _window.Closed += OnWindowClosed;
             _window.Activate();

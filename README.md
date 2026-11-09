@@ -4,7 +4,7 @@
 
 [![.NET](https://img.shields.io/badge/.NET-10.0%20LTS%20(x64)-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![Windows App SDK](https://img.shields.io/badge/WinUI%203-Windows%20App%20SDK%201.7-0078D7?logo=windows)](https://learn.microsoft.com/en-us/windows/apps/winui/winui3/)
-[![Tests](https://img.shields.io/badge/Unit%20Tests-263%20Passed-brightgreen)](https://github.com/alnexi/Movie-time)
+[![Tests](https://img.shields.io/badge/Unit%20Tests-277%20Passed-brightgreen)](https://github.com/alnexi/Movie-time)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
@@ -237,7 +237,7 @@ dotnet run --project src\MovieTime.App\MovieTime.App.csproj -p:Platform=x64
 
 ## 🧪 Automated Test Suite
 
-The solution features **194 unit and integration tests** covering:
+The solution features **277 unit and integration tests** covering:
 - **Dependency Injection & Bootstrapping**: Service registration, lifetime scopes, and environment paths.
 - **Local Logging**: Serilog file sink rolling rules, log formatting, and output directory isolation.
 - **SQLite Engine & Migrations**: Schema creation, table constraints, indices, WAL mode, and migrations from v1 to v2.
@@ -251,6 +251,8 @@ The solution features **194 unit and integration tests** covering:
 - **Settings Presentation Layer**: Drive preview, registration confirmation dialog, status notification binding, and scanning triggers.
 - **Cinematic Player Presentation Layer**: Time formatting, seek offset math, volume clamping, mute toggling, edge-to-edge fullscreen presenter transitions, track enumeration/selection, InSight metadata binding, and auto-hide timer triggers.
 - **Playback Progress Persistence**: SQLite CRUD operations, position tick checkpoints, percentage calculations, completion flag thresholding, and play count increments.
+- **TV Shows & Episodes Architecture**: Filename recognition, series/season/episode entity relation linking, series details hero & season selectors, episode resume logic, and continuous playback.
+- **Celestial Pixel Dither Theme Experience**: 8-bit retro ordered dithering, 3-palette continuous color interpolation, mouse-reactive wave ripple simulation, parallax physics, and settings persistence.
 
 ---
 
@@ -266,8 +268,9 @@ The solution features **194 unit and integration tests** covering:
 - [x] **Phase 3C**: Real Library System & Multi-Drive MLibrary Manager (Fake Data Removal, Drive Registration, Settings UI).
 - [x] **Phase 3D**: Cinematic Movie Details Experience (Full-Width Hero, True Local Metadata, Editions Selector, Offline Recommendations).
 - [x] **Phase 4**: Native In-App Hardware-Accelerated Video Player (LibVLCSharp / WinUI 3 VideoView) + Liquid Glass.
-- [ ] **Phase 5**: Embedded Artwork & Local Thumbnail Extraction.
-- [ ] **Phase 6**: TV Show & Season/Episode Detail Experience.
+- [x] **Phase 5**: Embedded Artwork & Local Thumbnail Extraction (WIC + Media Foundation / DirectShow).
+- [x] **Phase 6**: TV Show & Season/Episode Detail Experience (Recognition, Catalog, Details, Playback).
+- [x] **Interactive Pixel Dither Theme Experience**: Mouse-reactive retro dithered celestial theme switcher (Day / Twilight / Night).
 
 ---
 
