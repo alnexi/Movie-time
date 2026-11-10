@@ -51,6 +51,15 @@ public sealed partial class PixelDitherThemeControl : UserControl
     private readonly byte[] _renderBuffer = new byte[BufferByteLength];
     private readonly bool[] _boatMask = new bool[PixelCount];
 
+    // Sailboat Companion Artwork (Authentic Hand-Drawn Sailboat Sprite)
+    private const int SailboatWidth = 68;
+    private const int SailboatHeight = 74;
+    private const int SailboatByteLength = SailboatWidth * SailboatHeight * 4;
+    private readonly byte[] _sailboatDayBuffer = new byte[SailboatByteLength];
+    private readonly byte[] _sailboatTwilightBuffer = new byte[SailboatByteLength];
+    private readonly byte[] _sailboatNightBuffer = new byte[SailboatByteLength];
+    private bool _hasSailboatAssets;
+
     private readonly Stopwatch _stopwatch = new();
     private double _lastElapsedSeconds;
     private bool _isLoaded;
@@ -200,6 +209,23 @@ public sealed partial class PixelDitherThemeControl : UserControl
             LoadOrFill("day.bgra", _dayBuffer, 88, 128, 91);
             LoadOrFill("twilight.bgra", _twilightBuffer, 92, 84, 48);
             LoadOrFill("night.bgra", _nightBuffer, 22, 24, 34);
+
+            // Load Sailboat Companion Artwork buffers
+            void LoadSailboat(string fileName, byte[] target)
+            {
+                var filePath = Path.Combine(assetsDir, fileName);
+                if (File.Exists(filePath))
+                {
+                    using var stream = File.OpenRead(filePath);
+                    int read = stream.Read(target, 0, SailboatByteLength);
+                    if (read == SailboatByteLength) return;
+                }
+            }
+
+            LoadSailboat("sailboat_day.bgra", _sailboatDayBuffer);
+            LoadSailboat("sailboat_twilight.bgra", _sailboatTwilightBuffer);
+            LoadSailboat("sailboat_night.bgra", _sailboatNightBuffer);
+            _hasSailboatAssets = true;
 
             // Load bit-packed boat mask (28,800 bytes = 230,400 bits)
             var maskPath = Path.Combine(assetsDir, "boat_mask.bin");
@@ -530,6 +556,9 @@ public sealed partial class PixelDitherThemeControl : UserControl
                 }
             }
 
+            // Render integrated hand-drawn sailboat companion vessel in open waters
+            RenderSailboatArtwork(pRender, (float)v, totalSec, reducedMotion, waterParallaxX, waterParallaxY);
+
             // Render celestial slider track, moon/sun icons, and minimalist circular dot thumb
             RenderSliderTrack(pRender);
             RenderDotThumb(pRender, (float)v);
@@ -539,6 +568,95 @@ public sealed partial class PixelDitherThemeControl : UserControl
         using var stream = _writeableBitmap.PixelBuffer.AsStream();
         stream.Write(_renderBuffer, 0, BufferByteLength);
         _writeableBitmap.Invalidate();
+    }
+
+    #endregion
+
+    #region Sailboat Companion Artwork
+
+    /// <summary>
+    /// Renders the authentic hand-drawn sailboat companion vessel in the midground open waters.
+    /// Features ambient pitch/heave bobbing, midground perspective parallax, and continuous
+    /// C2-continuous Hermite SmootherStep atmosphere lighting transitions across Day, Twilight, and Night.
+    /// </summary>
+    private unsafe void RenderSailboatArtwork(byte* pRender, float v, float totalSec, bool reducedMotion, int waterParallaxX, int waterParallaxY)
+    {
+        if (!_hasSailboatAssets) return;
+
+        // Base anchor in open ocean water (horizontally between celestial slider and foreground boat)
+        const int BaseX = 115;
+        const int BaseY = 135;
+
+        // Gentle ambient water heave and sway
+        float bobY = 0f;
+        float bobX = 0f;
+        if (!reducedMotion)
+        {
+            bobY = (float)Math.Sin(totalSec * 1.8f) * 1.3f;
+            bobX = (float)Math.Cos(totalSec * 1.1f) * 0.5f;
+        }
+
+        // Midground perspective parallax (1.15x deep water parallax)
+        int startX = BaseX + (int)(waterParallaxX * 1.15f + bobX);
+        int startY = BaseY + (int)(waterParallaxY * 1.15f + bobY);
+
+        // Continuous atmospheric palette blending using C2 SmootherStep
+        byte[] src1, src2;
+        int factor256;
+
+        if (v <= 0.5f)
+        {
+            src1 = _sailboatDayBuffer;
+            src2 = _sailboatTwilightBuffer;
+            float t = SmootherStep(v / 0.5f);
+            factor256 = (int)(t * 256.0f);
+        }
+        else
+        {
+            src1 = _sailboatTwilightBuffer;
+            src2 = _sailboatNightBuffer;
+            float t = SmootherStep((v - 0.5f) / 0.5f);
+            factor256 = (int)(t * 256.0f);
+        }
+
+        int invFactor = 256 - factor256;
+
+        fixed (byte* pSrc1 = src1, pSrc2 = src2)
+        {
+            for (int sy = 0; sy < SailboatHeight; sy++)
+            {
+                int py = startY + sy;
+                if (py < 0 || py >= CanvasHeight) continue;
+                int destRowOffset = py * CanvasWidth * 4;
+                int srcRowOffset = sy * SailboatWidth * 4;
+
+                for (int sx = 0; sx < SailboatWidth; sx++)
+                {
+                    int px = startX + sx;
+                    if (px < 0 || px >= CanvasWidth) continue;
+
+                    int srcOffset = srcRowOffset + (sx * 4);
+                    int destOffset = destRowOffset + (px * 4);
+
+                    // Interpolate alpha
+                    int a1 = pSrc1[srcOffset + 3];
+                    int a2 = pSrc2[srcOffset + 3];
+                    int a = ((a1 * invFactor) + (a2 * factor256)) >> 8;
+                    if (a <= 2) continue;
+
+                    // Interpolate color
+                    int b = ((pSrc1[srcOffset + 0] * invFactor) + (pSrc2[srcOffset + 0] * factor256)) >> 8;
+                    int g = ((pSrc1[srcOffset + 1] * invFactor) + (pSrc2[srcOffset + 1] * factor256)) >> 8;
+                    int r = ((pSrc1[srcOffset + 2] * invFactor) + (pSrc2[srcOffset + 2] * factor256)) >> 8;
+
+                    // Alpha blend over background water
+                    int invA = 255 - a;
+                    pRender[destOffset + 0] = (byte)(((pRender[destOffset + 0] * invA) + (b * a)) / 255);
+                    pRender[destOffset + 1] = (byte)(((pRender[destOffset + 1] * invA) + (g * a)) / 255);
+                    pRender[destOffset + 2] = (byte)(((pRender[destOffset + 2] * invA) + (r * a)) / 255);
+                }
+            }
+        }
     }
 
     #endregion

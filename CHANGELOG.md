@@ -10,6 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Theme Experience: Authentic Hand-Drawn Sailboat Companion Artwork Integration**:
+  - Seamlessly integrated the authentic user-supplied hand-drawn sailboat artwork into the real-time pixel-art ocean scene in `PixelDitherThemeControl`.
+  - Positioned the sailboat in the midground open waters between the celestial slider and the foreground rowboat, creating a painterly diagonal visual composition.
+  - Added continuous 0–100% atmospheric lighting transitions using $C^2$ Hermite SmootherStep interpolation:
+    - **0% Day**: Sunlit crisp white sail outlines with warm highlights over emerald waters.
+    - **50% Twilight**: Warm sunset golden/amber rim lighting and peach sail cloth over glowing twilight waters.
+    - **100% Night**: Radiant moonlit silvery outlines with translucent lunar glow catching the moonlight path.
+  - Implemented gentle ambient water pitch/heave bobbing ($\sin(1.8t) \times 1.3\text{px}$) and midground perspective parallax ($1.15\times$ water parallax).
+  - Preserved the existing foreground wooden rowboat, perched seagull, physical sinking simulation, waterline depth absorption, concentric ripples, and slider controls completely intact.
+  - Added new automated verification unit test `ThemeAssets_SailboatCompanionArtwork_ExistsAndMatchesDimensions` in `ThemeExperienceTests` (329/329 tests passing).
+
 - **Global Theme Engine Refinement & Exact Original Dark Restoration (100% Night Parity)**:
   - Exact visual restoration of the original River Dark Theme at 100% Night (`t = 1.0`): main background `#0A0A0C`, card `#141418`, surface elevated `#181822`, subtle surface `#14141C`, primary text `#FFFFFF`, secondary text `#8E8E93`, tertiary text `#6E6E78`, disabled text `#4A4A52`, accent `#FFFFFF`, borders `#20FFFFFF` / `#12FFFFFF`.
   - Independently optimized Warm Pearl Light Theme at 0% Day (`t = 0.0`): background `#F4F5F7`, layered cards `#FFFFFF`, elevated surfaces `#FFFFFF`, subtle slate surfaces `#EAECEF`, deep charcoal text `#111114`, slate secondary text `#5C6068`, borders `#18000000` / `#0D000000`, active pills `#111114` with `#FFFFFF` text.

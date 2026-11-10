@@ -555,5 +555,35 @@ public sealed class ThemeExperienceTests : IDisposable
         Assert.Equal(expectedG, bg.G);
         Assert.Equal(expectedB, bg.B);
     }
-}
 
+    [Fact]
+    public void ThemeAssets_SailboatCompanionArtwork_ExistsAndMatchesDimensions()
+    {
+        string? current = AppContext.BaseDirectory;
+        string? foundDir = null;
+        while (!string.IsNullOrEmpty(current))
+        {
+            var candidate = Path.Combine(current, "src", "MovieTime.App", "Assets", "Theme");
+            if (Directory.Exists(candidate) && File.Exists(Path.Combine(candidate, "sailboat_day.bgra")))
+            {
+                foundDir = candidate;
+                break;
+            }
+            var candidate2 = Path.Combine(current, "Assets", "Theme");
+            if (Directory.Exists(candidate2) && File.Exists(Path.Combine(candidate2, "sailboat_day.bgra")))
+            {
+                foundDir = candidate2;
+                break;
+            }
+            var parent = Path.GetDirectoryName(current);
+            if (parent == current) break;
+            current = parent;
+        }
+
+        Assert.NotNull(foundDir);
+        const int expectedBytes = 68 * 74 * 4; // 20,128 bytes
+        Assert.Equal(expectedBytes, new FileInfo(Path.Combine(foundDir, "sailboat_day.bgra")).Length);
+        Assert.Equal(expectedBytes, new FileInfo(Path.Combine(foundDir, "sailboat_twilight.bgra")).Length);
+        Assert.Equal(expectedBytes, new FileInfo(Path.Combine(foundDir, "sailboat_night.bgra")).Length);
+    }
+}
