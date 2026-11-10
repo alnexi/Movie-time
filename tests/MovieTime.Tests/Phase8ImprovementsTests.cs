@@ -373,4 +373,113 @@ public class Phase8ImprovementsTests : IDisposable
         // Clean unload stops rotation timer cleanly
         vm.StopRotation();
     }
+
+    [Fact]
+    public async Task RemoveMovieFromLibraryAsync_RemovesMovieAndExcludesFiles_EvenWhenPhysicalFileMissing_QA004()
+    {
+        // Arrange
+        var movie = new Movie
+        {
+            Title = "Missing Movie",
+            ReleaseYear = 2020,
+            CreatedAt = DateTime.UtcNow
+        };
+        await _movieRepository.InsertAsync(movie);
+
+        var nonExistentPath = Path.Combine(_tempDir, "DoesNotExist_12345.mkv");
+        var mediaFile = new MediaFile
+        {
+            MovieId = movie.Id,
+            FilePath = nonExistentPath,
+            FileName = "DoesNotExist_12345.mkv",
+            FileExtension = ".mkv",
+            SizeBytes = 1024,
+            IsMissing = true
+        };
+        await _mediaFileRepository.InsertAsync(mediaFile);
+
+        // Act
+        bool removed = await _removalService.RemoveMovieFromLibraryAsync(movie.Id);
+
+        // Assert
+        Assert.True(removed);
+        var remainingMovie = await _movieRepository.GetByIdAsync(movie.Id);
+        Assert.Null(remainingMovie);
+
+        var remainingFiles = await _mediaFileRepository.GetByMovieIdAsync(movie.Id);
+        Assert.Empty(remainingFiles);
+
+        bool isExcluded = await _removalService.IsPathExcludedAsync(nonExistentPath);
+        Assert.True(isExcluded);
+    }
+
+    [Fact]
+    public async Task ScanRootRemoval_ReconcilesAndRemovesOrphanedMediaFiles_QA005()
+    {
+        // Arrange
+        var rootDir = Path.Combine(_tempDir, "CustomScanRoot");
+        Directory.CreateDirectory(rootDir);
+        var root = await _scanRootService.AddRootAsync(rootDir);
+
+        var movie = new Movie { Title = "Root Movie", ReleaseYear = 2021, CreatedAt = DateTime.UtcNow };
+        await _movieRepository.InsertAsync(movie);
+
+        var filePath = Path.Combine(rootDir, "MovieFile.mkv");
+        var mediaFile = new MediaFile
+        {
+            MovieId = movie.Id,
+            ScanRootId = root.Id,
+            FilePath = filePath,
+            FileName = "MovieFile.mkv",
+            FileExtension = ".mkv",
+            SizeBytes = 2048,
+            IsMissing = false
+        };
+        await _mediaFileRepository.InsertAsync(mediaFile);
+
+        // ScanRootService configured with removal service for reconciliation
+        var scanRootServiceWithRemoval = new ScanRootService(
+            _scanRootRepository,
+            _removalService,
+            NullLogger<ScanRootService>.Instance);
+
+        // Act - Remove the scan root
+        bool success = await scanRootServiceWithRemoval.RemoveRootAsync(root.Id);
+
+        // Assert - Root is removed and orphaned media file and parent movie are cleaned up
+        Assert.True(success);
+        var roots = await _scanRootService.GetRootsAsync();
+        Assert.DoesNotContain(roots, r => r.Id == root.Id);
+
+        var remainingMovie = await _movieRepository.GetByIdAsync(movie.Id);
+        Assert.Null(remainingMovie);
+
+        var remainingFiles = await _mediaFileRepository.GetByMovieIdAsync(movie.Id);
+        Assert.Empty(remainingFiles);
+    }
+
+    [Fact]
+    public async Task ThemeSettingsService_DebouncesRapidSliderWrites_QA006()
+    {
+        // Arrange
+        var themeDir = Path.Combine(_tempDir, "ThemeTest_" + Guid.NewGuid().ToString("N"));
+        var storage = new StoragePathService(themeDir);
+        var themeService = new MovieTime.Core.Theme.ThemeSettingsService(storage);
+
+        // Act - Simulate rapid slider movement
+        await themeService.UpdateThemeValueAsync(0.1);
+        await themeService.UpdateThemeValueAsync(0.2);
+        await themeService.UpdateThemeValueAsync(0.5);
+        await themeService.UpdateThemeValueAsync(0.95);
+
+        // In-memory update is instantaneous for 60 FPS UI responsiveness
+        Assert.Equal(0.95, themeService.CurrentSettings.ThemeValue, 4);
+
+        // Flush pending debounced writes to disk
+        await themeService.FlushPendingSavesAsync();
+
+        // Assert - Disk state reflects final value
+        var reloaded = await themeService.LoadSettingsAsync();
+        Assert.Equal(0.95, reloaded.ThemeValue, 4);
+    }
 }

@@ -30,4 +30,17 @@ public interface IMediaRemovalService
     /// Checks whether a given path is currently excluded.
     /// </summary>
     Task<bool> IsPathExcludedAsync(string filePath);
+
+    /// <summary>
+    /// Removes a movie and all its associated media files and progress from the River library,
+    /// adding persistent exclusions for any registered file paths.
+    /// Safely handles movies whose physical files are missing or already deleted.
+    /// </summary>
+    Task<bool> RemoveMovieFromLibraryAsync(int movieId, string? reason = "UserRemoved");
+
+    /// <summary>
+    /// Reconciles and removes all media files and associated parent entities (movies, episodes, seasons, series)
+    /// belonging exclusively to the specified scan root folder when that scan root is unregistered.
+    /// </summary>
+    Task<int> RemoveMediaForScanRootAsync(int scanRootId, string scanRootPath);
 }

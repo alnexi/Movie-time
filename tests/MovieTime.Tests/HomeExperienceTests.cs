@@ -133,10 +133,11 @@ public sealed class HomeExperienceTests : IDisposable
         // Act
         await vm.InitializeAsync();
 
-        // Assert: Includes all eligible movies (no 7-item cap)
+        // Assert: Includes all eligible movies in items while clamping indicator dots to 7 max (QA-003)
         Assert.Equal(8, vm.HeroItems.Count);
         Assert.Equal(0, vm.CurrentHeroIndex);
-        Assert.Equal(8, vm.Hero.Dots.Count);
+        Assert.Equal(8, vm.Hero.TotalCount);
+        Assert.Equal(7, vm.Hero.Dots.Count);
         Assert.True(vm.Hero.Dots[0].IsActive);
         Assert.False(vm.Hero.Dots[1].IsActive);
     }
@@ -386,6 +387,70 @@ public sealed class HomeExperienceTests : IDisposable
         Assert.Equal(0, mockExtractor.ExtractFramesCallCount);
     }
 
+    [Fact]
+    public async Task InitializeAsync_WithMediaFiles_SetsIsLibraryEmptyFalse_AndPopulatesRows()
+    {
+        // Arrange
+        var movie = new Movie { Title = "Inception", ReleaseYear = 2010, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
+        await _movieRepository.InsertAsync(movie);
+        var file = new MediaFile
+        {
+            MovieId = movie.Id,
+            FilePath = @"C:\Movies\Inception.mkv",
+            FileName = "Inception.mkv",
+            FileExtension = ".mkv",
+            SizeBytes = 2000,
+            VideoHeight = 1080,
+            LastScannedAt = DateTime.UtcNow
+        };
+        await _mediaFileRepository.InsertAsync(file);
+
+        var vm = CreateViewModel();
+
+        // Act
+        await vm.InitializeAsync();
+
+        // Assert
+        Assert.False(vm.IsLibraryEmpty);
+        Assert.True(vm.HasActualLibraryData);
+        Assert.NotEmpty(vm.Rows);
+        Assert.Equal("INCEPTION", vm.Hero.Title);
+    }
+
+    [Fact]
+    public async Task InitializeAsync_ConcurrentInvocations_AreSafelySerializedByLoadLock()
+    {
+        // Arrange
+        for (int i = 1; i <= 3; i++)
+        {
+            var movie = new Movie { Title = $"Film {i}", ReleaseYear = 2020 + i, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
+            await _movieRepository.InsertAsync(movie);
+            var file = new MediaFile
+            {
+                MovieId = movie.Id,
+                FilePath = $@"C:\Movies\Film{i}.mkv",
+                FileName = $"Film{i}.mkv",
+                FileExtension = ".mkv",
+                SizeBytes = 1000 * i,
+                VideoHeight = 1080,
+                LastScannedAt = DateTime.UtcNow
+            };
+            await _mediaFileRepository.InsertAsync(file);
+        }
+
+        var vm = CreateViewModel();
+
+        // Act: simulate 5 rapid concurrent initialization calls (e.g., from MainWindow, Loaded, OnViewModelChanged, ImportCompleted)
+        var tasks = Enumerable.Range(0, 5).Select(_ => vm.InitializeAsync()).ToArray();
+        await Task.WhenAll(tasks);
+
+        // Assert: all completed safely without concurrency or re-entrancy exception
+        Assert.False(vm.IsLibraryEmpty);
+        Assert.True(vm.HasActualLibraryData);
+        Assert.NotEmpty(vm.Rows);
+        Assert.Equal(3, vm.HeroItems.Count);
+    }
+
     private sealed class FakeVideoFrameExtractor : IVideoFrameExtractor
     {
         public int ExtractCallCount { get; set; }
@@ -450,5 +515,47 @@ public sealed class HomeExperienceTests : IDisposable
         {
             return Task.FromResult<IReadOnlyList<CandidateVideoFrame>>(Array.Empty<CandidateVideoFrame>());
         }
+    }
+
+    [Fact]
+    public void NavigateHomeCommand_WhenOnHome_ClosesSidebarAndFiresNavigationRequestedHome()
+    {
+        // Arrange
+        var vm = CreateViewModel();
+        vm.IsSidebarOpen = true;
+
+        string? requestedTarget = null;
+        vm.NavigationRequested += target => requestedTarget = target;
+
+        // Act
+        vm.NavigateHomeCommand.Execute(null);
+
+        // Assert: Sidebar is closed, category is Home, NavigationRequested is fired with "Home"
+        Assert.False(vm.IsSidebarOpen);
+        Assert.Equal("Home", vm.ActiveCategory);
+        Assert.Equal("Home", requestedTarget);
+    }
+
+    [Fact]
+    public void HeroBanner_SetupDots_ClampsToMaxSevenDots_WhenFiftyItemsSupplied_QA003()
+    {
+        // Arrange
+        var hero = new HeroBannerViewModel();
+
+        // Act - 50 items supplied
+        hero.SetupDots(50, _ => { });
+
+        // Assert - Total count tracks all 50 items, but visible dots are capped at 7
+        Assert.Equal(50, hero.TotalCount);
+        Assert.Equal(7, hero.Dots.Count);
+        Assert.True(hero.HasMultipleItems);
+        Assert.True(hero.Dots[0].IsActive);
+
+        // Advance active index to 20
+        hero.ActiveIndex = 20;
+
+        // Sliding window still shows exactly 7 dots centered around 20
+        Assert.Equal(7, hero.Dots.Count);
+        Assert.Contains(hero.Dots, d => d.Index == 20 && d.IsActive);
     }
 }

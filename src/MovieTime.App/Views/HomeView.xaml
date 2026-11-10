@@ -90,7 +90,7 @@
 
         <!-- 2. Floating Pill Button: Home - Screenshot 1 -->
         <!-- Placed top-left, opens the sidebar when clicked -->
-        <Button Command="{x:Bind ViewModel.ToggleSidebarCommand}"
+        <Button Command="{x:Bind ViewModel.NavigateHomeCommand, Mode=OneWay}"
                 HorizontalAlignment="Left"
                 VerticalAlignment="Top"
                 Margin="36,28,0,0"

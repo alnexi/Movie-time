@@ -219,6 +219,35 @@ public sealed class TvShowExperienceTests : IDisposable
     }
 
     [Fact]
+    public async Task TvShowsViewModel_LoadSeriesAsync_OmitsSeriesWithNoMediaFiles_QA007()
+    {
+        // Arrange
+        var seriesWithNoFiles = new Series { Title = "Ghost Show", StartYear = 2024, CreatedAt = DateTime.UtcNow };
+        await _seriesRepository.InsertAsync(seriesWithNoFiles);
+        var s1 = new Season { SeriesId = seriesWithNoFiles.Id, SeasonNumber = 1, Title = "Season 1" };
+        await _seasonRepository.InsertAsync(s1);
+        await _episodeRepository.InsertAsync(new Episode { SeriesId = seriesWithNoFiles.Id, SeasonId = s1.Id, EpisodeNumber = 1, Title = "Ghost Ep" });
+        // NOTE: No media files inserted!
+
+        var vm = new TvShowsViewModel(
+            _seriesRepository,
+            _seasonRepository,
+            _episodeRepository,
+            _mediaFileRepository,
+            _importService,
+            null,
+            null,
+            NullLogger<TvShowsViewModel>.Instance);
+
+        // Act
+        await vm.InitializeAsync();
+
+        // Assert: series without media files is omitted (QA-007)
+        Assert.Empty(vm.SeriesList);
+        Assert.True(vm.IsLibraryEmpty);
+    }
+
+    [Fact]
     public async Task TvShowsViewModel_LoadSeriesAsync_PopulatesCatalog_AndSupportsSearchAndSort()
     {
         // Arrange
@@ -227,14 +256,18 @@ public sealed class TvShowExperienceTests : IDisposable
 
         var s1A = new Season { SeriesId = seriesA.Id, SeasonNumber = 1, Title = "Season 1" };
         await _seasonRepository.InsertAsync(s1A);
-        await _episodeRepository.InsertAsync(new Episode { SeriesId = seriesA.Id, SeasonId = s1A.Id, EpisodeNumber = 1, Title = "Pilot" });
+        var ep1A = new Episode { SeriesId = seriesA.Id, SeasonId = s1A.Id, EpisodeNumber = 1, Title = "Pilot" };
+        await _episodeRepository.InsertAsync(ep1A);
+        await _mediaFileRepository.InsertAsync(new MediaFile { EpisodeId = ep1A.Id, FilePath = @"C:\Media\BreakingBad.S01E01.mkv", FileName = "BreakingBad.S01E01.mkv", FileExtension = ".mkv", IsMissing = false });
 
         var seriesB = new Series { Title = "The Wire", StartYear = 2002, CreatedAt = DateTime.UtcNow };
         await _seriesRepository.InsertAsync(seriesB);
 
         var s1B = new Season { SeriesId = seriesB.Id, SeasonNumber = 1, Title = "Season 1" };
         await _seasonRepository.InsertAsync(s1B);
-        await _episodeRepository.InsertAsync(new Episode { SeriesId = seriesB.Id, SeasonId = s1B.Id, EpisodeNumber = 1, Title = "The Target" });
+        var ep1B = new Episode { SeriesId = seriesB.Id, SeasonId = s1B.Id, EpisodeNumber = 1, Title = "The Target" };
+        await _episodeRepository.InsertAsync(ep1B);
+        await _mediaFileRepository.InsertAsync(new MediaFile { EpisodeId = ep1B.Id, FilePath = @"C:\Media\TheWire.S01E01.mkv", FileName = "TheWire.S01E01.mkv", FileExtension = ".mkv", IsMissing = false });
 
         var vm = new TvShowsViewModel(
             _seriesRepository,

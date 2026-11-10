@@ -17,6 +17,9 @@ public sealed class ThemeSettingsService : IThemeSettingsService
     private readonly IStoragePathService _storagePathService;
     private readonly ILogger<ThemeSettingsService> _logger;
     private readonly SemaphoreSlim _lock = new(1, 1);
+    private readonly object _timerLock = new();
+    private Timer? _debounceTimer;
+    private const int DebounceDelayMs = 300;
     private ThemeSettings _currentSettings = new();
     private bool _isLoaded;
 
@@ -85,6 +88,12 @@ public sealed class ThemeSettingsService : IThemeSettingsService
     {
         ArgumentNullException.ThrowIfNull(settings);
 
+        lock (_timerLock)
+        {
+            _debounceTimer?.Dispose();
+            _debounceTimer = null;
+        }
+
         await _lock.WaitAsync().ConfigureAwait(false);
         try
         {
@@ -102,16 +111,54 @@ public sealed class ThemeSettingsService : IThemeSettingsService
 
     public async Task UpdateThemeValueAsync(double value)
     {
+        ThemeSettings? toNotify = null;
         await _lock.WaitAsync().ConfigureAwait(false);
         try
         {
             var clamped = Math.Clamp(value, 0.0, 1.0);
-            if (Math.Abs(_currentSettings.ThemeValue - clamped) > 0.001)
+            if (Math.Abs(_currentSettings.ThemeValue - clamped) > 0.0001)
             {
                 _currentSettings.ThemeValue = clamped;
-                await SaveInternalAsync(_currentSettings).ConfigureAwait(false);
-                SettingsChanged?.Invoke(_currentSettings);
+                toNotify = _currentSettings;
+                ScheduleDebouncedSave();
             }
+        }
+        finally
+        {
+            _lock.Release();
+        }
+
+        if (toNotify != null)
+        {
+            SettingsChanged?.Invoke(toNotify);
+        }
+    }
+
+    private void ScheduleDebouncedSave()
+    {
+        lock (_timerLock)
+        {
+            _debounceTimer?.Dispose();
+            _debounceTimer = new Timer(async _ =>
+            {
+                try
+                {
+                    await FlushPendingSavesAsync().ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error executing debounced ThemeSettings disk write.");
+                }
+            }, null, DebounceDelayMs, Timeout.Infinite);
+        }
+    }
+
+    public async Task FlushPendingSavesAsync()
+    {
+        await _lock.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            await SaveInternalAsync(_currentSettings).ConfigureAwait(false);
         }
         finally
         {

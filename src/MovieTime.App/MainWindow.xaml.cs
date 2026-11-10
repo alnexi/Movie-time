@@ -355,6 +355,12 @@ public sealed partial class MainWindow : Window
 
     private void ExitPlayerMode()
     {
+        if (MainPlayerView.Visibility == Visibility.Visible)
+        {
+            _ = PlayerViewModel.StopPlaybackAsync();
+            MainPlayerView.Visibility = Visibility.Collapsed;
+        }
+
         if (PlayerViewModel.IsFullscreen)
         {
             OnFullscreenToggled(false);

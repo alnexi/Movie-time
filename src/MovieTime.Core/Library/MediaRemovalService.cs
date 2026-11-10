@@ -59,6 +59,79 @@ public sealed class MediaRemovalService : IMediaRemovalService
     }
 
     /// <inheritdoc />
+    /// <inheritdoc />
+    public async Task<bool> RemoveMovieFromLibraryAsync(int movieId, string? reason = "UserRemoved")
+    {
+        if (movieId <= 0) return false;
+
+        _logger.LogInformation("Removing Movie ID {MovieId} and all associated files from library...", movieId);
+
+        // 1. Find all associated media files
+        var files = await _mediaFileRepository.GetByMovieIdAsync(movieId).ConfigureAwait(false);
+        foreach (var file in files)
+        {
+            if (!string.IsNullOrWhiteSpace(file.FilePath))
+            {
+                var normalized = NormalizePath(file.FilePath);
+                await _exclusionRepository.AddExclusionAsync(normalized, null, reason).ConfigureAwait(false);
+            }
+
+            if (_playbackProgressRepository != null)
+            {
+                try
+                {
+                    await _playbackProgressRepository.DeleteByMediaFileIdAsync(file.Id).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to clean playback progress for MediaFile ID {FileId}", file.Id);
+                }
+            }
+
+            await _mediaFileRepository.DeleteAsync(file.Id).ConfigureAwait(false);
+        }
+
+        // 2. Delete movie record from database
+        await _movieRepository.DeleteAsync(movieId).ConfigureAwait(false);
+        _logger.LogInformation("Successfully removed Movie ID {MovieId} from library.", movieId);
+        return true;
+    }
+
+    /// <inheritdoc />
+    public async Task<int> RemoveMediaForScanRootAsync(int scanRootId, string scanRootPath)
+    {
+        if (string.IsNullOrWhiteSpace(scanRootPath) && scanRootId <= 0) return 0;
+
+        _logger.LogInformation("Reconciling media records for removed scan root (Id={Id}, Path='{Path}')...", scanRootId, scanRootPath);
+
+        var normalizedRoot = string.IsNullOrWhiteSpace(scanRootPath) ? string.Empty : NormalizePath(scanRootPath);
+
+        // Fetch all media files belonging to this scan root
+        var allFiles = await _mediaFileRepository.GetAllAsync().ConfigureAwait(false);
+        var targetFiles = allFiles.Where(f =>
+            (scanRootId > 0 && f.ScanRootId == scanRootId) ||
+            (!string.IsNullOrEmpty(normalizedRoot) && !string.IsNullOrEmpty(f.FilePath) &&
+             NormalizePath(f.FilePath).StartsWith(normalizedRoot, StringComparison.OrdinalIgnoreCase))
+        ).ToList();
+
+        int removedCount = 0;
+        foreach (var file in targetFiles)
+        {
+            try
+            {
+                await CleanupDatabaseEntitiesForMediaFileAsync(file).ConfigureAwait(false);
+                removedCount++;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error reconciling media file '{Path}' for removed scan root.", file.FilePath);
+            }
+        }
+
+        _logger.LogInformation("Reconciled and removed {Count} orphaned media files for scan root '{Path}'.", removedCount, scanRootPath);
+        return removedCount;
+    }
+
     public async Task<bool> IsPathExcludedAsync(string filePath)
     {
         if (string.IsNullOrWhiteSpace(filePath)) return false;

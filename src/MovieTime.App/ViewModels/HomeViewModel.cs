@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 using System.Windows.Input;
@@ -46,6 +47,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
     private int _currentHeroIndex;
     private bool _isRotationPaused;
     private bool _isDisposed;
+    private readonly SemaphoreSlim _loadLock = new(1, 1);
 
     private HeroBannerViewModel _hero = new();
     private bool _isSidebarOpen;
@@ -124,6 +126,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
     public ICommand ToggleSidebarCommand { get; }
     public ICommand OpenSidebarCommand { get; }
     public ICommand CloseSidebarCommand { get; }
+    public ICommand NavigateHomeCommand { get; }
     public ICommand RefreshLibraryCommand { get; }
     public ICommand SelectCategoryCommand { get; }
     public ICommand ManageLibrariesCommand { get; }
@@ -263,6 +266,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         ToggleSidebarCommand = new RelayCommand(() => IsSidebarOpen = !IsSidebarOpen);
         OpenSidebarCommand = new RelayCommand(() => IsSidebarOpen = true);
         CloseSidebarCommand = new RelayCommand(() => IsSidebarOpen = false);
+        NavigateHomeCommand = new RelayCommand(OnNavigateHome);
         RefreshLibraryCommand = new AsyncRelayCommand(RefreshLibraryAsync);
         SelectCategoryCommand = new RelayCommand<string>(OnSelectCategory);
         ManageLibrariesCommand = new RelayCommand(() => OnSelectCategory("Settings"));
@@ -289,6 +293,30 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         {
             action();
         }
+    }
+
+    private Task RunOnUiAsync(Action action)
+    {
+        if (_dispatcher == null)
+        {
+            action();
+            return Task.CompletedTask;
+        }
+
+        var tcs = new TaskCompletionSource();
+        _dispatcher.RunOnUi(() =>
+        {
+            try
+            {
+                action();
+                tcs.SetResult();
+            }
+            catch (Exception ex)
+            {
+                tcs.SetException(ex);
+            }
+        });
+        return tcs.Task;
     }
 
     private void OnArtworkUpdated(int movieId, string? posterPath, string? backdropPath)
@@ -385,6 +413,13 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         });
     }
 
+    public void OnNavigateHome()
+    {
+        IsSidebarOpen = false;
+        ActiveCategory = "Home";
+        NavigationRequested?.Invoke("Home");
+    }
+
     public void OnSelectCategory(string? category)
     {
         if (string.IsNullOrWhiteSpace(category)) return;
@@ -407,6 +442,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
 
     public async Task LoadLibraryDataAsync()
     {
+        await _loadLock.WaitAsync();
         try
         {
             await _databaseService.InitializeAsync();
@@ -419,14 +455,10 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
 
             if (movies.Count > 0 || series.Count > 0)
             {
-                HasActualLibraryData = true;
-                IsLibraryEmpty = false;
                 await PopulateFromDatabaseAsync(movies, series, progressList);
             }
             else
             {
-                HasActualLibraryData = false;
-                IsLibraryEmpty = true;
                 SetupEmptyLibraryState();
             }
         }
@@ -435,6 +467,10 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
             _logger.LogError(ex, "Failed to load library data for HomeViewModel.");
             SetupEmptyLibraryState();
         }
+        finally
+        {
+            _loadLock.Release();
+        }
     }
 
     private async Task PopulateFromDatabaseAsync(
@@ -442,18 +478,14 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         List<Series> series,
         List<PlaybackProgress> progressList)
     {
-        _heroRotationTimer.Stop();
-        Rows.Clear();
-        _heroItems.Clear();
-
-        // Query media files once to avoid N+1 queries
+        // 1. Asynchronous Data Ingestion (pure database queries, off UI thread)
         var allFiles = await _mediaFileRepository.GetAllAsync();
         var filesByMovieId = allFiles
             .Where(f => f.MovieId.HasValue)
             .GroupBy(f => f.MovieId!.Value)
             .ToDictionary(g => g.Key, g => g.ToList());
 
-        // 1. Dynamic Rotating Hero Billboard (All eligible real movies, shuffled stably across sessions)
+        // Hero candidates: all eligible real movies
         var eligibleMovies = movies
             .Where(m => filesByMovieId.ContainsKey(m.Id) && filesByMovieId[m.Id].Any(f => !f.IsMissing))
             .ToList();
@@ -489,6 +521,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
             orderedHeroMovies = eligibleMovies;
         }
 
+        var newHeroItems = new List<HeroBannerItemViewModel>();
         foreach (var m in orderedHeroMovies)
         {
             filesByMovieId.TryGetValue(m.Id, out var mFiles);
@@ -502,7 +535,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                 else if (primaryFile.VideoHeight >= 720) quality = "720p";
             }
 
-            _heroItems.Add(new HeroBannerItemViewModel
+            newHeroItems.Add(new HeroBannerItemViewModel
             {
                 MovieId = m.Id,
                 FilePath = primaryFile?.FilePath,
@@ -518,55 +551,13 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
             });
         }
 
-        if (_heroItems.Count > 0)
-        {
-            _currentHeroIndex = 0;
-            ApplyHeroItem(_heroItems[0], 0);
-
-            Hero.SetupDots(_heroItems.Count, index => SwitchToHeroIndex(index));
-
-            Hero.PlayCommand = new RelayCommand(() =>
-            {
-                if (!string.IsNullOrEmpty(Hero.TargetFilePath))
-                {
-                    RaisePlaybackRequested(Hero.TargetFilePath, Hero.TargetMovieId);
-                }
-                else if (Hero.TargetMovieId > 0)
-                {
-                    NavigationRequested?.Invoke($"MovieDetails:{Hero.TargetMovieId}");
-                }
-            });
-
-            Hero.DetailsCommand = new RelayCommand(() =>
-            {
-                if (Hero.TargetMovieId > 0)
-                {
-                    NavigationRequested?.Invoke($"MovieDetails:{Hero.TargetMovieId}");
-                }
-            });
-
-            Hero.PauseCommand = new RelayCommand(PauseHeroRotation);
-            Hero.ResumeCommand = new RelayCommand(ResumeHeroRotation);
-            Hero.NextCommand = new RelayCommand(NextHeroItem);
-            Hero.PreviousCommand = new RelayCommand(PreviousHeroItem);
-
-            if (_heroItems.Count > 1 && !_isRotationPaused)
-            {
-                _heroRotationTimer.Start();
-            }
-        }
-        else
-        {
-            SetupEmptyLibraryState();
-        }
-
         // Check persistent library exclusions
         HashSet<string> excludedPaths = new(StringComparer.OrdinalIgnoreCase);
         if (_exclusionRepository != null)
         {
             try
             {
-                var exclusions = await _exclusionRepository.GetAllAsync().ConfigureAwait(false);
+                var exclusions = await _exclusionRepository.GetAllAsync();
                 foreach (var ex in exclusions)
                 {
                     excludedPaths.Add(ex.Path);
@@ -578,7 +569,12 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
             }
         }
 
+        var seriesById = series.ToDictionary(s => s.Id);
+        var episodeCache = new Dictionary<int, Episode>();
+        var seasonCache = new Dictionary<int, Season>();
+
         // 2. Recently Added Row (All eligible discovered video files, newest first)
+        MediaRowViewModel? recentlyAddedRow = null;
         var activeFiles = allFiles
             .Where(f => !f.IsMissing && !excludedPaths.Contains(f.FilePath))
             .OrderByDescending(f => f.LastScannedAt)
@@ -587,7 +583,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
 
         if (activeFiles.Count > 0)
         {
-            var recentlyAddedRow = new MediaRowViewModel { Title = "Recently Added" };
+            recentlyAddedRow = new MediaRowViewModel { Title = "Recently Added" };
             foreach (var file in activeFiles)
             {
                 if (file.MovieId.HasValue)
@@ -622,11 +618,25 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                 }
                 else if (file.EpisodeId.HasValue)
                 {
-                    var ep = await _episodeRepository.GetByIdAsync(file.EpisodeId.Value).ConfigureAwait(false);
+                    if (!episodeCache.TryGetValue(file.EpisodeId.Value, out var ep))
+                    {
+                        ep = await _episodeRepository.GetByIdAsync(file.EpisodeId.Value);
+                        if (ep != null) episodeCache[file.EpisodeId.Value] = ep;
+                    }
                     if (ep == null) continue;
 
-                    var s = series.FirstOrDefault(x => x.Id == ep.SeriesId) ?? await _seriesRepository.GetByIdAsync(ep.SeriesId).ConfigureAwait(false);
-                    var season = await _seasonRepository.GetByIdAsync(ep.SeasonId).ConfigureAwait(false);
+                    seriesById.TryGetValue(ep.SeriesId, out var s);
+                    if (s == null)
+                    {
+                        s = await _seriesRepository.GetByIdAsync(ep.SeriesId);
+                        if (s != null) seriesById[s.Id] = s;
+                    }
+
+                    if (!seasonCache.TryGetValue(ep.SeasonId, out var season))
+                    {
+                        season = await _seasonRepository.GetByIdAsync(ep.SeasonId);
+                        if (season != null) seasonCache[ep.SeasonId] = season;
+                    }
 
                     var sNum = season?.SeasonNumber ?? 1;
                     var epTitle = string.IsNullOrWhiteSpace(ep.Title) ? $"Episode {ep.EpisodeNumber}" : ep.Title;
@@ -675,17 +685,13 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                     recentlyAddedRow.Items.Add(card);
                 }
             }
-
-            if (recentlyAddedRow.Items.Count > 0)
-            {
-                Rows.Add(recentlyAddedRow);
-            }
         }
 
         // 3. Continue Watching Row (genuine extracted frame artwork & progress)
+        MediaRowViewModel? continueRow = null;
         if (progressList.Count > 0)
         {
-            var continueRow = new MediaRowViewModel { Title = "Continue Watching" };
+            continueRow = new MediaRowViewModel { Title = "Continue Watching" };
             foreach (var prog in progressList.Take(10))
             {
                 if (prog.MovieId.HasValue)
@@ -761,9 +767,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
 
                                 if (!string.IsNullOrEmpty(extracted))
                                 {
-                                    void SetThumb() => card.PositionThumbnailPath = extracted;
-                                    if (_dispatcher != null) _dispatcher.RunOnUi(SetThumb);
-                                    else SetThumb();
+                                    RunOnUi(() => card.PositionThumbnailPath = extracted);
                                 }
                             }
                             catch (Exception ex)
@@ -777,11 +781,26 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                 }
                 else if (prog.EpisodeId.HasValue)
                 {
-                    var ep = await _episodeRepository.GetByIdAsync(prog.EpisodeId.Value);
+                    if (!episodeCache.TryGetValue(prog.EpisodeId.Value, out var ep))
+                    {
+                        ep = await _episodeRepository.GetByIdAsync(prog.EpisodeId.Value);
+                        if (ep != null) episodeCache[prog.EpisodeId.Value] = ep;
+                    }
                     if (ep == null) continue;
 
-                    var s = series.FirstOrDefault(x => x.Id == ep.SeriesId) ?? await _seriesRepository.GetByIdAsync(ep.SeriesId);
-                    var season = await _seasonRepository.GetByIdAsync(ep.SeasonId);
+                    seriesById.TryGetValue(ep.SeriesId, out var s);
+                    if (s == null)
+                    {
+                        s = await _seriesRepository.GetByIdAsync(ep.SeriesId);
+                        if (s != null) seriesById[s.Id] = s;
+                    }
+
+                    if (!seasonCache.TryGetValue(ep.SeasonId, out var season))
+                    {
+                        season = await _seasonRepository.GetByIdAsync(ep.SeasonId);
+                        if (season != null) seasonCache[ep.SeasonId] = season;
+                    }
+
                     var epFiles = allFiles.Where(f => f.EpisodeId == ep.Id).ToList();
                     if (epFiles.Count > 0 && epFiles.All(f => f.IsMissing))
                     {
@@ -852,9 +871,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
 
                                 if (!string.IsNullOrEmpty(extracted))
                                 {
-                                    void SetThumb() => card.PositionThumbnailPath = extracted;
-                                    if (_dispatcher != null) _dispatcher.RunOnUi(SetThumb);
-                                    else SetThumb();
+                                    RunOnUi(() => card.PositionThumbnailPath = extracted);
                                 }
                             }
                             catch (Exception ex)
@@ -867,17 +884,13 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                     continueRow.Items.Add(card);
                 }
             }
-
-            if (continueRow.Items.Count > 0)
-            {
-                Rows.Add(continueRow);
-            }
         }
 
         // 4. Movies Row
+        MediaRowViewModel? moviesRow = null;
         if (movies.Count > 0)
         {
-            var moviesRow = new MediaRowViewModel { Title = "Movies" };
+            moviesRow = new MediaRowViewModel { Title = "Movies" };
             foreach (var movie in movies)
             {
                 filesByMovieId.TryGetValue(movie.Id, out var mFiles);
@@ -913,15 +926,23 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
 
                 moviesRow.Items.Add(card);
             }
-            Rows.Add(moviesRow);
         }
 
         // 5. TV Series Row
+        MediaRowViewModel? tvRow = null;
         if (series.Count > 0)
         {
-            var tvRow = new MediaRowViewModel { Title = "TV Shows" };
+            tvRow = new MediaRowViewModel { Title = "TV Shows" };
             foreach (var show in series)
             {
+                var episodes = await _episodeRepository.GetBySeriesIdAsync(show.Id);
+                var epIds = episodes.Select(e => e.Id).ToHashSet();
+                var showFiles = allFiles.Where(f => f.EpisodeId.HasValue && epIds.Contains(f.EpisodeId.Value)).ToList();
+                if (showFiles.Count == 0 || showFiles.All(f => f.IsMissing))
+                {
+                    continue;
+                }
+
                 var card = new MediaCardViewModel
                 {
                     Id = show.Id,
@@ -937,8 +958,93 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
 
                 tvRow.Items.Add(card);
             }
-            Rows.Add(tvRow);
         }
+
+        // 6. UI Synchronization & Atomicity: apply all collections and properties on the UI thread
+        await RunOnUiAsync(() =>
+        {
+            _heroRotationTimer.Stop();
+            Rows.Clear();
+            _heroItems.Clear();
+
+            if (newHeroItems.Count > 0)
+            {
+                _heroItems.AddRange(newHeroItems);
+                _currentHeroIndex = 0;
+                ApplyHeroItem(_heroItems[0], 0);
+
+                Hero.SetupDots(_heroItems.Count, index => SwitchToHeroIndex(index));
+
+                Hero.PlayCommand = new RelayCommand(() =>
+                {
+                    if (!string.IsNullOrEmpty(Hero.TargetFilePath))
+                    {
+                        RaisePlaybackRequested(Hero.TargetFilePath, Hero.TargetMovieId);
+                    }
+                    else if (Hero.TargetMovieId > 0)
+                    {
+                        NavigationRequested?.Invoke($"MovieDetails:{Hero.TargetMovieId}");
+                    }
+                });
+
+                Hero.DetailsCommand = new RelayCommand(() =>
+                {
+                    if (Hero.TargetMovieId > 0)
+                    {
+                        NavigationRequested?.Invoke($"MovieDetails:{Hero.TargetMovieId}");
+                    }
+                });
+
+                Hero.PauseCommand = new RelayCommand(PauseHeroRotation);
+                Hero.ResumeCommand = new RelayCommand(ResumeHeroRotation);
+                Hero.NextCommand = new RelayCommand(NextHeroItem);
+                Hero.PreviousCommand = new RelayCommand(PreviousHeroItem);
+
+                if (_heroItems.Count > 1 && !_isRotationPaused)
+                {
+                    _heroRotationTimer.Start();
+                }
+            }
+            else
+            {
+                Hero = new HeroBannerViewModel
+                {
+                    Title = "RIVER",
+                    Genre = "Local Media Library",
+                    RatingBadge = "Library",
+                    QualityBadge = "Ready",
+                    Description = "Browse your television series and local video collection below.",
+                    ActionButtonText = "Browse Series",
+                    ActionCommand = new RelayCommand(() => NavigationRequested?.Invoke("TV Shows")),
+                    PlayCommand = new RelayCommand(() => NavigationRequested?.Invoke("TV Shows")),
+                    DetailsCommand = new RelayCommand(() => NavigationRequested?.Invoke("TV Shows")),
+                    IsSample = false
+                };
+            }
+
+            if (recentlyAddedRow != null && recentlyAddedRow.Items.Count > 0)
+            {
+                Rows.Add(recentlyAddedRow);
+            }
+
+            if (continueRow != null && continueRow.Items.Count > 0)
+            {
+                Rows.Add(continueRow);
+            }
+
+            if (moviesRow != null && moviesRow.Items.Count > 0)
+            {
+                Rows.Add(moviesRow);
+            }
+
+            if (tvRow != null && tvRow.Items.Count > 0)
+            {
+                Rows.Add(tvRow);
+            }
+
+            HasActualLibraryData = true;
+            IsLibraryEmpty = false;
+        });
     }
 
     private void ApplyHeroItem(HeroBannerItemViewModel item, int index)
@@ -1018,26 +1124,29 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
 
     public void SetupEmptyLibraryState()
     {
-        _heroRotationTimer.Stop();
-        Rows.Clear();
-        _heroItems.Clear();
-
-        Hero = new HeroBannerViewModel
+        RunOnUi(() =>
         {
-            Title = "RIVER",
-            Genre = "Local Media Library",
-            RatingBadge = "Offline",
-            QualityBadge = "Ready",
-            Description = "Connect your storage drives and add an MLibrary folder in Settings to start cataloging and enjoying your local media collection.",
-            ActionButtonText = "Manage Libraries",
-            ActionCommand = ManageLibrariesCommand,
-            PlayCommand = ManageLibrariesCommand,
-            DetailsCommand = ManageLibrariesCommand,
-            IsSample = false
-        };
+            _heroRotationTimer.Stop();
+            Rows.Clear();
+            _heroItems.Clear();
 
-        HasActualLibraryData = false;
-        IsLibraryEmpty = true;
+            Hero = new HeroBannerViewModel
+            {
+                Title = "RIVER",
+                Genre = "Local Media Library",
+                RatingBadge = "Offline",
+                QualityBadge = "Ready",
+                Description = "Connect your storage drives and add an MLibrary folder in Settings to start cataloging and enjoying your local media collection.",
+                ActionButtonText = "Manage Libraries",
+                ActionCommand = ManageLibrariesCommand,
+                PlayCommand = ManageLibrariesCommand,
+                DetailsCommand = ManageLibrariesCommand,
+                IsSample = false
+            };
+
+            HasActualLibraryData = false;
+            IsLibraryEmpty = true;
+        });
     }
 
     private async Task RefreshLibraryAsync()
@@ -1060,6 +1169,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
 
         _heroRotationTimer.Stop();
         _heroRotationTimer.Dispose();
+        _loadLock.Dispose();
 
         if (_artworkPipelineService != null)
         {

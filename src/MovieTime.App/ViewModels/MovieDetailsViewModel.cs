@@ -9,7 +9,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 using MovieTime.App.Common;
 using MovieTime.Core.Artwork;
 using MovieTime.Core.Database.Repositories;
-using MovieTime.Core.Entities;
+using MovieTime.Core.Entities;
+
 using MovieTime.Core.Library;
 
 namespace MovieTime.App.ViewModels;
@@ -195,9 +196,12 @@ public sealed class MovieDetailsViewModel : ObservableObject
     public ICommand PlayCommand { get; }
     public ICommand BackCommand { get; }
     public ICommand SelectMediaFileCommand { get; }
-    public ICommand SelectRecommendedMovieCommand { get; }
-    public ICommand NavigateHomeCommand { get; }
-    public ICommand RemoveMovieFromLibraryCommand { get; }
+    public ICommand SelectRecommendedMovieCommand { get; }
+
+    public ICommand NavigateHomeCommand { get; }
+
+    public ICommand RemoveMovieFromLibraryCommand { get; }
+
     public ICommand DeleteMovieFromDiskCommand { get; }
 
     public MovieDetailsViewModel(
@@ -457,59 +461,113 @@ public sealed class MovieDetailsViewModel : ObservableObject
         NavigationRequested?.Invoke("Movies");
     }
 
-
-    public async Task RemoveMovieFromLibraryAsync()
-    {
-        if (_mediaRemovalService == null || MediaFiles.Count == 0) return;
-        foreach (var file in MediaFiles.ToList())
-        {
-            await _mediaRemovalService.RemoveFromLibraryOnlyAsync(file.FilePath);
-        }
-        NavigationRequested?.Invoke("Movies");
-    }
-
-    public async Task DeleteMovieFromDiskAsync()
-    {
-        if (_mediaRemovalService == null || MediaFiles.Count == 0) return;
-        foreach (var file in MediaFiles.ToList())
-        {
-            await _mediaRemovalService.DeleteFileToRecycleBinAsync(file.FilePath);
-        }
-        NavigationRequested?.Invoke("Movies");
-    }
-
-    public async Task RemoveMediaFileFromLibraryAsync(LocalMediaFileItemViewModel? file)
-    {
-        if (file == null || string.IsNullOrWhiteSpace(file.FilePath) || _mediaRemovalService == null) return;
-        await _mediaRemovalService.RemoveFromLibraryOnlyAsync(file.FilePath);
-        MediaFiles.Remove(file);
-        if (MediaFiles.Count == 0)
-        {
-            NavigationRequested?.Invoke("Movies");
-        }
-        else
-        {
-            SelectedMediaFile = MediaFiles.FirstOrDefault(f => !f.IsMissing && File.Exists(f.FilePath)) ?? MediaFiles.FirstOrDefault();
-            OnPropertyChanged(nameof(HasMultipleFiles));
-        }
-    }
-
-    public async Task DeleteMediaFileFromDiskAsync(LocalMediaFileItemViewModel? file)
-    {
-        if (file == null || string.IsNullOrWhiteSpace(file.FilePath) || _mediaRemovalService == null) return;
-        await _mediaRemovalService.DeleteFileToRecycleBinAsync(file.FilePath);
-        MediaFiles.Remove(file);
-        if (MediaFiles.Count == 0)
-        {
-            NavigationRequested?.Invoke("Movies");
-        }
-        else
-        {
-            SelectedMediaFile = MediaFiles.FirstOrDefault(f => !f.IsMissing && File.Exists(f.FilePath)) ?? MediaFiles.FirstOrDefault();
-            OnPropertyChanged(nameof(HasMultipleFiles));
-        }
-    }
-
+
+
+    public async Task RemoveMovieFromLibraryAsync()
+    {
+        if (_mediaRemovalService == null) return;
+
+        if (MovieId > 0)
+        {
+            await _mediaRemovalService.RemoveMovieFromLibraryAsync(MovieId);
+        }
+        else
+        {
+            foreach (var file in MediaFiles.ToList())
+            {
+                await _mediaRemovalService.RemoveFromLibraryOnlyAsync(file.FilePath);
+            }
+        }
+
+        NavigationRequested?.Invoke("Movies");
+    }
+
+    public async Task DeleteMovieFromDiskAsync()
+    {
+        if (_mediaRemovalService == null) return;
+
+        foreach (var file in MediaFiles.ToList())
+        {
+            if (!string.IsNullOrWhiteSpace(file.FilePath) && File.Exists(file.FilePath))
+            {
+                await _mediaRemovalService.DeleteFileToRecycleBinAsync(file.FilePath);
+            }
+        }
+
+        if (MovieId > 0)
+        {
+            await _mediaRemovalService.RemoveMovieFromLibraryAsync(MovieId, "DeletedFromDisk");
+        }
+
+        NavigationRequested?.Invoke("Movies");
+    }
+
+
+
+    public async Task RemoveMediaFileFromLibraryAsync(LocalMediaFileItemViewModel? file)
+
+    {
+
+        if (file == null || string.IsNullOrWhiteSpace(file.FilePath) || _mediaRemovalService == null) return;
+
+        await _mediaRemovalService.RemoveFromLibraryOnlyAsync(file.FilePath);
+
+        MediaFiles.Remove(file);
+
+        if (MediaFiles.Count == 0)
+
+        {
+
+            NavigationRequested?.Invoke("Movies");
+
+        }
+
+        else
+
+        {
+
+            SelectedMediaFile = MediaFiles.FirstOrDefault(f => !f.IsMissing && File.Exists(f.FilePath)) ?? MediaFiles.FirstOrDefault();
+
+            OnPropertyChanged(nameof(HasMultipleFiles));
+
+        }
+
+    }
+
+
+
+    public async Task DeleteMediaFileFromDiskAsync(LocalMediaFileItemViewModel? file)
+
+    {
+
+        if (file == null || string.IsNullOrWhiteSpace(file.FilePath) || _mediaRemovalService == null) return;
+
+        await _mediaRemovalService.DeleteFileToRecycleBinAsync(file.FilePath);
+
+        MediaFiles.Remove(file);
+
+        if (MediaFiles.Count == 0)
+
+        {
+
+            NavigationRequested?.Invoke("Movies");
+
+        }
+
+        else
+
+        {
+
+            SelectedMediaFile = MediaFiles.FirstOrDefault(f => !f.IsMissing && File.Exists(f.FilePath)) ?? MediaFiles.FirstOrDefault();
+
+            OnPropertyChanged(nameof(HasMultipleFiles));
+
+        }
+
+    }
+
+
+
     private void ResetState()
     {
         MovieId = 0;

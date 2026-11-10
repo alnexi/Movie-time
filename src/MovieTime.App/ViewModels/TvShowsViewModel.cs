@@ -160,7 +160,7 @@ public sealed class TvShowsViewModel : ObservableObject
                 var seriesFiles = allFiles.Where(f => f.EpisodeId.HasValue && seriesEpIds.Contains(f.EpisodeId.Value)).ToList();
 
                 // B-02: Do not display series in active library if all episode files are confirmed missing
-                if (seriesFiles.Count > 0 && seriesFiles.All(f => f.IsMissing))
+                if (seriesFiles.Count == 0 || seriesFiles.All(f => f.IsMissing))
                 {
                     continue;
                 }

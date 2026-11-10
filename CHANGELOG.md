@@ -9,7 +9,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.2.0] - 2026-11-10 (River — UI Bugfix Phase 2 & Home, TV Show Details and Player UX Improvements)
+## [1.2.0] - 2026-11-11 (River — Safe Final QA Bug Fixes & Home Navigation Repair)
+
+### Fixed
+- **Home Screen Navigation Repair**:
+  - Bound the upper-left Home button in `HomeView.xaml` to `ViewModel.NavigateHomeCommand`.
+  - Implemented harmless navigation when already on the Home screen: closes the sidebar overlay and smoothly scrolls to top without reloading database records, re-querying collections, or causing navigation loops.
+- **QA-001 (High - Audio Leak & Unsaved Progress on Player Exit)**:
+  - Added `StopPlaybackAsync()` to `PlayerViewModel` to ensure progress is saved and `_playerService.Stop()` is invoked whenever navigating away from the player view.
+  - Updated `MainWindow.ExitPlayerMode()` to stop the active player and save playback position.
+- **QA-002 (High - Native VLC Resource Cleanup on App Close)**:
+  - Updated `App.xaml.cs` `OnWindowClosed` to stop and dispose `PlayerViewModel` and native `IVlcPlayerService` (`_libVlc`, `_mediaPlayer`), preventing audio continuation and unmanaged memory leaks.
+- **QA-003 (Medium - Hero Billboard Carousel Indicator Clutter)**:
+  - Implemented dynamic sliding window of at most 7 dots (`MaxVisibleDots = 7`) in `HeroBannerViewModel`.
+  - Prevents horizontal overflow across wide screens for large collections while preserving all candidate movies and full rotation.
+- **QA-004 (Medium - Remove Movie When Physical File Missing)**:
+  - Added `RemoveMovieFromLibraryAsync(int movieId)` in `MediaRemovalService` and `IMediaRemovalService`.
+  - Permits removing stale database records and recording persistent exclusions even when physical media files have been moved or deleted outside the app.
+  - Updated `MovieDetailsViewModel` and `MoviesViewModel` to remove movies by ID.
+- **QA-005 (Medium - Unregistering Library Root Leaves Orphaned Records)**:
+  - Added `RemoveMediaForScanRootAsync` in `MediaRemovalService` called by `ScanRootService.RemoveRootAsync`.
+  - Reconciles and deletes orphaned media files, episodes, seasons, series, and movies belonging exclusively to the unregistered scan root.
+- **QA-006 (Medium - Concurrent Theme Settings JSON Writes)**:
+  - Added a 300ms debounce timer in `ThemeSettingsService.UpdateThemeValueAsync`.
+  - Updates in-memory theme values instantly for 60 FPS slider responsiveness while throttling disk I/O to avoid file lock contention.
+  - Added `FlushPendingSavesAsync` to guarantee final persistence on demand and during shutdown.
+- **QA-007 (Low - Series Without Media Files Displays Empty Cards)**:
+  - Updated `TvShowsViewModel.LoadSeriesAsync` and `HomeViewModel.PopulateFromDatabaseAsync` to omit TV series that contain 0 media files (or only missing files).
+- **QA-008 (Low - Version Discrepancy)**:
+  - Synchronized `AppConstants.ApplicationVersion` to `"1.2.0"`.
+
+## [1.1.0] - 2026-11-10 (River — UI Bugfix Phase 2 & Home, TV Show Details and Player UX Improvements)
 
 ### Added
 - **Home Screen "Recently Added" Section**:

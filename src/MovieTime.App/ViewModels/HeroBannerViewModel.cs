@@ -183,30 +183,53 @@ public sealed class HeroBannerViewModel : ObservableObject
         set => SetProperty(ref _previousCommand, value);
     }
 
+    private const int MaxVisibleDots = 7;
+    private Action<int>? _onSelectIndex;
+
     private void UpdateActiveDot()
     {
-        for (int i = 0; i < Dots.Count; i++)
+        if (TotalCount > MaxVisibleDots)
         {
-            Dots[i].IsActive = (i == _activeIndex);
+            RefreshDots();
+        }
+        else
+        {
+            for (int i = 0; i < Dots.Count; i++)
+            {
+                Dots[i].IsActive = (Dots[i].Index == _activeIndex);
+            }
         }
     }
 
     public void SetupDots(int count, Action<int> onSelectIndex)
     {
-        Dots.Clear();
         TotalCount = count;
+        _onSelectIndex = onSelectIndex;
+        RefreshDots();
+        OnPropertyChanged(nameof(HasMultipleItems));
+    }
 
-        for (int i = 0; i < count; i++)
+    private void RefreshDots()
+    {
+        Dots.Clear();
+        if (TotalCount <= 0 || _onSelectIndex == null) return;
+
+        int windowSize = Math.Min(TotalCount, MaxVisibleDots);
+        int startIndex = 0;
+        if (TotalCount > MaxVisibleDots)
         {
-            int index = i;
-            Dots.Add(new HeroDotViewModel
-            {
-                Index = index,
-                IsActive = (index == _activeIndex),
-                SelectCommand = new RelayCommand(() => onSelectIndex(index))
-            });
+            startIndex = Math.Clamp(_activeIndex - (MaxVisibleDots / 2), 0, TotalCount - MaxVisibleDots);
         }
 
-        OnPropertyChanged(nameof(HasMultipleItems));
+        for (int i = 0; i < windowSize; i++)
+        {
+            int realIndex = startIndex + i;
+            Dots.Add(new HeroDotViewModel
+            {
+                Index = realIndex,
+                IsActive = (realIndex == _activeIndex),
+                SelectCommand = new RelayCommand(() => _onSelectIndex(realIndex))
+            });
+        }
     }
 }

@@ -278,6 +278,34 @@ public partial class App : Application
     private async void OnWindowClosed(object sender, WindowEventArgs args)
     {
         _logger.LogInformation("MainWindow closed. Finalizing application shutdown.");
+
+        try
+        {
+            var playerViewModel = Services.GetService<MovieTime.App.ViewModels.PlayerViewModel>();
+            if (playerViewModel != null)
+            {
+                await playerViewModel.StopPlaybackAsync();
+                playerViewModel.Dispose();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error stopping and disposing PlayerViewModel on shutdown.");
+        }
+
+        try
+        {
+            var vlcPlayer = Services.GetService<IVlcPlayerService>();
+            if (vlcPlayer != null)
+            {
+                vlcPlayer.Stop();
+                vlcPlayer.Dispose();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error disposing IVlcPlayerService on shutdown.");
+        }
         try
         {
             var autoSync = Services.GetService<MovieTime.Core.Library.ILibraryAutoSyncService>();

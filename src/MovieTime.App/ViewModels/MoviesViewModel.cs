@@ -620,8 +620,15 @@ public sealed class MoviesViewModel : ObservableObject
 
     public async Task RemoveMovieFromLibraryAsync(MoviePosterItemViewModel? movie)
     {
-        if (movie == null || string.IsNullOrWhiteSpace(movie.FilePath) || _mediaRemovalService == null) return;
-        await _mediaRemovalService.RemoveFromLibraryOnlyAsync(movie.FilePath);
+        if (movie == null || _mediaRemovalService == null) return;
+        if (movie.Id > 0)
+        {
+            await _mediaRemovalService.RemoveMovieFromLibraryAsync(movie.Id);
+        }
+        else if (!string.IsNullOrWhiteSpace(movie.FilePath))
+        {
+            await _mediaRemovalService.RemoveFromLibraryOnlyAsync(movie.FilePath);
+        }
         AllMovies.Remove(movie);
         DisplayedMovies.Remove(movie);
         if (AllMovies.Count == 0)
@@ -641,8 +648,15 @@ public sealed class MoviesViewModel : ObservableObject
 
     public async Task DeleteMovieFromDiskAsync(MoviePosterItemViewModel? movie)
     {
-        if (movie == null || string.IsNullOrWhiteSpace(movie.FilePath) || _mediaRemovalService == null) return;
-        await _mediaRemovalService.DeleteFileToRecycleBinAsync(movie.FilePath);
+        if (movie == null || _mediaRemovalService == null) return;
+        if (!string.IsNullOrWhiteSpace(movie.FilePath) && File.Exists(movie.FilePath))
+        {
+            await _mediaRemovalService.DeleteFileToRecycleBinAsync(movie.FilePath);
+        }
+        if (movie.Id > 0)
+        {
+            await _mediaRemovalService.RemoveMovieFromLibraryAsync(movie.Id, "DeletedFromDisk");
+        }
         AllMovies.Remove(movie);
         DisplayedMovies.Remove(movie);
         if (AllMovies.Count == 0)

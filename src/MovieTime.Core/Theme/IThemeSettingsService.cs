@@ -42,4 +42,9 @@ public interface IThemeSettingsService
     /// Updates and persists the ambient animation preference.
     /// </summary>
     Task UpdateAmbientAnimationAsync(bool ambientEnabled);
+
+    /// <summary>
+    /// Flushes any pending debounced disk writes immediately.
+    /// </summary>
+    Task FlushPendingSavesAsync();
 }

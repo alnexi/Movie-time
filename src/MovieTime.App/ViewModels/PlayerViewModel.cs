@@ -517,7 +517,11 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
         SetVolumeCommand = new RelayCommand<int>(SetVolume);
         PlayNextInPlaylistCommand = new RelayCommand(async () => await PlayNextInPlaylistAsync());
         PlayPreviousInPlaylistCommand = new RelayCommand(async () => await PlayPreviousInPlaylistAsync());
-        NavigateHomeCommand = new RelayCommand(() => NavigationRequested?.Invoke("Home"));
+        NavigateHomeCommand = new AsyncRelayCommand(async () =>
+        {
+            await StopPlaybackAsync();
+            NavigationRequested?.Invoke("Home");
+        });
 
         HookPlayerEvents();
     }
@@ -992,16 +996,35 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
         IsControlsVisible = true;
     }
 
+    public async Task StopPlaybackAsync()
+    {
+        try
+        {
+            await SaveProgressAsync(isFinished: false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to save playback progress on stop.");
+        }
+        finally
+        {
+            _playerService.Stop();
+            if (IsFullscreen)
+            {
+                IsFullscreen = false;
+                FullscreenToggled?.Invoke(false);
+            }
+        }
+    }
+
+    public void StopPlayback()
+    {
+        _ = StopPlaybackAsync();
+    }
+
     public async void OnBack()
     {
-        await SaveProgressAsync(isFinished: false);
-        _playerService.Stop();
-
-        if (IsFullscreen)
-        {
-            IsFullscreen = false;
-            FullscreenToggled?.Invoke(false);
-        }
+        await StopPlaybackAsync();
 
         if (_seriesId > 0)
         {

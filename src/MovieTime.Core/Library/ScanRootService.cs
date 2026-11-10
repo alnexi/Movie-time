@@ -17,13 +17,23 @@ namespace MovieTime.Core.Library;
 public sealed class ScanRootService : IScanRootService
 {
     private readonly IScanRootRepository _repository;
+    private readonly IMediaRemovalService? _mediaRemovalService;
     private readonly ILogger<ScanRootService> _logger;
 
     public ScanRootService(
         IScanRootRepository repository,
         ILogger<ScanRootService>? logger = null)
+        : this(repository, null, logger)
+    {
+    }
+
+    public ScanRootService(
+        IScanRootRepository repository,
+        IMediaRemovalService? mediaRemovalService,
+        ILogger<ScanRootService>? logger = null)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        _mediaRemovalService = mediaRemovalService;
         _logger = logger ?? NullLogger<ScanRootService>.Instance;
     }
 
@@ -73,7 +83,20 @@ public sealed class ScanRootService : IScanRootService
         }
 
         var rows = await _repository.DeleteAsync(id).ConfigureAwait(false);
-        _logger.LogInformation("Removed library scan root '{Path}' (Id={Id}). Associated media files remain preserved.",
+
+        if (_mediaRemovalService != null)
+        {
+            try
+            {
+                await _mediaRemovalService.RemoveMediaForScanRootAsync(id, existing.Path).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to reconcile media files for removed scan root {Id}", id);
+            }
+        }
+
+        _logger.LogInformation("Removed library scan root '{Path}' (Id={Id}) and reconciled associated media files.",
             existing.Path, id);
         return rows > 0;
     }
