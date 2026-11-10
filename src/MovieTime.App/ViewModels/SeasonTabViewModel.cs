@@ -5,7 +5,7 @@ namespace MovieTime.App.ViewModels;
 
 /// <summary>
 /// Presentation model representing an individual season selector tab
-/// in the Apple TV-inspired Series Details view.
+/// in the Series Details view.
 /// </summary>
 public sealed class SeasonTabViewModel : ObservableObject
 {

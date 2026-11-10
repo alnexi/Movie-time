@@ -4,7 +4,7 @@ using MovieTime.App.Common;
 namespace MovieTime.App.ViewModels;
 
 /// <summary>
-/// Presentation model for a navigation item within the floating Apple TV-inspired sidebar.
+/// Presentation model for a navigation item within the floating sidebar.
 /// </summary>
 public sealed class SidebarItemViewModel : ObservableObject
 {

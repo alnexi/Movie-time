@@ -25,7 +25,7 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <!-- Top-Left Apple TV Floating Pill Button: ( 🗂️ Library ) - Screenshot 1 & 3 -->
+            <!-- Top-Left Floating Pill Button: Library - Screenshot 1 & 3 -->
             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
                 <Button Command="{x:Bind ViewModel.NavigateHomeCommand, Mode=OneWay}"
                         Background="{ThemeResource AppCardBackgroundBrush}"
@@ -194,7 +194,7 @@
                         </Grid>
                     </Button>
 
-                    <!-- GENRES Header (Apple TV Section Header Style) -->
+                    <!-- GENRES Header (Section Header Style) -->
                     <TextBlock Text="GENRES"
                                FontSize="10"
                                FontWeight="Bold"
@@ -333,7 +333,7 @@
                                    Foreground="#FFFFFF"
                                    HorizontalAlignment="Center" />
 
-                        <TextBlock Text="Movie Time scans strictly inside designated MLibrary folders on your registered storage drives. Configure your drives in Settings to catalog your movies."
+                        <TextBlock Text="River scans strictly inside designated MLibrary folders on your registered storage drives. Configure your drives in Settings to catalog your movies."
                                    FontSize="13"
                                    Foreground="#8E8E93"
                                    TextWrapping="Wrap"
@@ -386,7 +386,7 @@
             </Grid>
         </Grid>
 
-        <!-- ================= 3. APPLE TV QUICK ACTION CONTEXT DIALOG (Screenshot 3) ================= -->
+        <!-- ================= 3. QUICK ACTION CONTEXT DIALOG ================= -->
         <Grid Grid.RowSpan="2"
               Visibility="{x:Bind ViewModel.IsQuickActionOpen, Mode=OneWay}"
               Background="#60000000">
@@ -432,7 +432,7 @@
                         </StackPanel>
                     </Button>
 
-                    <!-- Action 2: Go to Movie (Apple TV Signature White Pill - Screenshot 3) -->
+                    <!-- Action 2: Go to Movie (Signature White Pill - Screenshot 3) -->
                     <Button Command="{x:Bind ViewModel.GoToDetailsCommand}"
                             HorizontalAlignment="Stretch"
                             HorizontalContentAlignment="Left"

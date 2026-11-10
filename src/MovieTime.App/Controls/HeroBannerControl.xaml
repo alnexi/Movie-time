@@ -126,7 +126,7 @@
 
                 <!-- Dual Action Buttons: Play Movie & Details -->
                 <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,6,0,0">
-                    <!-- Primary Play Button: Apple TV Signature White Capsule Pill -->
+                    <!-- Primary Play Button: Signature White Capsule Pill -->
                     <Button Command="{x:Bind ViewModel.PlayCommand, Mode=OneWay}"
                             Background="#FFFFFF"
                             Foreground="#000000"

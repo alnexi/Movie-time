@@ -7,7 +7,7 @@ using MovieTime.App.ViewModels;
 namespace MovieTime.App;
 
 /// <summary>
-/// Main window hosting the cinematic Apple TV-inspired Home, Movies Library, Settings, Movie Details, and Player experiences.
+/// Main window hosting the cinematic Home, Movies Library, Settings, Movie Details, and Player experiences.
 /// Coordinates top-level navigation and fullscreen transitions between views.
 /// </summary>
 public sealed partial class MainWindow : Window
@@ -55,7 +55,7 @@ public sealed partial class MainWindow : Window
 
         // Extend content into title bar for seamless edge-to-edge layout
         this.ExtendsContentIntoTitleBar = true;
-        Title = "Movie Time";
+        Title = MovieTime.Core.AppConstants.ApplicationName;
 
         try
         {

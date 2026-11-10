@@ -13,7 +13,7 @@
     <Grid Background="{ThemeResource AppBackgroundBrush}">
         <!-- 1. Top Header Bar with Segmented Tabs -->
         <Grid Height="72" VerticalAlignment="Top" Margin="36,24,36,0">
-            <!-- Left: Apple TV Capsule Pill ( ⚙️ Settings ) & Navigation Quick Shortcuts -->
+            <!-- Left: Capsule Pill Settings & Navigation Quick Shortcuts -->
             <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Left" VerticalAlignment="Center">
                 <Border Background="#60181820"
                         BorderBrush="#30FFFFFF"
@@ -50,7 +50,7 @@
                 </Button>
             </StackPanel>
 
-            <!-- Center: Apple TV Segmented Tabs [ 🗄️ Media Libraries & Storage ] [ 🎨 Theme Experience ] -->
+            <!-- Center: Segmented Tabs [ Media Libraries & Storage ] [ Theme Experience ] -->
             <Border HorizontalAlignment="Center"
                     VerticalAlignment="Center"
                     Background="#25181820"
@@ -73,7 +73,8 @@
                                 <TextBlock Text="Media Libraries &amp; Storage" FontSize="13" FontWeight="SemiBold" />
                             </StackPanel>
                         </Button>
-                        <Button Background="{ThemeResource AppTextPrimaryBrush}"
+                        <Button Command="{x:Bind ViewModel.SelectGeneralTabCommand, Mode=OneWay}"
+                                Background="{ThemeResource AppTextPrimaryBrush}"
                                 Foreground="{ThemeResource AppBackgroundBrush}"
                                 BorderThickness="0"
                                 CornerRadius="16"
@@ -100,7 +101,8 @@
                                 <TextBlock Text="Theme Experience" FontSize="13" FontWeight="SemiBold" />
                             </StackPanel>
                         </Button>
-                        <Button Background="{ThemeResource AppTextPrimaryBrush}"
+                        <Button Command="{x:Bind ViewModel.SelectThemeTabCommand, Mode=OneWay}"
+                                Background="{ThemeResource AppTextPrimaryBrush}"
                                 Foreground="{ThemeResource AppBackgroundBrush}"
                                 BorderThickness="0"
                                 CornerRadius="16"
@@ -201,7 +203,7 @@
                                                 FontSize="12"
                                                 FontWeight="SemiBold">
                                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                                <TextBlock Text="☀️" FontSize="13" />
+                                                <FontIcon Glyph="&#xE706;" FontSize="13" />
                                                 <TextBlock Text="Day (0%)" />
                                             </StackPanel>
                                         </Button>
@@ -216,7 +218,7 @@
                                                 FontSize="12"
                                                 FontWeight="SemiBold">
                                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                                <TextBlock Text="🌅" FontSize="13" />
+                                                <FontIcon Glyph="&#xE708;" FontSize="13" />
                                                 <TextBlock Text="Twilight (50%)" />
                                             </StackPanel>
                                         </Button>
@@ -231,7 +233,7 @@
                                                 FontSize="12"
                                                 FontWeight="SemiBold">
                                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                                <TextBlock Text="🌙" FontSize="13" />
+                                                <FontIcon Glyph="&#xEC46;" FontSize="13" />
                                                 <TextBlock Text="Night (100%)" />
                                             </StackPanel>
                                         </Button>
@@ -288,7 +290,7 @@
                                    FontSize="30"
                                    FontWeight="Bold"
                                    Foreground="#FFFFFF" />
-                        <TextBlock Text="Movie Time organizes movies across your local drives using dedicated MLibrary folders. Only files inside registered MLibrary directories are scanned and cataloged."
+                        <TextBlock Text="River organizes movies across your local drives using dedicated MLibrary folders. Only files inside registered MLibrary directories are scanned and cataloged."
                                    FontSize="13"
                                    Foreground="#8E8E93"
                                    TextWrapping="Wrap"
@@ -374,7 +376,7 @@
                                        Foreground="#FFFFFF"
                                        HorizontalAlignment="Center" />
 
-                            <TextBlock Text="To start building your library, select a drive to host an MLibrary folder. Place movie files into the folder and Movie Time will discover them automatically."
+                            <TextBlock Text="To start building your library, select a drive to host an MLibrary folder. Place movie files into the folder and River will discover them automatically."
                                        FontSize="13"
                                        Foreground="#8E8E93"
                                        TextWrapping="Wrap"
@@ -531,7 +533,7 @@
                                    FontWeight="Bold"
                                    Foreground="#6E6E78"
                                    CharacterSpacing="80" />
-                        <TextBlock Text="• Dedicated Folders: Movie Time only scans the 'MLibrary' folder on each selected drive (e.g. D:\MLibrary). It will never scan your drive root or personal documents."
+                        <TextBlock Text="• Dedicated Folders: River only scans the 'MLibrary' folder on each selected drive (e.g. D:\MLibrary). It will never scan your drive root or personal documents."
                                    FontSize="12"
                                    Foreground="#8E8E93"
                                    LineHeight="18" />
@@ -539,7 +541,7 @@
                                    FontSize="12"
                                    Foreground="#8E8E93"
                                    LineHeight="18" />
-                        <TextBlock Text="• Safe Removal: Removing a library from Movie Time unregisters the folder from the catalog. Your movie files on disk are never modified or deleted."
+                        <TextBlock Text="• Safe Removal: Removing a library from River unregisters the folder from the catalog. Your movie files on disk are never modified or deleted."
                                    FontSize="12"
                                    Foreground="#8E8E93"
                                    LineHeight="18" />
@@ -652,7 +654,7 @@
                                            FontWeight="SemiBold"
                                            Foreground="#FF9F0A" />
                             </StackPanel>
-                            <TextBlock Text="The 'MLibrary' directory does not exist on this drive yet. Please confirm that you would like Movie Time to create it for you."
+                            <TextBlock Text="The 'MLibrary' directory does not exist on this drive yet. Please confirm that you would like River to create it for you."
                                        FontSize="11"
                                        Foreground="#CCCCCC"
                                        TextWrapping="Wrap"

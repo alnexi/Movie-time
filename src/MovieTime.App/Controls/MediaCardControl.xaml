@@ -138,7 +138,7 @@
                 </Grid>
             </Border>
 
-            <!-- Apple TV Focused State Border (Bright White Stroke) -->
+            <!-- Focused State Border (Bright White Stroke) -->
             <Border x:Name="FocusBorder"
                     CornerRadius="14"
                     BorderBrush="#FFFFFF"

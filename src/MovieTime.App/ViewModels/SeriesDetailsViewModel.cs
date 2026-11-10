@@ -15,7 +15,7 @@ using MovieTime.Core.Entities;
 namespace MovieTime.App.ViewModels;
 
 /// <summary>
-/// ViewModel managing the Apple TV-inspired cinematic Series Details experience.
+/// ViewModel managing the cinematic Series Details experience.
 /// Presents local series metadata, genuine extracted backdrop/poster artwork,
 /// season tabs, episode lists, saved playback progress, and next up resume actions.
 /// </summary>

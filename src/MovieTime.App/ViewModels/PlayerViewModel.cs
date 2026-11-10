@@ -15,7 +15,7 @@ using MovieTime.Core.Services;
 namespace MovieTime.App.ViewModels;
 
 /// <summary>
-/// ViewModel managing the Apple TV-inspired native player HUD, transport controls,
+/// ViewModel managing the native player HUD, transport controls,
 /// timeline scrubbing, track selection, and progress synchronization.
 /// </summary>
 public sealed class PlayerViewModel : ObservableObject, IDisposable

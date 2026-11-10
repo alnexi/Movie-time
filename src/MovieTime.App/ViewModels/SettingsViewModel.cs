@@ -61,9 +61,9 @@ public sealed class SettingsViewModel : ObservableObject
 
     public string ThemeModeTitle => CurrentThemeMode switch
     {
-        AppThemeMode.Day => "Day \u2022 Sunlit Apple Light",
+        AppThemeMode.Day => "Day \u2022 Sunlit Light",
         AppThemeMode.Twilight => "Twilight \u2022 Warm Sunset Glow",
-        _ => "Night \u2022 Obsidian Midnight (Apple TV)"
+        _ => "Night \u2022 Obsidian Midnight"
     };
 
     public string ThemeDescription => CurrentThemeValue switch
@@ -392,7 +392,7 @@ public sealed class SettingsViewModel : ObservableObject
             bool removed = await _libraryManager.RemoveLibraryAsync(libraryId);
             if (removed)
             {
-                StatusMessage = "Library folder unhooked from Movie Time.";
+                StatusMessage = "Library folder unhooked from River.";
                 await LoadLibrariesAsync();
             }
         }

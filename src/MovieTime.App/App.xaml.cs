@@ -71,7 +71,7 @@ public partial class App : Application
             Log.CloseAndFlush();
         };
 
-        _logger.LogInformation("Movie Time starting up. Version: {Version}, OS: {OS}, Arch: {Arch}",
+        _logger.LogInformation("River starting up. Version: {Version}, OS: {OS}, Arch: {Arch}",
             AppConstants.ApplicationVersion,
             RuntimeInformation.OSDescription,
             RuntimeInformation.ProcessArchitecture);
@@ -128,7 +128,7 @@ public partial class App : Application
             var mainInstance = Microsoft.Windows.AppLifecycle.AppInstance.FindOrRegisterForKey("MovieTime_App_SingleInstance");
             if (!mainInstance.IsCurrent)
             {
-                _logger.LogInformation("Another instance of Movie Time is already running. Redirecting activation and exiting...");
+                _logger.LogInformation("Another instance of River is already running. Redirecting activation and exiting...");
                 var currentArgs = Microsoft.Windows.AppLifecycle.AppInstance.GetCurrent().GetActivatedEventArgs();
                 await mainInstance.RedirectActivationToAsync(currentArgs);
                 System.Diagnostics.Process.GetCurrentProcess().Kill();

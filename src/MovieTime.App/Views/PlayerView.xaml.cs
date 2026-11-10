@@ -13,7 +13,7 @@ using Windows.System;
 namespace MovieTime.App.Views;
 
 /// <summary>
-/// Native hardware-accelerated video player view with Apple TV-inspired Liquid Glass HUD.
+/// Native hardware-accelerated video player view with Liquid Glass HUD.
 /// </summary>
 public sealed partial class PlayerView : UserControl
 {

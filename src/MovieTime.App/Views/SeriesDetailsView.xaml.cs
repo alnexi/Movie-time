@@ -9,7 +9,7 @@ using MovieTime.App.ViewModels;
 namespace MovieTime.App.Views;
 
 /// <summary>
-/// View representing the cinematic Apple TV-inspired Series Details screen.
+/// View representing the cinematic Series Details screen.
 /// </summary>
 public sealed partial class SeriesDetailsView : UserControl
 {

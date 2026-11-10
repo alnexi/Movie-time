@@ -7,7 +7,7 @@ namespace MovieTime.App.ViewModels;
 
 /// <summary>
 /// Presentation model representing an individual episode item inside a season's episode list
-/// on the Apple TV-inspired Series Details view.
+/// on the Series Details view.
 /// </summary>
 public sealed class EpisodeItemViewModel : ObservableObject
 {

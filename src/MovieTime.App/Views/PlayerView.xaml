@@ -60,7 +60,7 @@
             </Grid.Background>
         </Grid>
 
-        <!-- Bottom Gradient (Timeline & controls readability - Apple TV signature) -->
+        <!-- Bottom Gradient (Timeline & controls readability - signature) -->
         <Grid VerticalAlignment="Bottom" Height="380" IsHitTestVisible="False"
               Visibility="{x:Bind ViewModel.IsControlsVisible, Mode=OneWay}">
             <Grid.Background>
@@ -96,7 +96,7 @@
             </Border>
         </Button>
 
-        <!-- ================= 4. CENTER TRANSPORT CONTROLS (APPLE TV TRIAD) ================= -->
+        <!-- ================= 4. CENTER TRANSPORT CONTROLS ================= -->
         <Grid HorizontalAlignment="Center"
               VerticalAlignment="Center"
               Visibility="{x:Bind ViewModel.IsControlsVisible, Mode=OneWay}">
@@ -211,7 +211,7 @@
             </StackPanel>
         </Grid>
 
-        <!-- ================= 5. BOTTOM CINEMATIC HUD (APPLE TV SPECIFICATION) ================= -->
+        <!-- ================= 5. BOTTOM CINEMATIC HUD ================= -->
         <Grid VerticalAlignment="Bottom"
               Margin="60,0,60,38"
               Visibility="{x:Bind ViewModel.IsControlsVisible, Mode=OneWay}">
@@ -304,7 +304,7 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- Subtitles Button (💬 Speech Bubble with text) -->
+                        <!-- Subtitles Button  -->
                         <Button Command="{x:Bind ViewModel.ToggleSubtitleMenuCommand, Mode=OneWay}"
                                 Width="44" Height="44"
                                 Padding="0"
@@ -338,7 +338,7 @@
                             </Border>
                         </Button>
 
-                        <!-- Fullscreen / PiP Button (⤢) -->
+                        <!-- Fullscreen / PiP Button  -->
                         <Button Command="{x:Bind ViewModel.ToggleFullscreenCommand, Mode=OneWay}"
                                 Width="44" Height="44"
                                 Padding="0"
@@ -357,7 +357,7 @@
                     </StackPanel>
                 </Grid>
 
-                <!-- B. Scrubber Timeline Bar (Apple TV Minimal Liquid Glass Progress Bar) -->
+                <!-- B. Scrubber Timeline Bar (Minimal Liquid Glass Progress Bar) -->
                 <Grid x:Name="TimelineContainer"
                       Height="36"
                       VerticalAlignment="Center"
@@ -373,7 +373,7 @@
                             IsThumbToolTipEnabled="False"
                             ValueChanged="TimelineSlider_ValueChanged">
                         <Slider.Resources>
-                            <!-- Sleek Apple TV Liquid Glass White Track & Thumb Colors -->
+                            <!-- Sleek Liquid Glass White Track & Thumb Colors -->
                             <SolidColorBrush x:Key="SliderTrackFill" Color="#40FFFFFF" />
                             <SolidColorBrush x:Key="SliderTrackFillPointerOver" Color="#55FFFFFF" />
                             <SolidColorBrush x:Key="SliderTrackFillPressed" Color="#66FFFFFF" />
@@ -395,7 +395,7 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
-                    <!-- Left: Apple TV Glass Action Pills (Info, InSight, Back / Continue Watching) -->
+                    <!-- Left: Glass Action Pills (Info, InSight, Back / Continue Watching) -->
                     <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
 
                         <!-- Info Pill -->
@@ -435,7 +435,7 @@
                         </Button>
                     </StackPanel>
 
-                    <!-- Center / Playhead Elapsed Indicator (Matches Screenshot 1: 04:33 ⏸) -->
+                    <!-- Center / Playhead Elapsed Indicator (Matches Screenshot 1: 04:33) -->
                     <StackPanel Grid.Column="1"
                                 Orientation="Horizontal"
                                 Spacing="6"

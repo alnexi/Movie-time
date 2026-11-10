@@ -3,44 +3,44 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:views="using:MovieTime.App.Views"
-    Title="Movie Time">
+    Title="River">
 
     <Grid x:Name="RootWindowGrid" Background="{ThemeResource AppBackgroundBrush}">
-        <!-- 1. Apple TV-Inspired Home Screen -->
+        <!-- 1. Home Screen -->
         <views:HomeView x:Name="MainHomeView"
                         ViewModel="{x:Bind HomeViewModel, Mode=OneWay}" />
 
-        <!-- 2. Apple TV-Inspired Movies Library Screen -->
+        <!-- 2. Movies Library Screen -->
         <views:MoviesView x:Name="MainMoviesView"
                           ViewModel="{x:Bind MoviesViewModel, Mode=OneWay}"
                           Visibility="Collapsed" />
 
-        <!-- 3. Apple TV-Inspired Settings Screen (MLibrary Management) -->
+        <!-- 3. Settings Screen (MLibrary Management) -->
         <views:SettingsView x:Name="MainSettingsView"
                             ViewModel="{x:Bind SettingsViewModel, Mode=OneWay}"
                             Visibility="Collapsed" />
 
-        <!-- 4. Apple TV-Inspired Movie Details Screen -->
+        <!-- 4. Movie Details Screen -->
         <views:MovieDetailsView x:Name="MainMovieDetailsView"
                                 ViewModel="{x:Bind MovieDetailsViewModel, Mode=OneWay}"
                                 Visibility="Collapsed" />
 
-        <!-- 5. Apple TV-Inspired TV Shows Library Screen -->
+        <!-- 5. TV Shows Library Screen -->
         <views:TvShowsView x:Name="MainTvShowsView"
                            ViewModel="{x:Bind TvShowsViewModel, Mode=OneWay}"
                            Visibility="Collapsed" />
 
-        <!-- 6. Apple TV-Inspired Series Details Screen -->
+        <!-- 6. Series Details Screen -->
         <views:SeriesDetailsView x:Name="MainSeriesDetailsView"
                                  ViewModel="{x:Bind SeriesDetailsViewModel, Mode=OneWay}"
                                  Visibility="Collapsed" />
 
-        <!-- 7. Native Hardware-Accelerated Cinematic Player (Apple TV Specification) -->
+        <!-- 7. Native Hardware-Accelerated Cinematic Player (Cinematic Specification) -->
         <views:PlayerView x:Name="MainPlayerView"
                           ViewModel="{x:Bind PlayerViewModel, Mode=OneWay}"
                           Visibility="Collapsed" />
 
-        <!-- 8. Apple TV-Inspired Playlists Screen -->
+        <!-- 8. Playlists Screen -->
         <views:PlaylistsView x:Name="MainPlaylistsView"
                              ViewModel="{x:Bind PlaylistsViewModel, Mode=OneWay}"
                              Visibility="Collapsed" />

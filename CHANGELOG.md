@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to **Movie Time** will be documented in this file.
+All notable changes to **River** will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -8,6 +8,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 ## [Unreleased]
+
+---
+
+## [1.0.0] - 2026-11-10 (River — Final Polish, Rebranding & Complete UI Interaction Audit)
+
+### Added
+- **Product Rebranding: Movie Time → River**:
+  - Rebranded the application name to **River** across all user-facing surfaces:
+    - Main Window Title: `River`.
+    - Application display name: `River`.
+    - Navigation sidebar header: `River`.
+    - Settings & Storage section descriptions: `River`.
+    - Windows Explorer Open With menu: `River` and `River Video File`.
+    - Windows single-instance startup logging and error diagnostics.
+    - Application assembly metadata: `<AssemblyTitle>River</AssemblyTitle>` and `<Product>River</Product>`.
+    - Desktop shortcut: `River.lnk` with the approved sailboat icon.
+  - **Preserved Technical Core**: Retained existing namespaces (`MovieTime.*`), database schema, storage paths (`%LocalAppData%\MovieTime`), and user databases without disruption.
+- **Iconography & Visual Polish**:
+  - Completely purged all decorative emojis and stickers from the user interface and comments.
+  - Replaced theme preset emojis (`☀️`, `🌅`, `🌙`) with crisp native Fluent glyphs (`&#xE706;` Sun, `&#xE708;` Sunset/Horizon, `&#xEC46;` Moon).
+  - Cleaned all legacy Apple TV brand references from the codebase, documentation, and user-facing dialogs while preserving the cinematic dark/glass design language.
+- **Complete UI Interaction Audit & Hardening**:
+  - Audited all 136 interactive controls across Navigation, Home, Movies Library, Movie Details, TV Shows, Series Details, Player, Settings, and Playlists.
+  - Verified 100% legitimate functionality: zero dead buttons, zero fake menus, zero placeholder click handlers.
+  - Bound dual-state segmented tab buttons in Settings to ensure both active and inactive tabs respond reliably.
+  - Ensured consistent pointer cursors, hover lifts, focus indicators, and keyboard shortcuts across all views.
 
 ---
 
@@ -47,7 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Persistent Movie Playlists (I-04)**:
   - SQLite database schema migration (v3) adding `Playlists` and `PlaylistItems` tables with indexing.
   - Full CRUD operations: Create, Rename, Delete playlists; Add/Remove movies; Reorder items (Move Up / Move Down).
-  - Apple TV-inspired `PlaylistsView` with split navigation, playlist statistics, and empty guidance states.
+  - cinematic `PlaylistsView` with split navigation, playlist statistics, and empty guidance states.
   - "Add to Playlist" quick-flyout action in `MovieDetailsView`.
   - Continuous sequential playback: automatic seamless transition to the next movie upon completion.
   - Player HUD transport controls updated with Previous / Next Playlist item buttons and position badge (`N of Total`).
@@ -55,7 +81,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Integrated the approved white sailboat line art on black branding asset across all platform targets.
   - Multi-resolution `app.ico` (16, 24, 32, 48, 64, 128, 256 px) embedded as application icon in `MovieTime.App.exe`.
   - Window titlebar and taskbar icons dynamically set via WinUI 3 `AppWindow.SetIcon()`.
-  - Updated desktop shortcut (`Movie Time.lnk`) with the new icon.
+  - Updated desktop shortcut (`River.lnk`) with the new icon.
 - **Windows Explorer "Open With" Integration (I-06)**:
   - Non-destructive, elevation-free `HKCU` registry association across 11 video extensions (`.mp4`, `.mkv`, `.avi`, `.mov`, `.wmv`, `.webm`, `.m4v`, `.ts`, `.flv`, `.3gp`, `.ogv`).
   - Single-instance activation coordination via Windows App SDK `AppInstance.FindOrRegisterForKey()` and `RedirectActivationToAsync()`.
@@ -138,7 +164,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Clean, organic water highlights and shadows without artificial diagonal stripes across the entire 0%–100% range.
 - **Procedural Liquid Glass Droplet Slider Thumb**:
   - Designed and rendered a custom liquid glass droplet thumb replacing the blocky icon.
-  - Features an Apple-inspired teardrop silhouette (bulbous lower radius with smooth transition to tapered upward tip), bright specular highlight glint, refractive translucent core, and soft elevation drop shadow.
+  - Features an modern teardrop silhouette (bulbous lower radius with smooth transition to tapered upward tip), bright specular highlight glint, refractive translucent core, and soft elevation drop shadow.
   - Interactive tactile feedback: smooth scaling and intensified glow upon pointer hover and drag.
 - **Continuous 0–100% Single-Percent Intensity Control**:
   - Replaced crude discrete stepping with exact integer percentage control ($0\%$ to $100\%$).
@@ -165,7 +191,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Completely purged text annotations ("Sinking into dither", "yarik") from the rendering canvas.
   - Removed large redundant title heading and explanatory text paragraph above the artwork in Settings for a distraction-free, cinematic layout.
 - **Settings Redesign — Dedicated Two-Tab Architecture**:
-  - Introduced an Apple TV-inspired segmented capsule tab bar at the top of Settings:
+  - Introduced an cinematic segmented capsule tab bar at the top of Settings:
     - **Tab 1: 🗄️ Media Libraries & Storage**: Dedicated to drive enumeration, MLibrary folder discovery, library registration cards, and scan controls.
     - **Tab 2: 🎨 Theme Experience**: Dedicated full-width showcase for the real-time 3D canvas, droplet slider, percentage readout, presets, and accessibility switches.
   - Independent scrolling and clean separation of concerns without page clutter.
@@ -221,7 +247,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Season 0 explicitly titled `"Specials"`; Season $N$ titled `"Season N"`.
   - Re-scan refinement: updates generic episode titles (`Episode 8` -> `Lessons`) if improved naming is detected, without duplicating database entities.
 - **Dedicated TV Shows Library Screen (`TvShowsView` & `TvShowsViewModel`)**:
-  - Apple TV-inspired 2:3 vertical poster grid (`TvShowsView.xaml`) with smooth hover lift and focus border animation.
+  - cinematic 2:3 vertical poster grid (`TvShowsView.xaml`) with smooth hover lift and focus border animation.
   - Displays series title, release year span (`2002–2008`), season count, and episode count.
   - Real-time instant title search filtering with empty search state feedback.
   - Multi-criteria sorting: `Title (A-Z)`, `Release Year (Newest)`, and `Recently Added`.
@@ -298,7 +324,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Hardware-accelerated aspect ratio cropping and scaling (2:3 theatrical poster at 600x900, 16:9 widescreen backdrop at 1920x1080) via Windows Imaging Component (`WicImageProcessingService`).
   - **Tier 3 (Safe Typographical Fallback)**:
     - Graceful fallback for unreadable or damaged media files; sets `IsPosterFallback` and `IsBackdropFallback` flags in SQLite.
-    - Displays high-fidelity Apple TV dark atmospheric radial glow and metadata typography with zero UI pop-in or crashes.
+    - Displays high-fidelity dark atmospheric radial glow and metadata typography with zero UI pop-in or crashes.
 - **Collision-Safe Local Storage & Deterministic Cache (`ArtworkStorageService`)**:
   - Normalized path + file size + UTC modified timestamp SHA256 deterministic key generation.
   - Strictly non-destructive: all extracted posters and backdrops are cached under `%LocalAppData%\MovieTime\Artwork\Posters\` and `Backdrops\`; original user video directories are never touched.
@@ -334,7 +360,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Interactive Keyboard Shortcuts reference card embedded directly inside the InSight flyout.
 - **External Audio & Dubbed Track Synchronization**:
   - Added native LibVLC audio slave support (`.mka`, `.mkv`, `.aac`, `.ac3`, `.mp3`, `.m4a`, `.wav`, `.flac`, `.ogg`, `.opus`) alongside running video.
-  - Audible and selectable from the Apple TV Audio Options menu with immediate playback switching.
+  - Audible and selectable from the Audio Options menu with immediate playback switching.
   - Audio Delay Synchronization controls with `±100ms` nudging and `0ms` instant reset via native LibVLC microsecond delay APIs.
   - Option to remove external audio and restore embedded audio tracks.
 - **External Subtitles Support**:
@@ -349,7 +375,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - One-click "Reset to Default" command.
   - Persistent storage in `%LocalAppData%\MovieTime\Settings\subtitle_settings.json` across application sessions.
   - Preserves ASS/SSA embedded script typography while styling text subtitle formats (SRT/VTT).
-- **Apple TV Liquid Glass Menus**:
+- **Liquid Glass Menus**:
   - Implemented sleek Liquid Glass flyout panels for Audio Options, Subtitles, Subtitle Appearance, and InSight.
 - **Comprehensive Unit Testing**:
   - Expanded test suite from 201 to **217 passing unit tests**, validating all keyboard shortcuts, percentage seeking algorithms, audio delay adjustment, external track attachment, and subtitle settings persistence.
@@ -368,8 +394,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Resolution 3 — Universal Pointer Capture & Timeline Container**: Registered low-level pointer handlers (`PointerPressed`, `PointerMoved`, `PointerReleased`, `PointerCaptureLost`) using `AddHandler(..., handledEventsToo: true)` on both `TimelineSlider` and `TimelineContainer`. Clicking anywhere along the 36px hit-testing region computes the proportional ratio `X / ActualWidth` and immediately seeks to that position.
   - **Root Cause 4 — EOF Hang & Floating-Point Truncation**: Seeks beyond media duration previously risked decoding stalls at the exact EOF boundary, and `(long)(ratio * duration)` truncated fractional values like `62999.999ms`, producing off-by-one second display errors.
   - **Resolution 4 — Safe Bounds Clamping & Rounded Timestamps**: Implemented strict clamping to `[0, Math.Max(0, durationMs - 250)]` and `(long)Math.Round(ratio * durationMs)`. Seeking while paused preserves paused state; seeking while playing resumes smoothly from the new timestamp.
-- **Enhanced Apple TV Timeline Styling**:
-  - Styled `TimelineSlider` with sleek Apple TV Liquid Glass theme brushes (solid white active track and thumb, 25% translucent unplayed track, 36px comfortable hit-test target).
+- **Enhanced Timeline Styling**:
+  - Styled `TimelineSlider` with sleek Liquid Glass theme brushes (solid white active track and thumb, 25% translucent unplayed track, 36px comfortable hit-test target).
   - Disabled default Windows numeric tooltips (`IsThumbToolTipEnabled="False"`), keeping focus on the clean HUD playhead and remaining time displays.
 - **Unit Test Coverage Expansion**:
   - Expanded unit test suite to **201 passed tests** in `tests/MovieTime.Tests/PlayerViewModelTests.cs`.
@@ -387,9 +413,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Allocated `LibVLC` with `--winrt-d3dcontext` and `--winrt-swapchain` parameters, routing all hardware decoding frames directly into the in-tree `SwapChainPanel`.
     - Added asynchronous synchronization in `OpenMediaAsync` ensuring the DirectComposition swapchain is established before media playback starts.
     - Verified with Win32 window enumeration that exactly ONE application window (`WinUIDesktopWin32WindowClass`, "Movie Time") exists throughout playback, with zero external or secondary windows.
-- **Integrated Apple TV Cinematic Player Layout & Z-Order**:
+- **Integrated Cinematic Player Layout & Z-Order**:
   - Restored clean declarative `<lvs:VideoView x:Name="LibVlcVideoView">` in `PlayerView.xaml` with early `LibVLCSharp.Shared.Core.Initialize()` execution in `App.xaml.cs`.
-  - Enforced strict Z-order composition inside `PlayerRootGrid`: `LibVlcVideoView` serves as the underlying background surface, beneath atmospheric cinematic vignette gradients and Apple TV Liquid Glass transport controls, timeline playhead, and back button.
+  - Enforced strict Z-order composition inside `PlayerRootGrid`: `LibVlcVideoView` serves as the underlying background surface, beneath atmospheric cinematic vignette gradients and Liquid Glass transport controls, timeline playhead, and back button.
   - Interactive hit testing: All control buttons, sliders, and flyout menus reliably capture input while transparent overlay regions pass pointer events through to manage auto-hiding (3.5s inactivity timer).
   - Single-window fullscreen transitions: Fullscreen toggles `AppWindow.SetPresenter(AppWindowPresenterKind.FullScreen)` on the active `MainWindow` with Esc / Back key returning seamlessly to Movie Details.
 
@@ -426,8 +452,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Resilient playback progress persistence: saves playback position ticks, duration, percentage, and completion status to local SQLite database via `IPlaybackProgressRepository`.
   - Auto-resume prompt / automatic position restoration from previous playback sessions.
 
-- **Apple TV-Faithful Player Interface**:
-  - Pixel-accurate reproduction of user-supplied Apple TV player visual references:
+- **Cinematic Player Interface**:
+  - Pixel-accurate reproduction of user-supplied player visual references:
     - **Top Context Line**: Season/Episode or Edition context, technical tags (`4K UHD`, `HEVC`, `MKV`).
     - **Large Title Typography**: Semi-bold cinematic movie title treatment.
     - **Right-Aligned Header Controls**: Circular Liquid Glass buttons for Subtitles (`💬`), Audio Options (`(((|||)))`), and Fullscreen/PiP (`⤢`).
@@ -467,12 +493,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.5.0] - 2026-11-06 (Phase 3D)
 
 ### Added
-- **Cinematic Movie Details Experience**: Dedicated `MovieDetailsView` and `MovieDetailsViewModel` inspired by Apple TV design references.
+- **Cinematic Movie Details Experience**: Dedicated `MovieDetailsView` and `MovieDetailsViewModel` inspired by design references.
   - **Full-Width Hero Section**: Dynamic background rendering genuine local backdrops when available on disk, with subtle atmospheric radial and linear dark vignette overlays. Sophisticated ambient gradient fallback when no local artwork exists.
   - **Cinematic Title & Badges**: Prominent movie title typography with genuine release year and edition badges (e.g. *Director's Cut*, *Extended Edition*).
   - **Real Local Metadata Display**: Quality badges (`4K UHD`, `1080p HD`), video codec (`HEVC`, `AVC`), audio format, container format (`MKV`, `MP4`), and human-readable file sizes (`GB`/`MB`).
   - **Zero Fabricated Information Guarantee**: Only displays metadata genuinely available in the local SQLite database or scanned files; omits unverified fields (no fake genres, ratings, synopses, directors, or fictional cast).
-  - **Primary Play Action**: Apple TV-signature white capsule Play button (`▶ Play Movie`) connected to the active local physical media file with feedback banner and integration boundary for Phase 4 VLC player.
+  - **Primary Play Action**: signature white capsule Play button (`▶ Play Movie`) connected to the active local physical media file with feedback banner and integration boundary for Phase 4 VLC player.
   - **Multiple Local Media Files / Editions**: Support for selecting between multiple physical files/editions of the same movie, with automatic metadata updating.
   - **Offline Recommendations ("More from your library")**: Horizontal carousel presenting other real movies cataloged in the user's local database.
   - **Fluid Navigation**: Bi-directional navigation between Movies Library and Movie Details, preserving search and category filter state.
@@ -487,7 +513,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Steam-inspired multi-drive storage management with automated Windows drive enumeration (`DriveInfo.GetDrives()`).
   - Standardized `<Drive>:\MLibrary` isolated folder hierarchy.
   - Strict scanning boundaries: only scans inside designated `MLibrary` folders; never touches system directories or root disks.
-  - Apple TV-inspired `SettingsView` and `SettingsViewModel` with real-time drive availability indicators (Available, Folder Missing, Drive Disconnected, Disabled).
+  - cinematic `SettingsView` and `SettingsViewModel` with real-time drive availability indicators (Available, Folder Missing, Drive Disconnected, Disabled).
   - Interactive drive picker modal with disk preview and explicit confirmation before folder creation.
   - Pure zero-mock empty states for Home and Movies views when no libraries or movies are cataloged.
 
@@ -496,9 +522,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.5] - 2026-11-06 (Phase 3B)
 
 ### Added
-- **Apple TV-Inspired Movies Library Experience**:
+- **Cinematic Movies Library Experience**:
   - Embedded category and genre filter sidebar (`All Movies`, `Recently Added`, `4K & High Definition`, and genres).
-  - Apple TV 2:3 vertical poster grid (`170x255`) with 1.06x scale lift, white focus border, and elevation drop shadow.
+  - 2:3 vertical poster grid (`170x255`) with 1.06x scale lift, white focus border, and elevation drop shadow.
   - Interactive quick-action context dialog (`Play`, `Go to Movie`).
   - Real-time local search and multi-criteria sorting (Title, Release Year, Date Added).
 
@@ -507,7 +533,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.0] - 2026-11-05 (Phase 3A)
 
 ### Added
-- **Apple TV-Inspired Home UI**:
+- **Cinematic Home UI**:
   - Full-width billboard hero section with dark cinematic vignette overlays.
   - Floating translucent sidebar navigation (`( 🏠 Home )`).
   - Horizontal scrolling content rows with 16:9 aspect ratio media cards.

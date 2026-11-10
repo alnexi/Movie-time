@@ -16,7 +16,7 @@ using MovieTime.Core.Library;
 namespace MovieTime.App.ViewModels;
 
 /// <summary>
-/// ViewModel managing the Apple TV-inspired Movies Library experience,
+/// ViewModel managing the Movies Library experience,
 /// including SQLite-backed movie catalog, category filtering, search, sorting, and focus states.
 /// </summary>
 public sealed class MoviesViewModel : ObservableObject

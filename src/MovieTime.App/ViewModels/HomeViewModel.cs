@@ -18,7 +18,7 @@ using MovieTime.Core.Library;
 namespace MovieTime.App.ViewModels;
 
 /// <summary>
-/// Main ViewModel for the Apple TV-inspired Home experience.
+/// Main ViewModel for the Home experience.
 /// Orchestrates dynamic rotating hero billboard showcase, horizontal content rows, floating acrylic sidebar,
 /// silent hover micro-previews, genuine artwork pipeline synchronization, and local media playback.
 /// </summary>
@@ -816,7 +816,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
 
         Hero = new HeroBannerViewModel
         {
-            Title = "MOVIE TIME",
+            Title = "RIVER",
             Genre = "Local Media Library",
             RatingBadge = "Offline",
             QualityBadge = "Ready",

@@ -6,7 +6,7 @@ namespace MovieTime.Core.Theme;
 public enum AppThemeMode
 {
     /// <summary>
-    /// Crisp, sunlit Apple-inspired light theme with vibrant emerald tones (Slider in [0.0, 0.35)).
+    /// Crisp, sunlit light theme with vibrant emerald tones (Slider in [0.0, 0.35)).
     /// </summary>
     Day = 0,
 
@@ -16,7 +16,7 @@ public enum AppThemeMode
     Twilight = 1,
 
     /// <summary>
-    /// Signature Movie Time Apple TV obsidian midnight dark theme (Slider in (0.65, 1.0]).
+    /// Signature Movie Time obsidian midnight dark theme (Slider in (0.65, 1.0]).
     /// </summary>
     Night = 2
 }

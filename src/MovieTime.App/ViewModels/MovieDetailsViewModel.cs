@@ -14,7 +14,7 @@ using MovieTime.Core.Entities;
 namespace MovieTime.App.ViewModels;
 
 /// <summary>
-/// ViewModel managing the Apple TV-inspired cinematic Movie Details experience.
+/// ViewModel managing the cinematic Movie Details experience.
 /// Presents real local media metadata, genuine file paths, multiple editions, and offline local library recommendations.
 /// </summary>
 public sealed class MovieDetailsViewModel : ObservableObject

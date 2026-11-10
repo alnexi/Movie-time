@@ -6,9 +6,9 @@ namespace MovieTime.Tests;
 public class AppConstantsTests
 {
     [Fact]
-    public void ApplicationName_ShouldBeMovieTime()
+    public void ApplicationName_ShouldBeRiver()
     {
-        Assert.Equal("Movie Time", AppConstants.ApplicationName);
+        Assert.Equal("River", AppConstants.ApplicationName);
     }
 
     [Fact]

@@ -74,7 +74,7 @@
                         </Border>
                     </Grid>
 
-                    <!-- B. Top Floating Back Button: ( ‹ TV Shows ) -->
+                    <!-- B. Top Floating Back Button: TV Shows -->
                     <Button Command="{x:Bind ViewModel.BackCommand, Mode=OneWay}"
                             HorizontalAlignment="Left"
                             VerticalAlignment="Top"

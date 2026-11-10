@@ -37,7 +37,7 @@ public static class WindowsOpenWithRegistrar
             }
 
             const string progId = "MovieTime.Video";
-            const string appName = "Movie Time";
+            const string appName = "River";
 
             // 1. Register Application in HKCU\Software\Classes\Applications\MovieTime.App.exe
             using (var appKey = Registry.CurrentUser.CreateSubKey(@"Software\Classes\Applications\MovieTime.App.exe"))
@@ -63,8 +63,8 @@ public static class WindowsOpenWithRegistrar
             // 2. Register ProgId in HKCU\Software\Classes\MovieTime.Video
             using (var progKey = Registry.CurrentUser.CreateSubKey(@"Software\Classes\" + progId))
             {
-                progKey.SetValue(string.Empty, "Movie Time Video File");
-                progKey.SetValue("FriendlyTypeName", "Video file (Movie Time)");
+                progKey.SetValue(string.Empty, "River Video File");
+                progKey.SetValue("FriendlyTypeName", "Video file (River)");
                 using (var iconKey = progKey.CreateSubKey("DefaultIcon"))
                 {
                     iconKey.SetValue(string.Empty, $"\"{iconPath}\",0");
@@ -85,7 +85,7 @@ public static class WindowsOpenWithRegistrar
                 using var openWithList = extKey.CreateSubKey(@"OpenWithList\MovieTime.App.exe");
             }
 
-            logger?.LogInformation("Successfully registered Movie Time for Windows Open With across {Count} video formats.", SupportedExtensions.Length);
+            logger?.LogInformation("Successfully registered River for Windows Open With across {Count} video formats.", SupportedExtensions.Length);
         }
         catch (Exception ex)
         {

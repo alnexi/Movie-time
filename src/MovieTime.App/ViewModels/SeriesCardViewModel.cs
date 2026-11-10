@@ -6,7 +6,7 @@ using MovieTime.App.Common;
 namespace MovieTime.App.ViewModels;
 
 /// <summary>
-/// Presentation model for a TV show card in the Apple TV-inspired TV Shows library grid.
+/// Presentation model for a TV show card in the TV Shows library grid.
 /// </summary>
 public sealed class SeriesCardViewModel : ObservableObject
 {

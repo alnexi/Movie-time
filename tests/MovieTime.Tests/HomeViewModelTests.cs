@@ -102,7 +102,7 @@ public sealed class HomeViewModelTests : IDisposable
         Assert.True(vm.IsLibraryEmpty);
         Assert.False(vm.HasActualLibraryData);
         Assert.NotNull(vm.Hero);
-        Assert.Equal("MOVIE TIME", vm.Hero.Title);
+        Assert.Equal("RIVER", vm.Hero.Title);
         Assert.Equal("Local Media Library", vm.Hero.Genre);
         Assert.Equal("Offline", vm.Hero.RatingBadge);
         Assert.Equal("Manage Libraries", vm.Hero.ActionButtonText);

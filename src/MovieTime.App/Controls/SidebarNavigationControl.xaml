@@ -8,7 +8,7 @@
     mc:Ignorable="d"
     d:DataContext="{d:DesignInstance Type=vm:HomeViewModel}">
 
-    <!-- Floating Frosted Glass Acrylic Panel (Apple TV Signature Style) -->
+    <!-- Floating Frosted Glass Acrylic Panel (Signature Style) -->
     <Grid x:Name="SidebarContainer"
           Width="250"
           HorizontalAlignment="Left"
@@ -36,7 +36,7 @@
                         <Border Width="30" Height="30" CornerRadius="15" Background="{ThemeResource AppGlassFillBrush}">
                             <FontIcon Glyph="&#xE77B;" FontSize="15" Foreground="{ThemeResource AppTextPrimaryBrush}" />
                         </Border>
-                        <TextBlock Text="Movie Time"
+                        <TextBlock Text="River"
                                    FontSize="13"
                                    FontWeight="SemiBold"
                                    Foreground="{ThemeResource AppTextPrimaryBrush}"

@@ -15,7 +15,7 @@ using MovieTime.Core.Library;
 namespace MovieTime.App.ViewModels;
 
 /// <summary>
-/// ViewModel managing the Apple TV-inspired TV Shows library catalog,
+/// ViewModel managing the TV Shows library catalog,
 /// including SQLite-backed series catalog, search filtering, sorting, empty states, and focus states.
 /// </summary>
 public sealed class TvShowsViewModel : ObservableObject

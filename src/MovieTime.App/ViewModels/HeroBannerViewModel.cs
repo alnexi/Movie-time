@@ -6,7 +6,7 @@ using MovieTime.App.Common;
 namespace MovieTime.App.ViewModels;
 
 /// <summary>
-/// Presentation model for the prominent hero billboard at the top of the Apple TV Home screen.
+/// Presentation model for the prominent hero billboard at the top of the Home screen.
 /// Supports dynamic rotating movies, interactive carousel dots, and dual Play/Details navigation.
 /// </summary>
 public sealed class HeroBannerViewModel : ObservableObject

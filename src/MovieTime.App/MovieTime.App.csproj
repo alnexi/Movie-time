@@ -11,6 +11,9 @@
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <AssemblyTitle>River</AssemblyTitle>
+    <Product>River</Product>
+    <Description>River — Modern Local Media Player</Description>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>$(NoWarn);NU1605</NoWarn>
   </PropertyGroup>

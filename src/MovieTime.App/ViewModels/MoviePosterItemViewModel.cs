@@ -6,7 +6,7 @@ using MovieTime.App.Common;
 namespace MovieTime.App.ViewModels;
 
 /// <summary>
-/// Presentation model for a movie poster item in the Apple TV-inspired Movies Library grid.
+/// Presentation model for a movie poster item in the Movies Library grid.
 /// </summary>
 public sealed class MoviePosterItemViewModel : ObservableObject
 {

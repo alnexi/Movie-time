@@ -40,7 +40,7 @@ public sealed class WinUiThemePaletteApplier : IThemePaletteApplier
             try
             {
                 var bg = ThemeColorInterpolator.Interpolate5(
-                    c0: ThemeColor.FromArgb(255, 243, 244, 246),      // 0%  Light Apple Gray #F3F4F6
+                    c0: ThemeColor.FromArgb(255, 243, 244, 246),      // 0%  Light Pearl Gray #F3F4F6
                     c25: ThemeColor.FromArgb(255, 226, 229, 233),     // 25% Soft Cool Slate #E2E5E9
                     c50: ThemeColor.FromArgb(255, 20, 18, 14),         // 50% Sunset Umber #14120E
                     c75: ThemeColor.FromArgb(255, 14, 14, 18),         // 75% Deep Charcoal #0E0E12
@@ -68,7 +68,7 @@ public sealed class WinUiThemePaletteApplier : IThemePaletteApplier
                     c25: ThemeColor.FromArgb(255, 117, 117, 117),    // Medium Gray #757575
                     c50: ThemeColor.FromArgb(255, 186, 168, 152),    // Warm Tan #BAA898
                     c75: ThemeColor.FromArgb(255, 160, 160, 165),    // Muted Lavender Slate
-                    c100: ThemeColor.FromArgb(255, 142, 142, 147),   // Apple Muted #8E8E93
+                    c100: ThemeColor.FromArgb(255, 142, 142, 147),   // Muted Slate #8E8E93
                     t: themeValue);
 
                 var accent = ThemeColorInterpolator.Interpolate5(

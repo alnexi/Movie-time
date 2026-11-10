@@ -19,7 +19,7 @@ public sealed class WindowsIntegrationTests
         // Verify Application registration
         using var appKey = Registry.CurrentUser.OpenSubKey(@"Software\Classes\Applications\MovieTime.App.exe");
         Assert.NotNull(appKey);
-        Assert.Equal("Movie Time", appKey.GetValue("FriendlyAppName"));
+        Assert.Equal("River", appKey.GetValue("FriendlyAppName"));
 
         // Verify SupportedTypes
         using var typesKey = appKey.OpenSubKey("SupportedTypes");

@@ -15,7 +15,7 @@
                       VerticalScrollBarVisibility="Auto"
                       VerticalScrollMode="Enabled">
             <StackPanel Padding="0,0,0,60">
-                <!-- Apple TV Hero Billboard Section -->
+                <!-- Hero Billboard Section -->
                 <controls:HeroBannerControl ViewModel="{x:Bind ViewModel.Hero, Mode=OneWay}" />
 
                 <!-- Empty Library Guidance Callout (when no local files scanned yet) -->
@@ -88,7 +88,7 @@
             </StackPanel>
         </ScrollViewer>
 
-        <!-- 2. Apple TV Floating Pill Button: ( 🏠 Home ) - Screenshot 1 -->
+        <!-- 2. Floating Pill Button: Home - Screenshot 1 -->
         <!-- Placed top-left, opens the sidebar when clicked -->
         <Button Command="{x:Bind ViewModel.ToggleSidebarCommand}"
                 HorizontalAlignment="Left"
@@ -111,7 +111,7 @@
                 Visibility="{x:Bind ViewModel.IsSidebarOpen, Mode=OneWay}"
                 PointerPressed="OnBackdropPointerPressed" />
 
-        <!-- 4. Floating Apple TV Sidebar Panel - Screenshot 2 -->
+        <!-- 4. Floating Sidebar Panel - Screenshot 2 -->
         <controls:SidebarNavigationControl ViewModel="{x:Bind ViewModel, Mode=OneWay}"
                                            HorizontalAlignment="Left"
                                            VerticalAlignment="Stretch" />

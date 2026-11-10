@@ -78,7 +78,7 @@
                         </Border>
                     </Grid>
 
-                    <!-- B. Top Floating Back Button: ( ‹ Movies ) -->
+                    <!-- B. Top Floating Back Button: Movies -->
                     <Button Command="{x:Bind ViewModel.BackCommand, Mode=OneWay}"
                             HorizontalAlignment="Left"
                             VerticalAlignment="Top"
@@ -196,7 +196,7 @@
 
                             <!-- Action Buttons Row (Reference 1, 2, 3) -->
                             <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,6,0,0">
-                                <!-- Primary Action: Signature Apple TV White Play Capsule -->
+                                <!-- Primary Action: Signature White Play Capsule -->
                                 <Button Command="{x:Bind ViewModel.PlayCommand, Mode=OneWay}"
                                         Background="#FFFFFF"
                                         Foreground="#000000"
