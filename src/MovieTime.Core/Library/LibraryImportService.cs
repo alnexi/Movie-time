@@ -37,6 +37,8 @@ public sealed class LibraryImportService : ILibraryImportService
     private readonly IArtworkPipelineService? _artworkPipelineService;
     private readonly ILogger<LibraryImportService> _logger;
 
+    public event EventHandler<LibraryImportResult>? ImportCompleted;
+
     private readonly SemaphoreSlim _importLock = new(1, 1);
     private volatile bool _isImporting;
 
@@ -200,6 +202,11 @@ public sealed class LibraryImportService : ILibraryImportService
                 var totalFilesInRoot = scanResult.ScannedFiles.Count;
                 var processedInRoot = 0;
 
+                // Pre-fetch existing media files in this root to detect moved/renamed files
+                var rootExistingFiles = await _mediaFileRepository.GetByPathPrefixAsync(root.NormalizedPath).ConfigureAwait(false);
+                var existingByPath = rootExistingFiles.ToDictionary(f => f.FilePath, StringComparer.OrdinalIgnoreCase);
+                var unlocatedCandidates = rootExistingFiles.Where(f => !File.Exists(f.FilePath)).ToList();
+
                 // Process discovered media files
                 foreach (var file in scanResult.ScannedFiles)
                 {
@@ -235,6 +242,38 @@ public sealed class LibraryImportService : ILibraryImportService
 
                     try
                     {
+                        // Check if this newly located file corresponds to a moved or renamed media file
+                        if (!existingByPath.ContainsKey(normalizedPath))
+                        {
+                            var matchedCandidate = unlocatedCandidates.FirstOrDefault(c =>
+                                c.SizeBytes == file.SizeBytes &&
+                                c.FileModifiedAt.HasValue &&
+                                Math.Abs((c.FileModifiedAt.Value - file.LastModifiedUtc).TotalSeconds) < 2);
+
+                            if (matchedCandidate != null)
+                            {
+                                unlocatedCandidates.Remove(matchedCandidate);
+                                var oldPath = matchedCandidate.FilePath;
+                                matchedCandidate.FilePath = normalizedPath;
+                                matchedCandidate.FileName = file.FileName;
+                                matchedCandidate.IsMissing = false;
+                                matchedCandidate.LastScannedAt = DateTime.UtcNow;
+
+                                var newDir = Path.GetDirectoryName(file.FilePath);
+                                var parsed = _parserEngine.Parse(file.FileName, newDir);
+                                RecordClassification(parsed, file.FileName, result);
+
+                                await EnsureEntityAssociationAsync(parsed, matchedCandidate, result, isUpdate: true).ConfigureAwait(false);
+                                await _mediaFileRepository.UpdateAsync(matchedCandidate).ConfigureAwait(false);
+
+                                result.FilesMoved++;
+                                result.FilesUpdated++;
+                                _logger.LogInformation("Detected renamed or moved media file under root '{RootPath}': '{OldPath}' -> '{NewPath}'. Preserved entity ID {Id}.",
+                                    root.NormalizedPath, oldPath, normalizedPath, matchedCandidate.Id);
+                                continue;
+                            }
+                        }
+
                         await ProcessMediaFileAsync(file, normalizedPath, root, options, result, cancellationToken).ConfigureAwait(false);
                     }
                     catch (Exception ex)
@@ -273,6 +312,7 @@ public sealed class LibraryImportService : ILibraryImportService
                 });
             }
 
+            ImportCompleted?.Invoke(this, result);
             return result;
         }
         catch (OperationCanceledException)

@@ -424,8 +424,14 @@ public sealed class MovieDetailsViewModel : ObservableObject
     {
         if (SelectedMediaFile != null && !string.IsNullOrWhiteSpace(SelectedMediaFile.FilePath))
         {
+            if (SelectedMediaFile.IsMissing)
+            {
+                PlaybackStatusMessage = "This media file is currently unavailable or missing from disk.";
+                return;
+            }
+
             _logger.LogInformation("Playback initiated for movie '{Title}' using file '{FilePath}'.", Title, SelectedMediaFile.FilePath);
-            PlaybackStatusMessage = $"Ready for playback: '{SelectedMediaFile.FileName}' (Phase 4 VLC player integration boundary).";
+            PlaybackStatusMessage = $"Ready for playback: '{SelectedMediaFile.FileName}'.";
             PlaybackRequested?.Invoke(SelectedMediaFile.FilePath);
         }
         else

@@ -18,6 +18,7 @@ public sealed class LibraryImportResult
     public int FilesImported { get; set; }
     public int FilesUpdated { get; set; }
     public int FilesUnchanged { get; set; }
+    public int FilesMoved { get; set; }
     public int FilesMissing { get; set; }
     public int MoviesCreated { get; set; }
     public int MoviesUpdated { get; set; }

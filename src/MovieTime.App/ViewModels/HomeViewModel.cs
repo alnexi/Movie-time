@@ -1,3 +1,4 @@
+using MovieTime.Core.Library.Models;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -215,6 +216,8 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
             _artworkPipelineService.ArtworkUpdated += OnArtworkUpdated;
         }
 
+        _importService.ImportCompleted += OnImportCompleted;
+
         // Initialize 7.5s rotation timer for hero billboard
         _heroRotationTimer = new System.Timers.Timer(7500) { AutoReset = true };
         _heroRotationTimer.Elapsed += OnHeroRotationTimerElapsed;
@@ -228,6 +231,26 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
 
         InitializeSidebarItems();
         SetupEmptyLibraryState();
+    }
+
+    private void OnImportCompleted(object? sender, LibraryImportResult e)
+    {
+        RunOnUi(() =>
+        {
+            _ = InitializeAsync();
+        });
+    }
+
+    private void RunOnUi(Action action)
+    {
+        if (_dispatcher != null)
+        {
+            _dispatcher.RunOnUi(action);
+        }
+        else
+        {
+            action();
+        }
     }
 
     private void OnArtworkUpdated(int movieId, string? posterPath, string? backdropPath)

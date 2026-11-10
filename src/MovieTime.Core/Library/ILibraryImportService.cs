@@ -23,4 +23,9 @@ public interface ILibraryImportService
         LibraryImportOptions? options = null,
         IProgress<LibraryImportProgress>? progress = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Fired whenever a library import and synchronization operation completes.
+    /// </summary>
+    event EventHandler<LibraryImportResult>? ImportCompleted;
 }

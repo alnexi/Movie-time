@@ -20,6 +20,7 @@ public sealed class SettingsViewModel : ObservableObject
 {
     private readonly IMLibraryManagerService _libraryManager;
     private readonly IThemeManagerService? _themeManager;
+    private readonly MovieTime.Core.Library.ILibraryAutoSyncService? _autoSyncService;
     private readonly ILogger<SettingsViewModel> _logger;
 
     private int _selectedTabIndex = 0; // 0 = General / Storage, 1 = Theme Experience
@@ -220,18 +221,36 @@ public sealed class SettingsViewModel : ObservableObject
     public SettingsViewModel(
         IMLibraryManagerService libraryManager,
         ILogger<SettingsViewModel>? logger)
-        : this(libraryManager, null, logger)
+        : this(libraryManager, null, null, logger)
+    {
+    }
+
+    public SettingsViewModel(
+        IMLibraryManagerService libraryManager,
+        IThemeManagerService? themeManager,
+        ILogger<SettingsViewModel>? logger)
+        : this(libraryManager, themeManager, null, logger)
     {
     }
 
     public SettingsViewModel(
         IMLibraryManagerService libraryManager,
         IThemeManagerService? themeManager = null,
+        MovieTime.Core.Library.ILibraryAutoSyncService? autoSyncService = null,
         ILogger<SettingsViewModel>? logger = null)
     {
         _libraryManager = libraryManager ?? throw new ArgumentNullException(nameof(libraryManager));
         _themeManager = themeManager;
+        _autoSyncService = autoSyncService;
         _logger = logger ?? NullLogger<SettingsViewModel>.Instance;
+
+        if (_autoSyncService != null)
+        {
+            _autoSyncService.SyncCompleted += (s, e) =>
+            {
+                _ = LoadLibrariesAsync();
+            };
+        }
 
         LoadLibrariesCommand = new AsyncRelayCommand(LoadLibrariesAsync);
         OpenAddDialogCommand = new AsyncRelayCommand(OpenAddDialogAsync);
@@ -371,6 +390,10 @@ public sealed class SettingsViewModel : ObservableObject
 
             StatusMessage = $"Registered MLibrary on drive {registered.DriveLetter} ({registered.Path}).";
             CloseAddDialog();
+            if (_autoSyncService != null)
+            {
+                await _autoSyncService.RefreshWatchersAsync();
+            }
             await LoadLibrariesAsync();
         }
         catch (Exception ex)
@@ -393,6 +416,10 @@ public sealed class SettingsViewModel : ObservableObject
             if (removed)
             {
                 StatusMessage = "Library folder unhooked from River.";
+                if (_autoSyncService != null)
+                {
+                    await _autoSyncService.RefreshWatchersAsync();
+                }
                 await LoadLibrariesAsync();
             }
         }
@@ -418,6 +445,10 @@ public sealed class SettingsViewModel : ObservableObject
             if (updated)
             {
                 library.IsEnabled = newEnabled;
+                if (_autoSyncService != null)
+                {
+                    await _autoSyncService.RefreshWatchersAsync();
+                }
             }
         }
         catch (Exception ex)

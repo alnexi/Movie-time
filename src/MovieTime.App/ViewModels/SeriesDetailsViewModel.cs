@@ -503,7 +503,7 @@ public sealed class SeriesDetailsViewModel : ObservableObject
 
     private void OnPlayNextUp()
     {
-        if (NextUpEpisode != null && !string.IsNullOrWhiteSpace(NextUpEpisode.FilePath))
+        if (NextUpEpisode != null && !string.IsNullOrWhiteSpace(NextUpEpisode.FilePath) && File.Exists(NextUpEpisode.FilePath))
         {
             PlaybackRequested?.Invoke(NextUpEpisode.FilePath, NextUpEpisode.EpisodeId);
         }

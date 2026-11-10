@@ -201,10 +201,7 @@ public sealed class VlcPlayerService : IVlcPlayerService
 
             if (_libVlc != null && _mediaPlayer != null)
             {
-                if (_attachedVideoView != null && _attachedVideoView.MediaPlayer != _mediaPlayer)
-                {
-                    _attachedVideoView.MediaPlayer = _mediaPlayer;
-                }
+                AttachMediaPlayerToVideoView();
                 return;
             }
 
@@ -255,10 +252,7 @@ public sealed class VlcPlayerService : IVlcPlayerService
                 // Subscribe to MediaPlayer events
                 HookMediaPlayerEvents(_mediaPlayer);
 
-                if (_attachedVideoView != null)
-                {
-                    _attachedVideoView.MediaPlayer = _mediaPlayer;
-                }
+                AttachMediaPlayerToVideoView();
 
                 _logger.LogInformation("LibVLC playback engine initialized successfully (single-window DirectComposition swapchain active).");
             }
@@ -267,6 +261,31 @@ public sealed class VlcPlayerService : IVlcPlayerService
                 _logger.LogError(ex, "Failed to initialize LibVLC native engine with SwapChain.");
                 State = PlayerState.Error;
                 PlaybackError?.Invoke($"Failed to initialize VLC playback engine: {ex.Message}");
+            }
+        }
+    }
+
+    private void AttachMediaPlayerToVideoView()
+    {
+        var vv = _attachedVideoView;
+        var mp = _mediaPlayer;
+        if (vv == null || mp == null) return;
+
+        if (vv.DispatcherQueue != null && !vv.DispatcherQueue.HasThreadAccess)
+        {
+            vv.DispatcherQueue.TryEnqueue(() =>
+            {
+                if (vv.MediaPlayer != mp)
+                {
+                    vv.MediaPlayer = mp;
+                }
+            });
+        }
+        else
+        {
+            if (vv.MediaPlayer != mp)
+            {
+                vv.MediaPlayer = mp;
             }
         }
     }

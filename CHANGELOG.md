@@ -11,6 +11,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.0] - 2026-11-10 (River — Phase 7: Reliable Library Auto-Sync, Missing Media Reconciliation & Universal Open With)
+
+### Added
+- **Universal Windows "Open With River" & External Video Playback**:
+  - Full support for opening arbitrary local video files from any folder on the computer (Desktop, Downloads, Documents, USB drives, external HDDs, secondary internal drives) regardless of whether the folder is inside `MLibrary`.
+  - Windows command-line parsing via native `CommandLineToArgvW` (with managed fallback) handling paths with spaces, Unicode characters (e.g. Persian, Arabic, CJK), long paths, and double quotes.
+  - Multi-file playlist playback: selecting multiple video files in Windows Explorer and opening with River queues them sequentially into the embedded player (`NavigateToPlayerWithPlaylist`).
+  - Single-instance activation redirection: opening a video while River is already running forwards activation arguments to the active window without spawning multiple instances or losing file paths.
+  - Temporary external playback boundaries: files opened outside `MLibrary` play directly in the embedded LibVLC player with zero database import, zero library scanning, zero file modification, and zero pollution of the Movies library or Continue Watching.
+  - Intelligent library file resolution: when an opened file belongs to an existing registered `MLibrary` record, River restores saved playback progress and continues updating progress.
+  - Thread-safe WinUI VideoView swapchain marshalling in `VlcPlayerService`, eliminating COM marshalling exceptions during background player initialization.
+- **Automatic Real-Time Library Synchronization (`LibraryAutoSyncService`)**:
+  - Implemented hybrid filesystem synchronization using high-capacity (64KB buffer) `System.IO.FileSystemWatcher` instances across all registered and enabled `MLibrary` directories.
+  - 2.0-second debounced event processing: coalesces burst filesystem notifications (e.g. copying 100 media files into a folder) into a single stabilized import run, preventing redundant full scans.
+  - Periodic background reconciliation cycle running every 60 seconds (internally configurable) to catch any external filesystem changes or dropped watcher notifications.
+  - Automatic dynamic watcher management: disposes watchers when scan roots are removed or disabled, and registers new watchers when drives reconnect.
+  - UI auto-updates: active views (`HomeViewModel`, `MoviesViewModel`, `TvShowsViewModel`, `SettingsViewModel`) subscribe to sync completion events and refresh their UI collections on the UI thread without requiring manual scans or application restart.
+- **Missing Media Reconciliation & Data Integrity**:
+  - Relocated and renamed file detection: matches moved files within a library root by exact file size and modification timestamp, updating `MediaFile.FilePath` and preserving entity IDs, playback progress, and artwork caches.
+  - Genuinely missing file reconciliation: marks unlocated files as `IsMissing = true` while keeping database integrity intact; restores `IsMissing = false` upon rediscovery.
+  - Multi-edition preservation: if a movie has multiple media files and one is deleted, only the missing file association is marked missing, keeping the movie accessible via its other editions.
+  - Drive disconnection safety: offline or disconnected drives are safely skipped without interpreting them as mass deletions, preserving all database records until reconnected.
+  - Stale UI protection: missing media files are cleanly excluded from the active Movies Library and Continue Watching shelves; details view prevents playback attempts with a clear notification.
+- **Authentic Hand-Drawn Sailboat Artwork**:
+  - Generated complete multi-resolution icon set (`app.ico`, `WindowIcon.png`, `Square*Logo.png`) from the authentic user-supplied sailboat artwork.
+
+---
+
+---
+
 ## [1.0.0] - 2026-11-10 (River — Final Polish, Rebranding & Complete UI Interaction Audit)
 
 ### Added

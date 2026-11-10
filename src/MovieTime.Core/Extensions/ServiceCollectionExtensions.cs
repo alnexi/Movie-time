@@ -64,6 +64,7 @@ public static class ServiceCollectionExtensions
         // Library synchronization and scan root services
         services.AddSingleton<Library.IScanRootService, Library.ScanRootService>();
         services.AddSingleton<Library.ILibraryImportService, Library.LibraryImportService>();
+        services.AddSingleton<Library.ILibraryAutoSyncService, Library.LibraryAutoSyncService>();
         services.AddSingleton<Library.IMLibraryManagerService, Library.MLibraryManagerService>();
 
         // Subtitle customization settings persistence

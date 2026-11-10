@@ -14,7 +14,7 @@ public static class WindowsOpenWithRegistrar
 {
     private static readonly string[] SupportedExtensions =
     {
-        ".mp4", ".mkv", ".avi", ".mov", ".wmv", ".webm", ".m4v", ".ts", ".flv", ".3gp", ".ogv"
+        ".mp4", ".mkv", ".avi", ".mov", ".wmv", ".webm", ".m4v", ".mpg", ".mpeg", ".ts", ".m2ts", ".mts", ".flv", ".3gp", ".ogv"
     };
 
     public static void RegisterOpenWith(ILogger? logger = null)

@@ -4,7 +4,7 @@
 
 [![.NET](https://img.shields.io/badge/.NET-10.0%20LTS%20(x64)-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![Windows App SDK](https://img.shields.io/badge/WinUI%203-Windows%20App%20SDK%201.7-0078D7?logo=windows)](https://learn.microsoft.com/en-us/windows/apps/winui/winui3/)
-[![Tests](https://img.shields.io/badge/Unit%20Tests-308%20Passed-brightgreen)](https://github.com/alnexi/Movie-time)
+[![Tests](https://img.shields.io/badge/Unit%20Tests-323%20Passed-brightgreen)](https://github.com/alnexi/Movie-time)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
@@ -152,13 +152,29 @@ Unlike cluttered streaming apps or heavy web-wrapped wrappers, River is built na
   - 3D perspective mouse-reactive parallax tilt and water ripple physics with Bayer 8x8 ordered dithering.
   - Global theme propagation updating colors, cards, borders, and contrast across all views in real time.
 
-### 9. Windows 11 Integration
-* **Windows Explorer "Open With"**:
-  - Registered in Windows Explorer Open With menu under **River** for 11 video formats (`.mp4`, `.mkv`, `.avi`, `.mov`, `.wmv`, `.webm`, `.m4v`, `.ts`, `.flv`, `.3gp`, `.ogv`).
-  - Single-instance activation routing: external files open directly in the embedded player without launching separate windows or modifying the library.
-* **Application Icon & Desktop Shortcut**:
-  - Multi-resolution `app.ico` (16, 24, 32, 48, 64, 128, 256 px) with the approved sailboat design.
+### 9. Windows 11 Integration & Universal Open With
+* **Universal Windows Explorer "Open With River"**:
+  - Registered in Windows Explorer Open With menu under **River** for 20 video formats (`.mp4`, `.mkv`, `.avi`, `.mov`, `.wmv`, `.webm`, `.m4v`, `.mpg`, `.mpeg`, `.ts`, `.m2ts`, `.mts`, `.m2t`, `.vob`, `.flv`, `.divx`, `.3gp`, `.ogv`, `.asf`, `.rmvb`, `.rm`).
+  - Opens arbitrary local video files from anywhere on the computer (Desktop, Downloads, external USB/hard drives) without requiring library registration, database insertion, or folder scanning.
+  - Multi-file playlist playback: selecting multiple videos in Windows Explorer and launching with River queues all titles sequentially in the embedded player (`NavigateToPlayerWithPlaylist`).
+  - Single-instance activation routing: external files open directly inside the active River window, bringing it to foreground without spawning duplicate processes.
+  - Non-library playback boundaries: external playback never pollutes the Movies library or Continue Watching shelves, and original files are never copied, moved, or altered.
+  - Library-aware progress restoration: if an opened file belongs to an existing `MLibrary` record, saved resume progress is restored and updated seamlessly.
+* **Authentic Sailboat Artwork & Desktop Shortcut**:
+  - High-resolution multi-resolution `app.ico` (16, 24, 32, 48, 64, 128, 256 px) and window logos generated directly from the authentic user-supplied sailboat artwork.
   - Native desktop shortcut (`River.lnk`) on the user's Desktop.
+
+### 10. Automatic Real-Time Library Auto-Sync & Media Reconciliation
+* **Hybrid Filesystem Synchronization (`LibraryAutoSyncService`)**:
+  - High-capacity 64KB-buffer `System.IO.FileSystemWatcher` actively monitors all enabled and accessible `MLibrary` directories.
+  - 2.0-second debounced event processing: coalesces rapid batch operations (e.g. copying 100 episodes) into a single stabilized import run to eliminate unnecessary disk strain.
+  - Periodic 60-second background reconciliation cycle catches any dropped filesystem events or external drive modifications.
+  - UI auto-updates: active views (`HomeView`, `MoviesView`, `TvShowsView`, `SettingsView`) automatically update their collections on the UI thread when filesystem changes occur without requiring manual refresh or application restart.
+* **Missing Media Reconciliation & Data Integrity**:
+  - Moved and renamed file detection: recognizes relocated files within the same library root by matching file size and timestamp, preserving entity IDs, playback progress, and artwork caches.
+  - Genuinely missing file reconciliation: marks unlocated files as `IsMissing = true`, cleanly excluding them from the active Movies library and Continue Watching; restores `IsMissing = false` upon rediscovery.
+  - Multi-edition integrity: deleting one edition of a multi-cut film removes only that file association while preserving the movie and remaining editions.
+  - Drive disconnection safety: offline or disconnected drives are skipped safely without interpreting them as mass deletions, keeping all database records intact.
 
 ---
 
@@ -173,26 +189,27 @@ River (MovieTime)/
 │   │   ├── Common/                # MVVM ObservableObject & RelayCommand
 │   │   ├── Controls/              # HeroBanner, MediaCard, MoviePosterCard, MediaRow, SidebarNavigation, PixelDitherThemeControl
 │   │   ├── Converters/            # XAML Value Converters
-│   │   ├── Services/              # VlcPlayerService, WicImageProcessingService, WindowsVideoFrameExtractor, WindowsOpenWithRegistrar
+│   │   ├── Services/              # VlcPlayerService, WicImageProcessingService, WindowsVideoFrameExtractor, WindowsOpenWithRegistrar, CommandLineActivationHelper
 │   │   ├── ViewModels/            # Presentation Models (Home, Movies, TvShows, SeriesDetails, MovieDetails, Settings, Playlists, Player)
 │   │   ├── Views/                 # Full-screen views (Home, Movies, TvShows, SeriesDetails, MovieDetails, Settings, Playlists, Player)
 │   │   ├── MainWindow.xaml        # Edge-to-edge window host & navigation coordinator
-│   │   └── App.xaml               # Composition Root & DI configuration
+│   │   └── App.xaml               # Composition Root, Single-Instance Routing & DI configuration
 │   │
 │   └── MovieTime.Core/            # Core Domain & Platform-Agnostic Engine
 │       ├── Artwork/               # Embedded artwork extraction, quality evaluation, storage, and pipeline coordination
 │       ├── Database/              # SQLite-net WAL database, migrations & repositories
 │       ├── Entities/              # Movie, Series, Season, Episode, MediaFile, ScanRoot, PlaybackProgress, Playlist, PlaylistItem
-│       ├── Library/               # MLibraryManagerService, LibraryImportService & ScanRootService
+│       ├── Library/               # MLibraryManagerService, LibraryImportService, LibraryAutoSyncService & ScanRootService
 │       ├── Logging/               # Serilog rolling local file logger (%LocalAppData%\MovieTime\Logs)
 │       ├── Parsing/               # FilenameParserEngine (heuristic classification & extraction)
 │       ├── Playback/              # IVlcPlayerService, PlayerState, PlayerTrackInfo, SubtitleSettings
 │       ├── Scanning/              # MediaScannerService (recursive async filesystem scanner)
+│       ├── Shell/                 # CommandLineHelper (Windows CommandLineToArgvW & managed fallback parser)
 │       ├── Theme/                 # ThemeManager, PaletteInterpolator, Color models
 │       └── Services/              # StoragePathService & AppEnvironment
 │
 └── tests/
-    └── MovieTime.Tests/           # Unit & Integration Tests (308 tests)
+    └── MovieTime.Tests/           # Unit & Integration Tests (323 tests)
 ```
 
 ---

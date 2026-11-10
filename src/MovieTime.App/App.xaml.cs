@@ -204,6 +204,21 @@ public partial class App : Application
                 }
             }
 
+            // 4. Start automatic library synchronization service (real-time FileSystemWatcher + periodic reconciliation)
+            try
+            {
+                var autoSync = Services.GetService<MovieTime.Core.Library.ILibraryAutoSyncService>();
+                if (autoSync != null)
+                {
+                    _ = autoSync.StartAsync();
+                    _logger.LogInformation("LibraryAutoSyncService initialized and running.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to initialize LibraryAutoSyncService during launch.");
+            }
+
             // Initiate non-blocking background artwork extraction for movies missing posters/backdrops
             _ = Task.Run(async () =>
             {
@@ -232,39 +247,51 @@ public partial class App : Application
 
     private void HandleExternalActivation(MainWindow mainWindow, Microsoft.Windows.AppLifecycle.AppActivationArguments? activatedArgs)
     {
-        string? targetFile = null;
-
-        if (activatedArgs != null && activatedArgs.Kind == Microsoft.Windows.AppLifecycle.ExtendedActivationKind.File)
+        try
         {
-            if (activatedArgs.Data is Windows.ApplicationModel.Activation.IFileActivatedEventArgs fileArgs && fileArgs.Files.Count > 0)
+            var validFiles = CommandLineActivationHelper.ExtractVideoFiles(activatedArgs);
+            if (validFiles.Count == 0)
             {
-                targetFile = fileArgs.Files[0].Path;
+                return;
+            }
+
+            if (validFiles.Count == 1)
+            {
+                _logger.LogInformation("Routing external video file directly to Player: {FilePath}", validFiles[0]);
+                mainWindow.NavigateToPlayer(validFiles[0], null, null);
+            }
+            else
+            {
+                _logger.LogInformation("Routing {Count} external video files to Player as playlist.", validFiles.Count);
+                var queue = validFiles
+                    .Select(f => (FilePath: f, MovieId: (int?)null, Title: Path.GetFileNameWithoutExtension(f)))
+                    .ToList();
+                mainWindow.NavigateToPlayerWithPlaylist(validFiles[0], null, queue, 0);
             }
         }
-
-        if (string.IsNullOrEmpty(targetFile))
+        catch (Exception ex)
         {
-            var cmdArgs = Environment.GetCommandLineArgs();
-            if (cmdArgs.Length > 1)
-            {
-                var candidate = cmdArgs[1].Trim('\"');
-                if (File.Exists(candidate))
-                {
-                    targetFile = candidate;
-                }
-            }
-        }
-
-        if (!string.IsNullOrEmpty(targetFile) && File.Exists(targetFile))
-        {
-            _logger.LogInformation("Routing external file directly to Player: {FilePath}", targetFile);
-            mainWindow.NavigateToPlayer(targetFile, null, null);
+            _logger.LogError(ex, "Failed to route external file activation to player.");
         }
     }
 
     private async void OnWindowClosed(object sender, WindowEventArgs args)
     {
         _logger.LogInformation("MainWindow closed. Finalizing application shutdown.");
+        try
+        {
+            var autoSync = Services.GetService<MovieTime.Core.Library.ILibraryAutoSyncService>();
+            if (autoSync != null)
+            {
+                await autoSync.StopAsync();
+                autoSync.Dispose();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error stopping auto-sync service on shutdown.");
+        }
+
         try
         {
             var databaseService = Services.GetService<MovieTime.Core.Database.IDatabaseService>();

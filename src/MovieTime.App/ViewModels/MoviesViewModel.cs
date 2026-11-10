@@ -1,3 +1,4 @@
+using MovieTime.Core.Library.Models;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -222,6 +223,8 @@ public sealed class MoviesViewModel : ObservableObject
             _artworkPipelineService.ArtworkUpdated += OnArtworkUpdated;
         }
 
+        _importService.ImportCompleted += OnImportCompleted;
+
         ToggleSidebarCommand = new RelayCommand(() => IsSidebarOpen = !IsSidebarOpen);
         OpenSidebarCommand = new RelayCommand(() => IsSidebarOpen = true);
         CloseSidebarCommand = new RelayCommand(() => IsSidebarOpen = false);
@@ -239,6 +242,26 @@ public sealed class MoviesViewModel : ObservableObject
         NavigatePlaylistsCommand = new RelayCommand(() => NavigationRequested?.Invoke("Playlists"));
 
         InitializeCategories();
+    }
+
+    private void OnImportCompleted(object? sender, LibraryImportResult e)
+    {
+        RunOnUi(() =>
+        {
+            _ = LoadMoviesAsync();
+        });
+    }
+
+    private void RunOnUi(Action action)
+    {
+        if (_dispatcher != null)
+        {
+            _dispatcher.RunOnUi(action);
+        }
+        else
+        {
+            action();
+        }
     }
 
     private void OnArtworkUpdated(int movieId, string? posterPath, string? backdropPath)

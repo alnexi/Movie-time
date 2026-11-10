@@ -1,3 +1,4 @@
+using MovieTime.Core.Library.Models;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -110,6 +111,8 @@ public sealed class TvShowsViewModel : ObservableObject
         _artworkPipelineService = artworkPipelineService;
         _dispatcher = dispatcher;
         _logger = logger ?? NullLogger<TvShowsViewModel>.Instance;
+
+        _importService.ImportCompleted += OnImportCompleted;
 
         NavigateHomeCommand = new RelayCommand(() => NavigationRequested?.Invoke("Home"));
         SetSortCommand = new RelayCommand<string>(sort =>
@@ -240,6 +243,26 @@ public sealed class TvShowsViewModel : ObservableObject
         finally
         {
             IsLoading = false;
+        }
+    }
+
+    private void OnImportCompleted(object? sender, LibraryImportResult e)
+    {
+        RunOnUi(() =>
+        {
+            _ = LoadSeriesAsync();
+        });
+    }
+
+    private void RunOnUi(Action action)
+    {
+        if (_dispatcher != null)
+        {
+            _dispatcher.RunOnUi(action);
+        }
+        else
+        {
+            action();
         }
     }
 
