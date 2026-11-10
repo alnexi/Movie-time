@@ -61,21 +61,44 @@
                         <Border Background="{ThemeResource AppBackdropVignetteBottomBrush}" />
                     </Grid>
 
-                    <!-- B. Top Floating Back Button: Movies -->
-                    <Button Command="{x:Bind ViewModel.BackCommand, Mode=OneWay}"
-                            HorizontalAlignment="Left"
-                            VerticalAlignment="Top"
-                            Margin="36,28,0,0"
-                            Background="{ThemeResource AppPillInactiveBackgroundBrush}"
-                            BorderBrush="{ThemeResource AppBorderBrush}"
-                            BorderThickness="1"
-                            CornerRadius="18"
-                            Padding="12,6,16,6">
-                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                            <FontIcon Glyph="&#xE72B;" FontSize="11" Foreground="{ThemeResource AppTextSecondaryBrush}" />
-                            <TextBlock Text="Movies" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource AppTextPrimaryBrush}" />
-                        </StackPanel>
-                    </Button>
+                    <!-- B. Top Floating Navigation Bar: Home & Back to Movies -->
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="8"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Margin="36,28,0,0">
+                        <!-- Home Button -->
+                        <Button Command="{x:Bind ViewModel.NavigateHomeCommand, Mode=OneWay}"
+                                Background="{ThemeResource AppPillInactiveBackgroundBrush}"
+                                BorderBrush="{ThemeResource AppBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="18"
+                                Padding="12,6,14,6">
+                            <ToolTipService.ToolTip>
+                                <ToolTip Content="Go to River Home" />
+                            </ToolTipService.ToolTip>
+                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE80F;" FontSize="11" Foreground="{ThemeResource AppTextSecondaryBrush}" />
+                                <TextBlock Text="Home" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource AppTextPrimaryBrush}" />
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Back Button: Movies -->
+                        <Button Command="{x:Bind ViewModel.BackCommand, Mode=OneWay}"
+                                Background="{ThemeResource AppPillInactiveBackgroundBrush}"
+                                BorderBrush="{ThemeResource AppBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="18"
+                                Padding="12,6,16,6">
+                            <ToolTipService.ToolTip>
+                                <ToolTip Content="Back to Movies Library" />
+                            </ToolTipService.ToolTip>
+                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE72B;" FontSize="11" Foreground="{ThemeResource AppTextSecondaryBrush}" />
+                                <TextBlock Text="Movies" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource AppTextPrimaryBrush}" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
 
                     <!-- C. Hero Metadata & Action Composition (Bottom-Left) -->
                     <Grid Margin="48,80,48,32" VerticalAlignment="Bottom">
@@ -245,6 +268,42 @@
                                         </Flyout>
                                     </Button.Flyout>
                                 </Button>
+
+                                <!-- Manage / Removal Options -->
+                                <Button Background="{ThemeResource AppGlassFillBrush}"
+                                        Foreground="{ThemeResource AppTextPrimaryBrush}"
+                                        BorderBrush="{ThemeResource AppBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="18"
+                                        Padding="14,10"
+                                        FontWeight="Medium"
+                                        FontSize="13">
+                                    <ToolTipService.ToolTip>
+                                        <ToolTip Content="Manage Movie in River Library" />
+                                    </ToolTipService.ToolTip>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE712;" FontSize="12" />
+                                        <TextBlock Text="Manage" />
+                                    </StackPanel>
+                                    <Button.Flyout>
+                                        <MenuFlyout>
+                                            <MenuFlyoutItem Text="Remove from River Library"
+                                                            Command="{x:Bind ViewModel.RemoveMovieFromLibraryCommand, Mode=OneWay}">
+                                                <MenuFlyoutItem.Icon>
+                                                    <FontIcon Glyph="&#xE74D;" />
+                                                </MenuFlyoutItem.Icon>
+                                            </MenuFlyoutItem>
+                                            <MenuFlyoutSeparator />
+                                            <MenuFlyoutItem Text="Delete from Computer"
+                                                            Foreground="#FF453A"
+                                                            Command="{x:Bind ViewModel.DeleteMovieFromDiskCommand, Mode=OneWay}">
+                                                <MenuFlyoutItem.Icon>
+                                                    <FontIcon Glyph="&#xE74D;" Foreground="#FF453A" />
+                                                </MenuFlyoutItem.Icon>
+                                            </MenuFlyoutItem>
+                                        </MenuFlyout>
+                                    </Button.Flyout>
+                                </Button>
                             </StackPanel>
 
                             <!-- Playback Notification / Integration Status Banner -->
@@ -381,6 +440,24 @@
                                             CornerRadius="12"
                                             Padding="14,12"
                                             Margin="0,0,0,8">
+                                        <Button.ContextFlyout>
+                                            <MenuFlyout>
+                                                <MenuFlyoutItem Text="Remove Edition from River Library"
+                                                                Command="{x:Bind RemoveFromLibraryCommand, Mode=OneWay}">
+                                                    <MenuFlyoutItem.Icon>
+                                                        <FontIcon Glyph="&#xE74D;" />
+                                                    </MenuFlyoutItem.Icon>
+                                                </MenuFlyoutItem>
+                                                <MenuFlyoutSeparator />
+                                                <MenuFlyoutItem Text="Delete Edition from Computer"
+                                                                Foreground="#FF453A"
+                                                                Command="{x:Bind DeleteFromDiskCommand, Mode=OneWay}">
+                                                    <MenuFlyoutItem.Icon>
+                                                        <FontIcon Glyph="&#xE74D;" Foreground="#FF453A" />
+                                                    </MenuFlyoutItem.Icon>
+                                                </MenuFlyoutItem>
+                                            </MenuFlyout>
+                                        </Button.ContextFlyout>
                                         <Grid ColumnDefinitions="Auto,*,Auto">
                                             <!-- Selection radio/check icon -->
                                             <FontIcon Grid.Column="0"

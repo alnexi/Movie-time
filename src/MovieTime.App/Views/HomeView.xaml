@@ -11,7 +11,7 @@
 
     <Grid Background="{ThemeResource AppBackgroundBrush}">
         <!-- 1. Main Scrollable Content Canvas (Hero + Movie Rows) -->
-        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+        <ScrollViewer x:Name="HomeScrollViewer" HorizontalScrollBarVisibility="Disabled"
                       VerticalScrollBarVisibility="Auto"
                       VerticalScrollMode="Enabled">
             <StackPanel Padding="0,0,0,60">

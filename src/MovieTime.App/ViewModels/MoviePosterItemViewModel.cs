@@ -104,4 +104,6 @@ public sealed class MoviePosterItemViewModel : ObservableObject
     public ICommand? SelectCommand { get; set; }
     public ICommand? PlayCommand { get; set; }
     public ICommand? DetailsCommand { get; set; }
+    public ICommand? RemoveFromLibraryCommand { get; set; }
+    public ICommand? DeleteFromDiskCommand { get; set; }
 }

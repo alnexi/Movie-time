@@ -59,4 +59,12 @@ public sealed partial class HomeView : UserControl
             e.Handled = true;
         }
     }
+
+    /// <summary>
+    /// Smoothly resets scroll offset to the top of the Home experience.
+    /// </summary>
+    public void ScrollToTop()
+    {
+        HomeScrollViewer?.ChangeView(0, 0, null, disableAnimation: false);
+    }
 }

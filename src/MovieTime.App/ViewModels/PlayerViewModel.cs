@@ -51,6 +51,13 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
     private bool _isSpeedHudVisible;
     private string _speedHudText = "1.0x Speed";
     private System.Threading.Timer? _speedHudTimer;
+
+    private bool _isSpeedFeedbackVisible;
+    private string _speedFeedbackText = string.Empty;
+    private bool _isVolumeFeedbackVisible;
+    private string _volumeFeedbackText = string.Empty;
+    private System.Threading.Timer? _speedFeedbackTimer;
+    private System.Threading.Timer? _volumeFeedbackTimer;
     private bool _isControlsVisible = true;
     private bool _isAudioMenuOpen;
     private bool _isSubtitleMenuOpen;
@@ -212,12 +219,45 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
         set => SetProperty(ref _speedHudText, value);
     }
 
+    public bool IsSpeedFeedbackVisible
+    {
+        get => _isSpeedFeedbackVisible;
+        set => SetProperty(ref _isSpeedFeedbackVisible, value);
+    }
+
+    public string SpeedFeedbackText
+    {
+        get => _speedFeedbackText;
+        set => SetProperty(ref _speedFeedbackText, value);
+    }
+
+    public bool IsVolumeFeedbackVisible
+    {
+        get => _isVolumeFeedbackVisible;
+        set => SetProperty(ref _isVolumeFeedbackVisible, value);
+    }
+
+    public string VolumeFeedbackText
+    {
+        get => _volumeFeedbackText;
+        set => SetProperty(ref _volumeFeedbackText, value);
+    }
+
+    public ICommand NavigateHomeCommand { get; }
+
     public string VolumeGlyph => IsMuted || Volume == 0 ? "\uE74F" : Volume < 50 ? "\uE993" : "\uE995";
 
     public bool IsControlsVisible
     {
         get => _isControlsVisible;
-        set => SetProperty(ref _isControlsVisible, value);
+        set
+        {
+            if (SetProperty(ref _isControlsVisible, value) && value)
+            {
+                IsSpeedFeedbackVisible = false;
+                IsVolumeFeedbackVisible = false;
+            }
+        }
     }
 
     public bool IsAudioMenuOpen
@@ -477,6 +517,7 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
         SetVolumeCommand = new RelayCommand<int>(SetVolume);
         PlayNextInPlaylistCommand = new RelayCommand(async () => await PlayNextInPlaylistAsync());
         PlayPreviousInPlaylistCommand = new RelayCommand(async () => await PlayPreviousInPlaylistAsync());
+        NavigateHomeCommand = new RelayCommand(() => NavigationRequested?.Invoke("Home"));
 
         HookPlayerEvents();
     }
@@ -742,7 +783,26 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
         Volume = _playerService.Volume;
         IsMuted = _playerService.IsMuted;
         OnPropertyChanged(nameof(VolumePercentDisplay));
-        TriggerInteraction();
+
+        if (!IsControlsVisible)
+        {
+            ShowVolumeFeedback($"{Volume}%");
+        }
+        else
+        {
+            IsVolumeFeedbackVisible = false;
+        }
+    }
+
+    public void ShowVolumeFeedback(string text)
+    {
+        VolumeFeedbackText = text;
+        IsVolumeFeedbackVisible = true;
+        _volumeFeedbackTimer?.Dispose();
+        _volumeFeedbackTimer = new System.Threading.Timer(_ =>
+        {
+            RunOnUi(() => IsVolumeFeedbackVisible = false);
+        }, null, 1800, System.Threading.Timeout.Infinite);
     }
 
     public void IncreaseVolume(int step = 5)
@@ -1163,6 +1223,25 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
         _playerService.SetPlaybackRate(rate);
         PlaybackRate = rate;
         ShowSpeedHud($"{rate:0.0}x");
+        if (!IsControlsVisible)
+        {
+            ShowSpeedFeedback($"{rate:0.0}x");
+        }
+        else
+        {
+            IsSpeedFeedbackVisible = false;
+        }
+    }
+
+    public void ShowSpeedFeedback(string text)
+    {
+        SpeedFeedbackText = text;
+        IsSpeedFeedbackVisible = true;
+        _speedFeedbackTimer?.Dispose();
+        _speedFeedbackTimer = new System.Threading.Timer(_ =>
+        {
+            RunOnUi(() => IsSpeedFeedbackVisible = false);
+        }, null, 1800, System.Threading.Timeout.Infinite);
     }
 
     private void ShowSpeedHud(string text)

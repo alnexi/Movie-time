@@ -56,6 +56,8 @@ public sealed class LocalMediaFileItemViewModel : ObservableObject
     }
 
     public ICommand? SelectCommand { get; set; }
+    public ICommand? RemoveFromLibraryCommand { get; set; }
+    public ICommand? DeleteFromDiskCommand { get; set; }
 
     public static LocalMediaFileItemViewModel FromEntity(MediaFile file, bool isSelected = false)
     {

@@ -4,6 +4,7 @@ using System.IO;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Microsoft.UI.Xaml.Media.Animation;
 using MovieTime.App.ViewModels;
 
 namespace MovieTime.App.Views;
@@ -14,6 +15,7 @@ namespace MovieTime.App.Views;
 public sealed partial class SeriesDetailsView : UserControl
 {
     private SeriesDetailsViewModel? _subscribedVm;
+    private string? _currentBackdropLoaded;
 
     public static readonly DependencyProperty ViewModelProperty =
         DependencyProperty.Register(
@@ -52,6 +54,7 @@ public sealed partial class SeriesDetailsView : UserControl
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
+        ViewModel?.StopRotation();
         UpdateViewModelSubscription(null);
     }
 
@@ -87,19 +90,45 @@ public sealed partial class SeriesDetailsView : UserControl
 
         if (HeroBackdropImage != null)
         {
-            if (vm != null && vm.HasBackdrop && !string.IsNullOrWhiteSpace(vm.BackdropPath) && File.Exists(vm.BackdropPath))
+            var path = vm?.BackdropPath;
+            if (vm != null && vm.HasBackdrop && !string.IsNullOrWhiteSpace(path) && File.Exists(path))
             {
-                try
+                if (!string.Equals(_currentBackdropLoaded, path, StringComparison.OrdinalIgnoreCase))
                 {
-                    HeroBackdropImage.Source = new BitmapImage(new Uri(vm.BackdropPath));
-                }
-                catch
-                {
-                    HeroBackdropImage.Source = null;
+                    _currentBackdropLoaded = path;
+                    try
+                    {
+                        var bmp = new BitmapImage(new Uri(path))
+                        {
+                            DecodePixelWidth = 1920
+                        };
+
+                        HeroBackdropImage.Opacity = 0.25;
+                        HeroBackdropImage.Source = bmp;
+
+                        var anim = new DoubleAnimation
+                        {
+                            From = 0.25,
+                            To = 1.0,
+                            Duration = TimeSpan.FromMilliseconds(350),
+                            EnableDependentAnimation = true
+                        };
+
+                        var storyboard = new Storyboard();
+                        storyboard.Children.Add(anim);
+                        Storyboard.SetTarget(anim, HeroBackdropImage);
+                        Storyboard.SetTargetProperty(anim, "Opacity");
+                        storyboard.Begin();
+                    }
+                    catch
+                    {
+                        HeroBackdropImage.Source = null;
+                    }
                 }
             }
             else
             {
+                _currentBackdropLoaded = null;
                 HeroBackdropImage.Source = null;
             }
         }

@@ -18,7 +18,7 @@
                 <!-- ================= 1. CINEMATIC HERO SECTION ================= -->
                 <Grid Height="460">
                     <!-- A. Background Artwork / Fallback Canvas -->
-                    <Grid>
+                    <Grid IsHitTestVisible="False">
                         <!-- Genuine Local Backdrop Image (if exists) -->
                         <Image x:Name="HeroBackdropImage"
                                Stretch="UniformToFill"
@@ -57,21 +57,38 @@
                         <Border Background="{ThemeResource AppBackdropVignetteBottomBrush}" />
                     </Grid>
 
-                    <!-- B. Top Floating Back Button: TV Shows -->
-                    <Button Command="{x:Bind ViewModel.BackCommand, Mode=OneWay}"
-                            HorizontalAlignment="Left"
-                            VerticalAlignment="Top"
-                            Margin="36,24,0,0"
-                            Background="{ThemeResource AppPillInactiveBackgroundBrush}"
-                            BorderBrush="{ThemeResource AppBorderBrush}"
-                            BorderThickness="1"
-                            CornerRadius="18"
-                            Padding="14,6,18,6">
-                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                            <FontIcon Glyph="&#xE76B;" FontSize="11" Foreground="{ThemeResource AppTextSecondaryBrush}" />
-                            <TextBlock Text="TV Shows" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource AppTextPrimaryBrush}" />
-                        </StackPanel>
-                    </Button>
+                    <!-- B. Top Floating Navigation Buttons: Home & TV Shows -->
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="10"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Margin="36,24,0,0">
+                        <Button Command="{x:Bind ViewModel.NavigateHomeCommand, Mode=OneWay}"
+                                Background="{ThemeResource AppPillInactiveBackgroundBrush}"
+                                BorderBrush="{ThemeResource AppBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="18"
+                                Padding="14,6,18,6"
+                                ToolTipService.ToolTip="Navigate Home">
+                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE80F;" FontSize="11" Foreground="{ThemeResource AppTextSecondaryBrush}" />
+                                <TextBlock Text="Home" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource AppTextPrimaryBrush}" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button Command="{x:Bind ViewModel.BackCommand, Mode=OneWay}"
+                                Background="{ThemeResource AppPillInactiveBackgroundBrush}"
+                                BorderBrush="{ThemeResource AppBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="18"
+                                Padding="14,6,18,6"
+                                ToolTipService.ToolTip="Back to TV Shows">
+                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE76B;" FontSize="11" Foreground="{ThemeResource AppTextSecondaryBrush}" />
+                                <TextBlock Text="TV Shows" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource AppTextPrimaryBrush}" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
 
                     <!-- C. Hero Content Information (Title, Badges, Next Up Button) -->
                     <Grid VerticalAlignment="Bottom" Margin="48,0,48,36">
@@ -192,6 +209,26 @@
                                         VerticalAlignment="Stretch"
                                         HorizontalContentAlignment="Stretch"
                                         VerticalContentAlignment="Stretch">
+                                    <Button.ContextFlyout>
+                                        <MenuFlyout>
+                                            <MenuFlyoutItem Text="Play Episode" Command="{x:Bind PlayCommand, Mode=OneWay}">
+                                                <MenuFlyoutItem.Icon>
+                                                    <FontIcon Glyph="&#xE768;" />
+                                                </MenuFlyoutItem.Icon>
+                                            </MenuFlyoutItem>
+                                            <MenuFlyoutSeparator />
+                                            <MenuFlyoutItem Text="Remove from River Library" Command="{x:Bind RemoveFromLibraryCommand, Mode=OneWay}">
+                                                <MenuFlyoutItem.Icon>
+                                                    <FontIcon Glyph="&#xE738;" />
+                                                </MenuFlyoutItem.Icon>
+                                            </MenuFlyoutItem>
+                                            <MenuFlyoutItem Text="Delete from Computer..." Command="{x:Bind DeleteFromDiskCommand, Mode=OneWay}">
+                                                <MenuFlyoutItem.Icon>
+                                                    <FontIcon Glyph="&#xE74D;" Foreground="#FF6B6B" />
+                                                </MenuFlyoutItem.Icon>
+                                            </MenuFlyoutItem>
+                                        </MenuFlyout>
+                                    </Button.ContextFlyout>
                                     <Grid>
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="168" />

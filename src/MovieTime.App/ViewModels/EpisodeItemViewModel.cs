@@ -21,8 +21,19 @@ public sealed class EpisodeItemViewModel : ObservableObject
     public int EpisodeNumber { get; init; }
     public string Title { get; init; } = string.Empty;
     public string? FilePath { get; init; }
+    public long SizeBytes { get; init; }
     public string? QualityBadge { get; init; }
     public string DurationDisplay { get; init; } = string.Empty;
+
+    public string FileSizeDisplay
+    {
+        get
+        {
+            if (SizeBytes <= 0) return string.Empty;
+            double gb = SizeBytes / (1024.0 * 1024.0 * 1024.0);
+            return gb >= 1.0 ? $"{gb:F1} GB" : $"{SizeBytes / (1024.0 * 1024.0):F0} MB";
+        }
+    }
 
     public bool HasDuration => !string.IsNullOrWhiteSpace(DurationDisplay);
     public bool HasQualityBadge => !string.IsNullOrWhiteSpace(QualityBadge);
@@ -75,6 +86,8 @@ public sealed class EpisodeItemViewModel : ObservableObject
     }
 
     public ICommand? PlayCommand { get; set; }
+    public ICommand? RemoveFromLibraryCommand { get; set; }
+    public ICommand? DeleteFromDiskCommand { get; set; }
 
     public void UpdateThumbnail(string? path)
     {

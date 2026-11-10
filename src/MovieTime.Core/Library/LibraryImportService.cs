@@ -35,6 +35,7 @@ public sealed class LibraryImportService : ILibraryImportService
     private readonly IEpisodeRepository _episodeRepository;
     private readonly IMediaFileRepository _mediaFileRepository;
     private readonly IArtworkPipelineService? _artworkPipelineService;
+    private readonly ILibraryExclusionRepository? _exclusionRepository;
     private readonly ILogger<LibraryImportService> _logger;
 
     public event EventHandler<LibraryImportResult>? ImportCompleted;
@@ -66,6 +67,7 @@ public sealed class LibraryImportService : ILibraryImportService
             episodeRepository,
             mediaFileRepository,
             null,
+            null,
             logger)
     {
     }
@@ -81,6 +83,35 @@ public sealed class LibraryImportService : ILibraryImportService
         IEpisodeRepository episodeRepository,
         IMediaFileRepository mediaFileRepository,
         IArtworkPipelineService? artworkPipelineService,
+        ILogger<LibraryImportService>? logger)
+        : this(
+            scanRootService,
+            scannerService,
+            parserEngine,
+            databaseService,
+            movieRepository,
+            seriesRepository,
+            seasonRepository,
+            episodeRepository,
+            mediaFileRepository,
+            artworkPipelineService,
+            null,
+            logger)
+    {
+    }
+
+    public LibraryImportService(
+        IScanRootService scanRootService,
+        IMediaScannerService scannerService,
+        IFilenameParserEngine parserEngine,
+        IDatabaseService databaseService,
+        IMovieRepository movieRepository,
+        ISeriesRepository seriesRepository,
+        ISeasonRepository seasonRepository,
+        IEpisodeRepository episodeRepository,
+        IMediaFileRepository mediaFileRepository,
+        IArtworkPipelineService? artworkPipelineService,
+        ILibraryExclusionRepository? exclusionRepository = null,
         ILogger<LibraryImportService>? logger = null)
     {
         _scanRootService = scanRootService ?? throw new ArgumentNullException(nameof(scanRootService));
@@ -93,6 +124,7 @@ public sealed class LibraryImportService : ILibraryImportService
         _episodeRepository = episodeRepository ?? throw new ArgumentNullException(nameof(episodeRepository));
         _mediaFileRepository = mediaFileRepository ?? throw new ArgumentNullException(nameof(mediaFileRepository));
         _artworkPipelineService = artworkPipelineService;
+        _exclusionRepository = exclusionRepository;
         _logger = logger ?? NullLogger<LibraryImportService>.Instance;
     }
 
@@ -217,6 +249,15 @@ public sealed class LibraryImportService : ILibraryImportService
                     }
 
                     var normalizedPath = Path.GetFullPath(file.FilePath);
+
+                    // Check persistent user library exclusion
+                    if (_exclusionRepository != null && await _exclusionRepository.IsPathExcludedAsync(normalizedPath).ConfigureAwait(false))
+                    {
+                        _logger.LogDebug("Skipping excluded media file '{FilePath}'", normalizedPath);
+                        result.FilesSkipped++;
+                        continue;
+                    }
+
                     seenInThisRoot.Add(normalizedPath);
 
                     // Skip duplicate processing if already discovered through an ancestor/overlapping root
@@ -595,6 +636,12 @@ public sealed class LibraryImportService : ILibraryImportService
             if (cancellationToken.IsCancellationRequested)
             {
                 break;
+            }
+
+            if (_exclusionRepository != null && await _exclusionRepository.IsPathExcludedAsync(existing.FilePath).ConfigureAwait(false))
+            {
+                // File was explicitly excluded by user; do not mark missing
+                continue;
             }
 
             var isDiscovered = seenInThisRoot.Contains(existing.FilePath);

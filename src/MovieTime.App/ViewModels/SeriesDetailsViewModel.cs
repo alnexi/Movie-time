@@ -11,6 +11,7 @@ using MovieTime.App.Common;
 using MovieTime.Core.Artwork;
 using MovieTime.Core.Database.Repositories;
 using MovieTime.Core.Entities;
+using MovieTime.Core.Library;
 
 namespace MovieTime.App.ViewModels;
 
@@ -27,8 +28,14 @@ public sealed class SeriesDetailsViewModel : ObservableObject
     private readonly IMediaFileRepository _mediaFileRepository;
     private readonly IPlaybackProgressRepository _progressRepository;
     private readonly IArtworkPipelineService? _artworkPipelineService;
+    private readonly IMediaRemovalService? _mediaRemovalService;
     private readonly IDispatcherService? _dispatcher;
     private readonly ILogger<SeriesDetailsViewModel> _logger;
+
+    private readonly System.Collections.Generic.List<string> _episodeBackdropCandidates = new();
+    private System.Timers.Timer? _backdropRotationTimer;
+    private int _currentBackdropCandidateIndex;
+    private readonly object _rotationLock = new();
 
     private int _seriesId;
     private string _title = string.Empty;
@@ -216,6 +223,7 @@ public sealed class SeriesDetailsViewModel : ObservableObject
     public ObservableCollection<EpisodeItemViewModel> Episodes { get; } = new();
 
     public ICommand BackCommand { get; }
+    public ICommand NavigateHomeCommand { get; }
     public ICommand PlayNextUpCommand { get; }
     public ICommand SelectSeasonCommand { get; }
 
@@ -225,7 +233,21 @@ public sealed class SeriesDetailsViewModel : ObservableObject
         IEpisodeRepository episodeRepository,
         IMediaFileRepository mediaFileRepository,
         IPlaybackProgressRepository progressRepository,
+        IArtworkPipelineService? artworkPipelineService,
+        IDispatcherService? dispatcher,
+        ILogger<SeriesDetailsViewModel>? logger = null)
+        : this(seriesRepository, seasonRepository, episodeRepository, mediaFileRepository, progressRepository, artworkPipelineService, null, dispatcher, logger)
+    {
+    }
+
+    public SeriesDetailsViewModel(
+        ISeriesRepository seriesRepository,
+        ISeasonRepository seasonRepository,
+        IEpisodeRepository episodeRepository,
+        IMediaFileRepository mediaFileRepository,
+        IPlaybackProgressRepository progressRepository,
         IArtworkPipelineService? artworkPipelineService = null,
+        IMediaRemovalService? mediaRemovalService = null,
         IDispatcherService? dispatcher = null,
         ILogger<SeriesDetailsViewModel>? logger = null)
     {
@@ -235,10 +257,12 @@ public sealed class SeriesDetailsViewModel : ObservableObject
         _mediaFileRepository = mediaFileRepository ?? throw new ArgumentNullException(nameof(mediaFileRepository));
         _progressRepository = progressRepository ?? throw new ArgumentNullException(nameof(progressRepository));
         _artworkPipelineService = artworkPipelineService;
+        _mediaRemovalService = mediaRemovalService;
         _dispatcher = dispatcher;
         _logger = logger ?? NullLogger<SeriesDetailsViewModel>.Instance;
 
         BackCommand = new RelayCommand(OnBack);
+        NavigateHomeCommand = new RelayCommand(() => NavigationRequested?.Invoke("Home"));
         PlayNextUpCommand = new RelayCommand(OnPlayNextUp);
         SelectSeasonCommand = new RelayCommand<SeasonTabViewModel>(tab =>
         {
@@ -278,10 +302,41 @@ public sealed class SeriesDetailsViewModel : ObservableObject
             StartYear = series.StartYear;
             EndYear = series.EndYear;
             PosterPath = series.PosterPath;
-            BackdropPath = series.BackdropPath;
+            StopRotation();
 
             var seasons = await _seasonRepository.GetBySeriesIdAsync(series.Id);
             var allEpisodes = await _episodeRepository.GetBySeriesIdAsync(series.Id);
+
+            // Build shuffled candidate collection from eligible episode artwork
+            _episodeBackdropCandidates.Clear();
+            var validBackdrops = allEpisodes
+                .Select(e => e.ThumbnailPath)
+                .Where(p => !string.IsNullOrWhiteSpace(p) && File.Exists(p))
+                .Select(p => p!)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (validBackdrops.Count > 0)
+            {
+                var rng = new Random();
+                for (int i = validBackdrops.Count - 1; i > 0; i--)
+                {
+                    int j = rng.Next(i + 1);
+                    (validBackdrops[i], validBackdrops[j]) = (validBackdrops[j], validBackdrops[i]);
+                }
+                _episodeBackdropCandidates.AddRange(validBackdrops);
+                _currentBackdropCandidateIndex = 0;
+                BackdropPath = _episodeBackdropCandidates[0];
+
+                if (_episodeBackdropCandidates.Count > 1)
+                {
+                    StartBackdropRotation();
+                }
+            }
+            else
+            {
+                BackdropPath = series.BackdropPath;
+            }
             TotalEpisodesCount = allEpisodes.Count;
 
             SeasonTabs.Clear();
@@ -535,6 +590,7 @@ public sealed class SeriesDetailsViewModel : ObservableObject
         Title = string.Empty;
         StartYear = null;
         EndYear = null;
+        StopRotation();
         PosterPath = null;
         BackdropPath = null;
         TotalEpisodesCount = 0;
@@ -545,4 +601,56 @@ public sealed class SeriesDetailsViewModel : ObservableObject
         OnPropertyChanged(nameof(TotalSeasonsCount));
         OnPropertyChanged(nameof(MetadataSubtitle));
     }
+
+    private void StartBackdropRotation()
+    {
+        StopRotation();
+        _backdropRotationTimer = new System.Timers.Timer(9000) { AutoReset = true };
+        _backdropRotationTimer.Elapsed += (s, e) =>
+        {
+            lock (_rotationLock)
+            {
+                if (_episodeBackdropCandidates.Count <= 1) return;
+                _currentBackdropCandidateIndex = (_currentBackdropCandidateIndex + 1) % _episodeBackdropCandidates.Count;
+                var nextPath = _episodeBackdropCandidates[_currentBackdropCandidateIndex];
+
+                void Apply()
+                {
+                    BackdropPath = nextPath;
+                }
+
+                if (_dispatcher != null) _dispatcher.RunOnUi(Apply);
+                else Apply();
+            }
+        };
+        _backdropRotationTimer.Start();
+    }
+
+    public void StopRotation()
+    {
+        lock (_rotationLock)
+        {
+            if (_backdropRotationTimer != null)
+            {
+                _backdropRotationTimer.Stop();
+                _backdropRotationTimer.Dispose();
+                _backdropRotationTimer = null;
+            }
+        }
+    }
+
+    public async Task RemoveEpisodeFromLibraryAsync(EpisodeItemViewModel? ep)
+    {
+        if (ep == null || string.IsNullOrWhiteSpace(ep.FilePath) || _mediaRemovalService == null) return;
+        await _mediaRemovalService.RemoveFromLibraryOnlyAsync(ep.FilePath);
+        Episodes.Remove(ep);
+    }
+
+    public async Task DeleteEpisodeFromDiskAsync(EpisodeItemViewModel? ep)
+    {
+        if (ep == null || string.IsNullOrWhiteSpace(ep.FilePath) || _mediaRemovalService == null) return;
+        await _mediaRemovalService.DeleteFileToRecycleBinAsync(ep.FilePath);
+        Episodes.Remove(ep);
+    }
+
 }

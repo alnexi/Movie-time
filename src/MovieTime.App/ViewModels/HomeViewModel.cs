@@ -37,9 +37,11 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
     private readonly IHoverPreviewService? _hoverPreviewService;
     private readonly IArtworkStorageService? _artworkStorageService;
     private readonly IDispatcherService? _dispatcher;
+    private readonly ILibraryExclusionRepository? _exclusionRepository;
     private readonly ILogger<HomeViewModel> _logger;
 
     private readonly List<HeroBannerItemViewModel> _heroItems = new();
+    private readonly List<int> _heroMovieIdSequence = new();
     private readonly System.Timers.Timer _heroRotationTimer;
     private int _currentHeroIndex;
     private bool _isRotationPaused;
@@ -149,6 +151,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
             null,
             null,
             null,
+            null,
             logger)
     {
     }
@@ -178,6 +181,39 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
             null,
             null,
             dispatcher,
+            null,
+            logger)
+    {
+    }
+
+    public HomeViewModel(
+        IDatabaseService databaseService,
+        IMovieRepository movieRepository,
+        ISeriesRepository seriesRepository,
+        ISeasonRepository seasonRepository,
+        IEpisodeRepository episodeRepository,
+        IMediaFileRepository mediaFileRepository,
+        IScanRootService scanRootService,
+        ILibraryImportService importService,
+        IArtworkPipelineService? artworkPipelineService,
+        IHoverPreviewService? hoverPreviewService,
+        IArtworkStorageService? artworkStorageService,
+        IDispatcherService? dispatcher,
+        ILogger<HomeViewModel>? logger)
+        : this(
+            databaseService,
+            movieRepository,
+            seriesRepository,
+            seasonRepository,
+            episodeRepository,
+            mediaFileRepository,
+            scanRootService,
+            importService,
+            artworkPipelineService,
+            hoverPreviewService,
+            artworkStorageService,
+            dispatcher,
+            null,
             logger)
     {
     }
@@ -195,6 +231,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         IHoverPreviewService? hoverPreviewService,
         IArtworkStorageService? artworkStorageService,
         IDispatcherService? dispatcher = null,
+        ILibraryExclusionRepository? exclusionRepository = null,
         ILogger<HomeViewModel>? logger = null)
     {
         _databaseService = databaseService ?? throw new ArgumentNullException(nameof(databaseService));
@@ -209,6 +246,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         _hoverPreviewService = hoverPreviewService;
         _artworkStorageService = artworkStorageService;
         _dispatcher = dispatcher;
+        _exclusionRepository = exclusionRepository;
         _logger = logger ?? NullLogger<HomeViewModel>.Instance;
 
         if (_artworkPipelineService != null)
@@ -415,18 +453,43 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
             .GroupBy(f => f.MovieId!.Value)
             .ToDictionary(g => g.Key, g => g.ToList());
 
-        // 1. Dynamic Rotating Hero Billboard (up to 7 eligible real movies)
+        // 1. Dynamic Rotating Hero Billboard (All eligible real movies, shuffled stably across sessions)
         var eligibleMovies = movies
             .Where(m => filesByMovieId.ContainsKey(m.Id) && filesByMovieId[m.Id].Any(f => !f.IsMissing))
-            .Take(7)
             .ToList();
 
         if (eligibleMovies.Count == 0 && movies.Count > 0)
         {
-            eligibleMovies = movies.Take(7).ToList();
+            eligibleMovies = movies.ToList();
         }
 
-        foreach (var m in eligibleMovies)
+        // Maintain stable shuffled sequence across UI navigations/refreshes
+        var eligibleIds = eligibleMovies.Select(m => m.Id).ToHashSet();
+        if (_heroMovieIdSequence.Count == 0 || !_heroMovieIdSequence.All(id => eligibleIds.Contains(id)) || _heroMovieIdSequence.Count != eligibleMovies.Count)
+        {
+            var shuffled = new List<Movie>(eligibleMovies);
+            var rng = new Random();
+            for (int i = shuffled.Count - 1; i > 0; i--)
+            {
+                int j = rng.Next(i + 1);
+                (shuffled[i], shuffled[j]) = (shuffled[j], shuffled[i]);
+            }
+            _heroMovieIdSequence.Clear();
+            _heroMovieIdSequence.AddRange(shuffled.Select(m => m.Id));
+        }
+
+        var orderedHeroMovies = _heroMovieIdSequence
+            .Select(id => eligibleMovies.FirstOrDefault(m => m.Id == id))
+            .Where(m => m != null)
+            .Cast<Movie>()
+            .ToList();
+
+        if (orderedHeroMovies.Count == 0)
+        {
+            orderedHeroMovies = eligibleMovies;
+        }
+
+        foreach (var m in orderedHeroMovies)
         {
             filesByMovieId.TryGetValue(m.Id, out var mFiles);
             var primaryFile = mFiles?.FirstOrDefault(f => !f.IsMissing) ?? mFiles?.FirstOrDefault();
@@ -497,7 +560,129 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
             SetupEmptyLibraryState();
         }
 
-        // 2. Continue Watching Row (genuine extracted frame artwork & progress)
+        // Check persistent library exclusions
+        HashSet<string> excludedPaths = new(StringComparer.OrdinalIgnoreCase);
+        if (_exclusionRepository != null)
+        {
+            try
+            {
+                var exclusions = await _exclusionRepository.GetAllAsync().ConfigureAwait(false);
+                foreach (var ex in exclusions)
+                {
+                    excludedPaths.Add(ex.Path);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to load library exclusions for Home recently added.");
+            }
+        }
+
+        // 2. Recently Added Row (All eligible discovered video files, newest first)
+        var activeFiles = allFiles
+            .Where(f => !f.IsMissing && !excludedPaths.Contains(f.FilePath))
+            .OrderByDescending(f => f.LastScannedAt)
+            .ThenByDescending(f => f.Id)
+            .ToList();
+
+        if (activeFiles.Count > 0)
+        {
+            var recentlyAddedRow = new MediaRowViewModel { Title = "Recently Added" };
+            foreach (var file in activeFiles)
+            {
+                if (file.MovieId.HasValue)
+                {
+                    var m = movies.FirstOrDefault(x => x.Id == file.MovieId.Value);
+                    if (m == null) continue;
+
+                    string subtitle = string.IsNullOrWhiteSpace(m.Edition)
+                        ? (m.ReleaseYear?.ToString() ?? "Movie")
+                        : $"{m.Edition} • {m.ReleaseYear?.ToString() ?? "Movie"}";
+
+                    var card = new MediaCardViewModel
+                    {
+                        Id = m.Id,
+                        MovieId = m.Id,
+                        MediaFileId = file.Id,
+                        FilePath = file.FilePath,
+                        FileSizeBytes = file.SizeBytes,
+                        FileModifiedUtc = file.FileModifiedAt,
+                        Title = m.Title,
+                        Subtitle = subtitle,
+                        PosterPath = m.PosterPath,
+                        BackdropPath = m.BackdropPath,
+                        QualityTag = (file.VideoHeight >= 2160) ? "4K" : "1080p",
+                        IsMovie = true,
+                        IsSample = false,
+                        SelectCommand = new RelayCommand(() => NavigationRequested?.Invoke($"MovieDetails:{m.Id}")),
+                        DetailsCommand = new RelayCommand(() => NavigationRequested?.Invoke($"MovieDetails:{m.Id}")),
+                        PlayCommand = new RelayCommand(() => RaisePlaybackRequested(file.FilePath, m.Id, null))
+                    };
+                    recentlyAddedRow.Items.Add(card);
+                }
+                else if (file.EpisodeId.HasValue)
+                {
+                    var ep = await _episodeRepository.GetByIdAsync(file.EpisodeId.Value).ConfigureAwait(false);
+                    if (ep == null) continue;
+
+                    var s = series.FirstOrDefault(x => x.Id == ep.SeriesId) ?? await _seriesRepository.GetByIdAsync(ep.SeriesId).ConfigureAwait(false);
+                    var season = await _seasonRepository.GetByIdAsync(ep.SeasonId).ConfigureAwait(false);
+
+                    var sNum = season?.SeasonNumber ?? 1;
+                    var epTitle = string.IsNullOrWhiteSpace(ep.Title) ? $"Episode {ep.EpisodeNumber}" : ep.Title;
+                    var showTitle = s?.Title ?? "TV Show";
+
+                    var card = new MediaCardViewModel
+                    {
+                        Id = ep.Id,
+                        EpisodeId = ep.Id,
+                        MediaFileId = file.Id,
+                        FilePath = file.FilePath,
+                        FileSizeBytes = file.SizeBytes,
+                        FileModifiedUtc = file.FileModifiedAt,
+                        Title = showTitle,
+                        Subtitle = $"S{sNum}E{ep.EpisodeNumber} • {epTitle}",
+                        PosterPath = ep.ThumbnailPath ?? s?.PosterPath,
+                        BackdropPath = s?.BackdropPath ?? ep.ThumbnailPath,
+                        QualityTag = (file.VideoHeight >= 2160) ? "4K" : "1080p",
+                        IsEpisode = true,
+                        IsSample = false,
+                        SelectCommand = new RelayCommand(() => NavigationRequested?.Invoke($"SeriesDetails:{s?.Id}")),
+                        DetailsCommand = new RelayCommand(() => NavigationRequested?.Invoke($"SeriesDetails:{s?.Id}")),
+                        PlayCommand = new RelayCommand(() => RaisePlaybackRequested(file.FilePath, null, ep.Id))
+                    };
+                    recentlyAddedRow.Items.Add(card);
+                }
+                else
+                {
+                    var card = new MediaCardViewModel
+                    {
+                        Id = file.Id,
+                        MediaFileId = file.Id,
+                        FilePath = file.FilePath,
+                        FileSizeBytes = file.SizeBytes,
+                        FileModifiedUtc = file.FileModifiedAt,
+                        Title = Path.GetFileNameWithoutExtension(file.FileName),
+                        Subtitle = "Video File",
+                        QualityTag = (file.VideoHeight >= 2160) ? "4K" : "1080p",
+                        IsMovie = false,
+                        IsEpisode = false,
+                        IsSample = false,
+                        SelectCommand = new RelayCommand(() => RaisePlaybackRequested(file.FilePath, null, null)),
+                        DetailsCommand = new RelayCommand(() => RaisePlaybackRequested(file.FilePath, null, null)),
+                        PlayCommand = new RelayCommand(() => RaisePlaybackRequested(file.FilePath, null, null))
+                    };
+                    recentlyAddedRow.Items.Add(card);
+                }
+            }
+
+            if (recentlyAddedRow.Items.Count > 0)
+            {
+                Rows.Add(recentlyAddedRow);
+            }
+        }
+
+        // 3. Continue Watching Row (genuine extracted frame artwork & progress)
         if (progressList.Count > 0)
         {
             var continueRow = new MediaRowViewModel { Title = "Continue Watching" };
@@ -548,7 +733,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                         PositionTicks = prog.PositionTicks,
                         DurationTicks = prog.DurationTicks,
                         Title = m.Title,
-                        Subtitle = $"Continue \u2022 {Math.Round(prog.PositionPercentage * 100)}%",
+                        Subtitle = $"Continue • {Math.Round(prog.PositionPercentage * 100)}%",
                         ProgressPercentage = prog.PositionPercentage,
                         PositionThumbnailPath = cachedThumb,
                         BackdropPath = m.BackdropPath,
@@ -640,7 +825,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                         PositionTicks = prog.PositionTicks,
                         DurationTicks = prog.DurationTicks,
                         Title = showTitle,
-                        Subtitle = $"S{sNum}E{ep.EpisodeNumber} \u2022 {epTitle} ({Math.Round(prog.PositionPercentage * 100)}%)",
+                        Subtitle = $"S{sNum}E{ep.EpisodeNumber} • {epTitle} ({Math.Round(prog.PositionPercentage * 100)}%)",
                         ProgressPercentage = prog.PositionPercentage,
                         PositionThumbnailPath = cachedThumb,
                         BackdropPath = s?.BackdropPath ?? ep.ThumbnailPath,
@@ -689,7 +874,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
             }
         }
 
-        // 3. Movies Row
+        // 4. Movies Row
         if (movies.Count > 0)
         {
             var moviesRow = new MediaRowViewModel { Title = "Movies" };
@@ -731,7 +916,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
             Rows.Add(moviesRow);
         }
 
-        // 4. TV Series Row
+        // 5. TV Series Row
         if (series.Count > 0)
         {
             var tvRow = new MediaRowViewModel { Title = "TV Shows" };
@@ -741,7 +926,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                 {
                     Id = show.Id,
                     Title = show.Title,
-                    Subtitle = show.StartYear.HasValue ? $"{show.StartYear.Value} \u2022 TV Series" : "TV Series",
+                    Subtitle = show.StartYear.HasValue ? $"{show.StartYear.Value} • TV Series" : "TV Series",
                     PosterPath = show.PosterPath,
                     BackdropPath = show.BackdropPath,
                     IsEpisode = true,

@@ -9,7 +9,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 using MovieTime.App.Common;
 using MovieTime.Core.Artwork;
 using MovieTime.Core.Database.Repositories;
-using MovieTime.Core.Entities;
+using MovieTime.Core.Entities;
+using MovieTime.Core.Library;
 
 namespace MovieTime.App.ViewModels;
 
@@ -24,6 +25,7 @@ public sealed class MovieDetailsViewModel : ObservableObject
     private readonly IPlaylistRepository? _playlistRepository;
     private readonly IArtworkPipelineService? _artworkPipelineService;
     private readonly IDispatcherService? _dispatcher;
+    private readonly IMediaRemovalService? _mediaRemovalService;
     private readonly ILogger<MovieDetailsViewModel> _logger;
 
     public ObservableCollection<Playlist> AvailablePlaylists { get; } = new();
@@ -193,13 +195,16 @@ public sealed class MovieDetailsViewModel : ObservableObject
     public ICommand PlayCommand { get; }
     public ICommand BackCommand { get; }
     public ICommand SelectMediaFileCommand { get; }
-    public ICommand SelectRecommendedMovieCommand { get; }
+    public ICommand SelectRecommendedMovieCommand { get; }
+    public ICommand NavigateHomeCommand { get; }
+    public ICommand RemoveMovieFromLibraryCommand { get; }
+    public ICommand DeleteMovieFromDiskCommand { get; }
 
     public MovieDetailsViewModel(
         IMovieRepository movieRepository,
         IMediaFileRepository mediaFileRepository,
         ILogger<MovieDetailsViewModel>? logger = null)
-        : this(movieRepository, mediaFileRepository, null, null, null, logger)
+        : this(movieRepository, mediaFileRepository, null, null, null, null, logger)
     {
     }
 
@@ -209,6 +214,7 @@ public sealed class MovieDetailsViewModel : ObservableObject
         IArtworkPipelineService? artworkPipelineService,
         IDispatcherService? dispatcher = null,
         IPlaylistRepository? playlistRepository = null,
+        IMediaRemovalService? mediaRemovalService = null,
         ILogger<MovieDetailsViewModel>? logger = null)
     {
         _movieRepository = movieRepository ?? throw new ArgumentNullException(nameof(movieRepository));
@@ -216,6 +222,7 @@ public sealed class MovieDetailsViewModel : ObservableObject
         _artworkPipelineService = artworkPipelineService;
         _dispatcher = dispatcher;
         _playlistRepository = playlistRepository;
+        _mediaRemovalService = mediaRemovalService;
         _logger = logger ?? NullLogger<MovieDetailsViewModel>.Instance;
 
         if (_artworkPipelineService != null)
@@ -225,6 +232,9 @@ public sealed class MovieDetailsViewModel : ObservableObject
 
         PlayCommand = new RelayCommand(OnPlay);
         BackCommand = new RelayCommand(OnBack);
+        NavigateHomeCommand = new RelayCommand(() => NavigationRequested?.Invoke("Home"));
+        RemoveMovieFromLibraryCommand = new AsyncRelayCommand(RemoveMovieFromLibraryAsync);
+        DeleteMovieFromDiskCommand = new AsyncRelayCommand(DeleteMovieFromDiskAsync);
         SelectMediaFileCommand = new RelayCommand<LocalMediaFileItemViewModel>(SelectMediaFile);
         SelectRecommendedMovieCommand = new AsyncRelayCommand<MoviePosterItemViewModel>(async m =>
         {
@@ -337,6 +347,8 @@ public sealed class MovieDetailsViewModel : ObservableObject
             {
                 var fileVm = LocalMediaFileItemViewModel.FromEntity(f);
                 fileVm.SelectCommand = new RelayCommand(() => SelectMediaFile(fileVm));
+                fileVm.RemoveFromLibraryCommand = new AsyncRelayCommand(async () => await RemoveMediaFileFromLibraryAsync(fileVm));
+                fileVm.DeleteFromDiskCommand = new AsyncRelayCommand(async () => await DeleteMediaFileFromDiskAsync(fileVm));
                 MediaFiles.Add(fileVm);
             }
 
@@ -445,6 +457,59 @@ public sealed class MovieDetailsViewModel : ObservableObject
         NavigationRequested?.Invoke("Movies");
     }
 
+
+    public async Task RemoveMovieFromLibraryAsync()
+    {
+        if (_mediaRemovalService == null || MediaFiles.Count == 0) return;
+        foreach (var file in MediaFiles.ToList())
+        {
+            await _mediaRemovalService.RemoveFromLibraryOnlyAsync(file.FilePath);
+        }
+        NavigationRequested?.Invoke("Movies");
+    }
+
+    public async Task DeleteMovieFromDiskAsync()
+    {
+        if (_mediaRemovalService == null || MediaFiles.Count == 0) return;
+        foreach (var file in MediaFiles.ToList())
+        {
+            await _mediaRemovalService.DeleteFileToRecycleBinAsync(file.FilePath);
+        }
+        NavigationRequested?.Invoke("Movies");
+    }
+
+    public async Task RemoveMediaFileFromLibraryAsync(LocalMediaFileItemViewModel? file)
+    {
+        if (file == null || string.IsNullOrWhiteSpace(file.FilePath) || _mediaRemovalService == null) return;
+        await _mediaRemovalService.RemoveFromLibraryOnlyAsync(file.FilePath);
+        MediaFiles.Remove(file);
+        if (MediaFiles.Count == 0)
+        {
+            NavigationRequested?.Invoke("Movies");
+        }
+        else
+        {
+            SelectedMediaFile = MediaFiles.FirstOrDefault(f => !f.IsMissing && File.Exists(f.FilePath)) ?? MediaFiles.FirstOrDefault();
+            OnPropertyChanged(nameof(HasMultipleFiles));
+        }
+    }
+
+    public async Task DeleteMediaFileFromDiskAsync(LocalMediaFileItemViewModel? file)
+    {
+        if (file == null || string.IsNullOrWhiteSpace(file.FilePath) || _mediaRemovalService == null) return;
+        await _mediaRemovalService.DeleteFileToRecycleBinAsync(file.FilePath);
+        MediaFiles.Remove(file);
+        if (MediaFiles.Count == 0)
+        {
+            NavigationRequested?.Invoke("Movies");
+        }
+        else
+        {
+            SelectedMediaFile = MediaFiles.FirstOrDefault(f => !f.IsMissing && File.Exists(f.FilePath)) ?? MediaFiles.FirstOrDefault();
+            OnPropertyChanged(nameof(HasMultipleFiles));
+        }
+    }
+
     private void ResetState()
     {
         MovieId = 0;

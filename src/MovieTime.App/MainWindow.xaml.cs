@@ -76,6 +76,7 @@ public sealed partial class MainWindow : Window
         HomeViewModel.PlaybackRequested += OnHomePlaybackRequested;
         HomeViewModel.MediaPlaybackRequested += OnHomeMediaPlaybackRequested;
         MoviesViewModel.NavigationRequested += OnNavigationRequested;
+        MoviesViewModel.PlaybackRequested += (filePath, movieId) => NavigateToPlayer(filePath, movieId, null);
         TvShowsViewModel.NavigationRequested += OnNavigationRequested;
         SettingsViewModel.NavigationRequested += OnNavigationRequested;
         MovieDetailsViewModel.NavigationRequested += OnNavigationRequested;
@@ -234,6 +235,7 @@ public sealed partial class MainWindow : Window
     public void NavigateToHome()
     {
         ExitPlayerMode();
+        bool wasAlreadyHome = MainHomeView.Visibility == Visibility.Visible;
         MainMoviesView.Visibility = Visibility.Collapsed;
         MainSettingsView.Visibility = Visibility.Collapsed;
         MainMovieDetailsView.Visibility = Visibility.Collapsed;
@@ -242,7 +244,18 @@ public sealed partial class MainWindow : Window
         MainPlaylistsView.Visibility = Visibility.Collapsed;
         MainPlayerView.Visibility = Visibility.Collapsed;
         MainHomeView.Visibility = Visibility.Visible;
-        _ = HomeViewModel.InitializeAsync();
+
+        HomeViewModel.ActiveCategory = "Home";
+        HomeViewModel.IsSidebarOpen = false;
+
+        if (wasAlreadyHome)
+        {
+            MainHomeView.ScrollToTop();
+        }
+        else
+        {
+            _ = HomeViewModel.InitializeAsync();
+        }
     }
 
     public void NavigateToSettings()

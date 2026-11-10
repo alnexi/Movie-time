@@ -244,6 +244,15 @@ public sealed class MoviesViewModelTests : IDisposable
     {
         var movie = new Movie { Title = "Dune: Part Two", ReleaseYear = 2024 };
         await _movieRepository.InsertAsync(movie);
+        await _mediaFileRepository.InsertAsync(new MediaFile
+        {
+            MovieId = movie.Id,
+            FilePath = @"C:\Media\Dune2.mkv",
+            FileName = "Dune2.mkv",
+            FileExtension = ".mkv",
+            SizeBytes = 1000,
+            LastScannedAt = DateTime.UtcNow
+        });
 
         var vm = CreateViewModel();
         await vm.InitializeAsync();
@@ -261,14 +270,22 @@ public sealed class MoviesViewModelTests : IDisposable
         Assert.True(card.IsSelected);
 
         // Tap Play
+        string? playedFile = null;
+        int? playedId = null;
+        vm.PlaybackRequested += (path, id) =>
+        {
+            playedFile = path;
+            playedId = id;
+        };
         vm.PlayMovieCommand.Execute(null);
-        Assert.NotNull(vm.StatusMessage);
-        Assert.Contains("Dune: Part Two", vm.StatusMessage);
+        Assert.Equal(card.FilePath, playedFile);
+        Assert.Equal(card.Id, playedId);
 
         // Tap Go to Details
+        string? navigatedTarget = null;
+        vm.NavigationRequested += target => navigatedTarget = target;
         vm.GoToDetailsCommand.Execute(null);
-        Assert.NotNull(vm.StatusMessage);
-        Assert.Contains("Dune: Part Two", vm.StatusMessage);
+        Assert.Equal($"MovieDetails:{card.Id}", navigatedTarget);
 
         // Dismiss
         vm.DismissQuickActionCommand.Execute(null);

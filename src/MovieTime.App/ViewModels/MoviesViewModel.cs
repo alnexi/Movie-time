@@ -29,6 +29,7 @@ public sealed class MoviesViewModel : ObservableObject
     private readonly ILibraryImportService _importService;
     private readonly IArtworkPipelineService? _artworkPipelineService;
     private readonly IDispatcherService? _dispatcher;
+    private readonly IMediaRemovalService? _mediaRemovalService;
     private readonly ILogger<MoviesViewModel> _logger;
 
     private bool _isLoading;
@@ -43,6 +44,7 @@ public sealed class MoviesViewModel : ObservableObject
     private string _viewMode = "PosterGrid"; // "PosterGrid" (2:3) or "LandscapeGrid" (16:9)
 
     public event Action<string>? NavigationRequested;
+    public event Action<string, int?>? PlaybackRequested;
 
     public bool IsLoading
     {
@@ -187,6 +189,8 @@ public sealed class MoviesViewModel : ObservableObject
     public ICommand NavigatePlaylistsCommand { get; }
     public ICommand RefreshLibraryCommand { get; }
     public ICommand ManageLibrariesCommand { get; }
+    public ICommand RemoveSelectedMovieFromLibraryCommand { get; }
+    public ICommand DeleteSelectedMovieFromDiskCommand { get; }
 
     public MoviesViewModel(
         IDatabaseService databaseService,
@@ -195,7 +199,20 @@ public sealed class MoviesViewModel : ObservableObject
         IScanRootService scanRootService,
         ILibraryImportService importService,
         ILogger<MoviesViewModel>? logger = null)
-        : this(databaseService, movieRepository, mediaFileRepository, scanRootService, importService, null, null, logger)
+        : this(databaseService, movieRepository, mediaFileRepository, scanRootService, importService, null, null, null, logger)
+    {
+    }
+
+    public MoviesViewModel(
+        IDatabaseService databaseService,
+        IMovieRepository movieRepository,
+        IMediaFileRepository mediaFileRepository,
+        IScanRootService scanRootService,
+        ILibraryImportService importService,
+        IArtworkPipelineService? artworkPipelineService,
+        IDispatcherService? dispatcher,
+        ILogger<MoviesViewModel>? logger)
+        : this(databaseService, movieRepository, mediaFileRepository, scanRootService, importService, artworkPipelineService, dispatcher, null, logger)
     {
     }
 
@@ -207,6 +224,7 @@ public sealed class MoviesViewModel : ObservableObject
         ILibraryImportService importService,
         IArtworkPipelineService? artworkPipelineService,
         IDispatcherService? dispatcher = null,
+        IMediaRemovalService? mediaRemovalService = null,
         ILogger<MoviesViewModel>? logger = null)
     {
         _databaseService = databaseService ?? throw new ArgumentNullException(nameof(databaseService));
@@ -216,6 +234,7 @@ public sealed class MoviesViewModel : ObservableObject
         _importService = importService ?? throw new ArgumentNullException(nameof(importService));
         _artworkPipelineService = artworkPipelineService;
         _dispatcher = dispatcher;
+        _mediaRemovalService = mediaRemovalService;
         _logger = logger ?? NullLogger<MoviesViewModel>.Instance;
 
         if (_artworkPipelineService != null)
@@ -240,6 +259,8 @@ public sealed class MoviesViewModel : ObservableObject
         RefreshLibraryCommand = new AsyncRelayCommand(RefreshLibraryAsync);
         ManageLibrariesCommand = new RelayCommand(() => NavigationRequested?.Invoke("Settings"));
         NavigatePlaylistsCommand = new RelayCommand(() => NavigationRequested?.Invoke("Playlists"));
+        RemoveSelectedMovieFromLibraryCommand = new AsyncRelayCommand(async () => await RemoveMovieFromLibraryAsync(SelectedMovie));
+        DeleteSelectedMovieFromDiskCommand = new AsyncRelayCommand(async () => await DeleteMovieFromDiskAsync(SelectedMovie));
 
         InitializeCategories();
     }
@@ -447,6 +468,9 @@ public sealed class MoviesViewModel : ObservableObject
                     DetailsCommand = new RelayCommand<MoviePosterItemViewModel>(_ => OnGoToMovieDetails())
                 };
 
+                posterVm.RemoveFromLibraryCommand = new AsyncRelayCommand(async () => await RemoveMovieFromLibraryAsync(posterVm));
+                posterVm.DeleteFromDiskCommand = new AsyncRelayCommand(async () => await DeleteMovieFromDiskAsync(posterVm));
+
                 AllMovies.Add(posterVm);
             }
 
@@ -565,9 +589,12 @@ public sealed class MoviesViewModel : ObservableObject
 
     private void OnPlaySelectedMovie()
     {
-        if (SelectedMovie != null)
+        if (SelectedMovie != null && !string.IsNullOrWhiteSpace(SelectedMovie.FilePath))
         {
-            StatusMessage = $"Playback for '{SelectedMovie.Title}' will be available in Phase 4 (Hardware-Accelerated Player).";
+            var filePath = SelectedMovie.FilePath;
+            var movieId = SelectedMovie.Id;
+            IsQuickActionOpen = false;
+            PlaybackRequested?.Invoke(filePath, movieId);
         }
     }
 
@@ -588,6 +615,49 @@ public sealed class MoviesViewModel : ObservableObject
             SelectedMovie.IsSelected = false;
             SelectedMovie = null;
         }
+    }
+
+
+    public async Task RemoveMovieFromLibraryAsync(MoviePosterItemViewModel? movie)
+    {
+        if (movie == null || string.IsNullOrWhiteSpace(movie.FilePath) || _mediaRemovalService == null) return;
+        await _mediaRemovalService.RemoveFromLibraryOnlyAsync(movie.FilePath);
+        AllMovies.Remove(movie);
+        DisplayedMovies.Remove(movie);
+        if (AllMovies.Count == 0)
+        {
+            IsLibraryEmpty = true;
+        }
+        if (SelectedMovie == movie)
+        {
+            IsQuickActionOpen = false;
+            SelectedMovie = null;
+        }
+        UpdateCategoryCounts();
+        OnPropertyChanged(nameof(TotalMovieCount));
+        OnPropertyChanged(nameof(DisplayedMovieCount));
+        OnPropertyChanged(nameof(MovieCountSummary));
+    }
+
+    public async Task DeleteMovieFromDiskAsync(MoviePosterItemViewModel? movie)
+    {
+        if (movie == null || string.IsNullOrWhiteSpace(movie.FilePath) || _mediaRemovalService == null) return;
+        await _mediaRemovalService.DeleteFileToRecycleBinAsync(movie.FilePath);
+        AllMovies.Remove(movie);
+        DisplayedMovies.Remove(movie);
+        if (AllMovies.Count == 0)
+        {
+            IsLibraryEmpty = true;
+        }
+        if (SelectedMovie == movie)
+        {
+            IsQuickActionOpen = false;
+            SelectedMovie = null;
+        }
+        UpdateCategoryCounts();
+        OnPropertyChanged(nameof(TotalMovieCount));
+        OnPropertyChanged(nameof(DisplayedMovieCount));
+        OnPropertyChanged(nameof(MovieCountSummary));
     }
 
     public async Task RefreshLibraryAsync()

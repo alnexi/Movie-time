@@ -446,6 +446,36 @@
                         </StackPanel>
                     </Button>
 
+                    <!-- Action 3: Remove from River Library -->
+                    <Button Command="{x:Bind ViewModel.RemoveSelectedMovieFromLibraryCommand}"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Left"
+                            Background="{ThemeResource AppGlassFillBrush}"
+                            BorderBrush="{ThemeResource AppBorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="12"
+                            Padding="14,10">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <FontIcon Glyph="&#xE74D;" FontSize="14" Foreground="{ThemeResource AppTextPrimaryBrush}" />
+                            <TextBlock Text="Remove from River Library" FontSize="14" FontWeight="Medium" Foreground="{ThemeResource AppTextPrimaryBrush}" />
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Action 4: Delete from Computer (Recycle Bin) -->
+                    <Button Command="{x:Bind ViewModel.DeleteSelectedMovieFromDiskCommand}"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Left"
+                            Background="{ThemeResource AppGlassFillBrush}"
+                            BorderBrush="{ThemeResource AppBorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="12"
+                            Padding="14,10">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <FontIcon Glyph="&#xE74D;" FontSize="14" Foreground="#FF453A" />
+                            <TextBlock Text="Delete from Computer" FontSize="14" FontWeight="Medium" Foreground="#FF453A" />
+                        </StackPanel>
+                    </Button>
+
                     <!-- Status / Feedback Message -->
                     <Border Visibility="{x:Bind ViewModel.HasStatusMessage, Mode=OneWay}"
                             Background="{ThemeResource AppSurfaceSubtleBrush}"

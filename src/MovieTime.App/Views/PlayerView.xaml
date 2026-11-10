@@ -73,28 +73,51 @@
             </Grid.Background>
         </Grid>
 
-        <!-- ================= 3. TOP-LEFT FLOATING BACK BUTTON ================= -->
-        <Button x:Name="BackButton"
-                Command="{x:Bind ViewModel.BackCommand, Mode=OneWay}"
-                HorizontalAlignment="Left"
-                VerticalAlignment="Top"
-                Margin="48,36,0,0"
-                Padding="0"
-                Background="Transparent"
-                BorderThickness="0"
-                CornerRadius="18"
-                Visibility="{x:Bind ViewModel.IsControlsVisible, Mode=OneWay}">
-            <Border Background="{StaticResource LiquidGlassSurfaceBrush}"
-                    BorderBrush="{StaticResource LiquidGlassBorderBrush}"
-                    BorderThickness="1"
+        <!-- ================= 3. TOP-LEFT FLOATING NAVIGATION BUTTONS ================= -->
+        <StackPanel Orientation="Horizontal"
+                    Spacing="12"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    Margin="48,36,0,0"
+                    Visibility="{x:Bind ViewModel.IsControlsVisible, Mode=OneWay}">
+            <Button x:Name="BackButton"
+                    Command="{x:Bind ViewModel.BackCommand, Mode=OneWay}"
+                    Padding="0"
+                    Background="Transparent"
+                    BorderThickness="0"
                     CornerRadius="18"
-                    Padding="14,8,18,8">
-                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                    <FontIcon Glyph="&#xE72B;" FontSize="11" Foreground="#FFFFFF" />
-                    <TextBlock Text="Movies" FontSize="13" FontWeight="SemiBold" Foreground="#FFFFFF" />
-                </StackPanel>
-            </Border>
-        </Button>
+                    ToolTipService.ToolTip="Back to Library">
+                <Border Background="{StaticResource LiquidGlassSurfaceBrush}"
+                        BorderBrush="{StaticResource LiquidGlassBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="18"
+                        Padding="14,8,18,8">
+                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <FontIcon Glyph="&#xE72B;" FontSize="11" Foreground="#FFFFFF" />
+                        <TextBlock Text="Back" FontSize="13" FontWeight="SemiBold" Foreground="#FFFFFF" />
+                    </StackPanel>
+                </Border>
+            </Button>
+
+            <Button x:Name="HomeButton"
+                    Command="{x:Bind ViewModel.NavigateHomeCommand, Mode=OneWay}"
+                    Padding="0"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    CornerRadius="18"
+                    ToolTipService.ToolTip="Navigate Home (H)">
+                <Border Background="{StaticResource LiquidGlassSurfaceBrush}"
+                        BorderBrush="{StaticResource LiquidGlassBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="18"
+                        Padding="14,8,18,8">
+                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <FontIcon Glyph="&#xE80F;" FontSize="11" Foreground="#FFFFFF" />
+                        <TextBlock Text="Home" FontSize="13" FontWeight="SemiBold" Foreground="#FFFFFF" />
+                    </StackPanel>
+                </Border>
+            </Button>
+        </StackPanel>
 
         <!-- ================= 4. CENTER TRANSPORT CONTROLS ================= -->
         <Grid HorizontalAlignment="Center"
@@ -184,7 +207,11 @@
                             BorderBrush="{StaticResource LiquidGlassBorderBrush}"
                             BorderThickness="1">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <FontIcon Glyph="&#xEE36;" FontSize="20" Foreground="#FFFFFF" />
+                            <FontIcon Glyph="&#xEE35;" FontSize="20" Foreground="#FFFFFF" RenderTransformOrigin="0.5,0.5">
+                                <FontIcon.RenderTransform>
+                                    <ScaleTransform ScaleX="-1" />
+                                </FontIcon.RenderTransform>
+                            </FontIcon>
                             <TextBlock Text="10" FontSize="9" FontWeight="Bold" Foreground="#D0D0D8" HorizontalAlignment="Center" Margin="0,-4,0,0" />
                         </StackPanel>
                     </Border>
@@ -465,24 +492,44 @@
             </StackPanel>
         </Grid>
 
-        <!-- ================= 5.5 FLOATING PLAYBACK SPEED HUD ================= -->
-        <Border HorizontalAlignment="Right"
-                VerticalAlignment="Bottom"
-                Margin="0,0,48,150"
-                CornerRadius="16"
-                Background="{StaticResource LiquidGlassFlyoutSurfaceBrush}"
-                BorderBrush="{StaticResource LiquidGlassBorderBrush}"
-                BorderThickness="1"
-                Padding="16,8"
-                Visibility="{x:Bind ViewModel.IsSpeedHudVisible, Mode=OneWay}">
-            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                <FontIcon Glyph="&#xEC48;" FontSize="14" Foreground="#FFFFFF" />
-                <TextBlock Text="{x:Bind ViewModel.SpeedHudText, Mode=OneWay}"
-                           FontSize="13"
-                           FontWeight="SemiBold"
-                           Foreground="#FFFFFF" />
-            </StackPanel>
-        </Border>
+        <!-- ================= 5.5 BOTTOM-RIGHT TEMPORARY FEEDBACK CAPSULES (Speed & Volume when Controls Hidden) ================= -->
+        <StackPanel HorizontalAlignment="Right"
+                    VerticalAlignment="Bottom"
+                    Margin="0,0,48,48"
+                    Spacing="10"
+                    IsHitTestVisible="False">
+            <!-- Speed Feedback Capsule -->
+            <Border CornerRadius="16"
+                    Background="{StaticResource LiquidGlassFlyoutSurfaceBrush}"
+                    BorderBrush="{StaticResource LiquidGlassBorderBrush}"
+                    BorderThickness="1"
+                    Padding="14,8"
+                    Visibility="{x:Bind ViewModel.IsSpeedFeedbackVisible, Mode=OneWay}">
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <FontIcon Glyph="&#xEC48;" FontSize="14" Foreground="#FFFFFF" />
+                    <TextBlock Text="{x:Bind ViewModel.SpeedFeedbackText, Mode=OneWay}"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               Foreground="#FFFFFF" />
+                </StackPanel>
+            </Border>
+
+            <!-- Volume Feedback Capsule -->
+            <Border CornerRadius="16"
+                    Background="{StaticResource LiquidGlassFlyoutSurfaceBrush}"
+                    BorderBrush="{StaticResource LiquidGlassBorderBrush}"
+                    BorderThickness="1"
+                    Padding="14,8"
+                    Visibility="{x:Bind ViewModel.IsVolumeFeedbackVisible, Mode=OneWay}">
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <FontIcon Glyph="{x:Bind ViewModel.VolumeGlyph, Mode=OneWay}" FontSize="14" Foreground="#FFFFFF" />
+                    <TextBlock Text="{x:Bind ViewModel.VolumeFeedbackText, Mode=OneWay}"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               Foreground="#FFFFFF" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
 
         <!-- ================= 6. LIQUID GLASS FLYOUT MENUS ================= -->
 

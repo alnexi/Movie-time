@@ -9,6 +9,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-10 (River — UI Bugfix Phase 2 & Home, TV Show Details and Player UX Improvements)
+
+### Added
+- **Home Screen "Recently Added" Section**:
+  - Dynamically populated from synchronized SQLite database containing ALL eligible video files (Movies, TV episodes, standalone video files, editions).
+  - Sorted newest-first by discovery/import timestamp (`LastScannedAt` desc, `Id` desc).
+  - Skips missing and excluded media files.
+  - Interactive playback and navigation hooks for each card type.
+- **Home Hero Billboard Candidate Expansion & Stable Fisher-Yates Shuffle**:
+  - Billboard candidate collection now includes EVERY eligible movie present in the local database (removed artificial 7-item cap).
+  - Shuffled via Fisher-Yates on startup and cached in `_heroMovieIdSequence` to remain consistent across navigation visits.
+  - Previous/Next and two-finger swipe gestures navigate through the full candidate sequence without reshuffling.
+- **TV Show Details Dynamic Episode Background & Cinematic Crossfade**:
+  - Automatically builds a shuffled rotation pool of backdrops exclusively from that TV show's own episodes with valid extracted thumbnails.
+  - Subtle, distraction-free 9-second crossfade animation (350ms transition) rotating through episode artwork.
+  - Automatic fallback to series backdrop or ambient canvas if episode artwork is not available.
+  - Clean lifecycle management: timer is stopped and disposed immediately when navigating away or uncompleted.
+- **Universal Home Navigation from All Views**:
+  - Added dedicated "Home" button (`\uE80F`) in top navigation bars of Player, Movie Details, and Series Details.
+  - Clicking "Home" while already on Home view smoothly scrolls to the top (`MainHomeView.ScrollToTop()`) and closes sidebar.
+  - Restores active navigation state to "Home" in sidebar and top triggers.
+- **Decoupled Player Control Panel & Bottom-Right Feedback Capsules**:
+  - Completely separated playback control panel visibility from temporary speed and volume feedback.
+  - Adjusting volume or speed when controls are hidden displays a subtle, semi-transparent feedback capsule in the bottom-right corner without revealing the full control HUD or resetting the auto-hide timer.
+  - Fast, responsive volume (0–200%) and speed (0.1x–2.0x) status indicators.
+- **Player Multi-Touch Two-Finger Gestures**:
+  - Native WinUI touch gesture recognition (`PointerDeviceType.Touch`):
+    - Two-finger vertical drag smoothly adjusts volume (0–200%) with capsule feedback.
+    - Two-finger horizontal swipe seeks ±10 seconds with temporary skip feedback.
+  - Zero conflict with mouse clicks, single-finger tap (play/pause toggle), or keyboard shortcuts.
+- **Fixed Player Skip Forward Icon**:
+  - Replaced unmapped Segoe Fluent glyph `\uEE36` (tofu box) with clockwise circular jump arrow via `\uEE35` horizontally scaled (`ScaleX="-1"`, `RenderTransformOrigin="0.5,0.5"`).
+- **Safe, Persistent, and Explicit Media Removal Architecture**:
+  - Created `library_exclusions` SQLite database table with Schema Version 4 migration and indexed paths (`IX_library_exclusions_Path`).
+  - Added `ILibraryExclusionRepository` and `IMediaRemovalService` in Core.
+  - Two explicit removal options:
+    - **Remove from River Library**: Persists normalized path to `library_exclusions`, removes database records, and cleans up empty parent entities (movies, series, seasons). Auto-sync and manual scans will never re-import the file. The original file on disk remains completely untouched.
+    - **Delete from Computer (Recycle Bin)**: Safely sends file to Windows Recycle Bin with user undo support via native Win32 `SHFileOperation` (`FOF_ALLOWUNDO`), and removes database records.
+  - Wired into context flyouts across Movie Poster cards, Episode list items, and Movie Details editions.
+- **Comprehensive UI Interaction Audit & Visual Polish**:
+  - Removed obsolete development text ("Phase 4" playback stub).
+  - Verified 0 decorative emojis and 0 Apple TV branding remnants.
+  - Preserved approved Theme Experience with retro pixel-art canvas, water shaders, and dot slider thumb across 100% Night, Twilight, and Day.
+- **Automated Verification**:
+  - Added 6 new unit tests in `Phase8ImprovementsTests.cs` (335/335 unit and integration tests passing).
+
+
 ### Added
 - **Theme Experience: Authentic Hand-Drawn Sailboat Companion Artwork Integration**:
   - Seamlessly integrated the authentic user-supplied hand-drawn sailboat artwork into the real-time pixel-art ocean scene in `PixelDitherThemeControl`.

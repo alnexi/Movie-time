@@ -60,12 +60,14 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IScanRootRepository, Database.Repositories.ScanRootRepository>();
         services.AddSingleton<IPlaybackProgressRepository, Database.Repositories.PlaybackProgressRepository>();
         services.AddSingleton<IPlaylistRepository, Database.Repositories.PlaylistRepository>();
+        services.AddSingleton<ILibraryExclusionRepository, Database.Repositories.LibraryExclusionRepository>();
 
         // Library synchronization and scan root services
         services.AddSingleton<Library.IScanRootService, Library.ScanRootService>();
         services.AddSingleton<Library.ILibraryImportService, Library.LibraryImportService>();
         services.AddSingleton<Library.ILibraryAutoSyncService, Library.LibraryAutoSyncService>();
         services.AddSingleton<Library.IMLibraryManagerService, Library.MLibraryManagerService>();
+        services.AddSingleton<Library.IMediaRemovalService, Library.MediaRemovalService>();
 
         // Subtitle customization settings persistence
         services.AddSingleton<Playback.ISubtitleSettingsService, Playback.SubtitleSettingsService>();

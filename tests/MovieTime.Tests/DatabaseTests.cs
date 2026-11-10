@@ -62,13 +62,13 @@ public sealed class DatabaseTests : IDisposable
         await dbService.InitializeAsync();
 
         Assert.True(dbService.IsInitialized);
-        Assert.Equal(3, dbService.CurrentSchemaVersion);
+        Assert.Equal(4, dbService.CurrentSchemaVersion);
         Assert.True(File.Exists(_databaseFilePath));
 
         // Verify SQLite PRAGMAs directly on connection
         var conn = dbService.GetConnection();
         var userVersion = await conn.ExecuteScalarAsync<int>("PRAGMA user_version;");
-        Assert.Equal(3, userVersion);
+        Assert.Equal(4, userVersion);
 
         var journalMode = await conn.ExecuteScalarAsync<string>("PRAGMA journal_mode;");
         Assert.Equal("wal", journalMode.ToLowerInvariant());
@@ -95,6 +95,7 @@ public sealed class DatabaseTests : IDisposable
         Assert.Contains("PlaybackProgress", tables);
         Assert.Contains("WatchHistory", tables);
         Assert.Contains("ScanRoots", tables);
+        Assert.Contains("library_exclusions", tables);
 
         // Query sqlite_master for custom compound indices
         var indices = await conn.QueryScalarsAsync<string>(
@@ -107,6 +108,7 @@ public sealed class DatabaseTests : IDisposable
         Assert.Contains("IX_MediaFiles_EpisodeId", indices);
         Assert.Contains("IX_MediaFiles_IsMissing", indices);
         Assert.Contains("IX_ScanRoots_NormalizedPath", indices);
+        Assert.Contains("IX_library_exclusions_Path", indices);
     }
 
     [Fact]
@@ -119,7 +121,7 @@ public sealed class DatabaseTests : IDisposable
         await dbService.InitializeAsync();
 
         Assert.True(dbService.IsInitialized);
-        Assert.Equal(3, dbService.CurrentSchemaVersion);
+        Assert.Equal(4, dbService.CurrentSchemaVersion);
     }
 
     [Fact]
@@ -135,7 +137,7 @@ public sealed class DatabaseTests : IDisposable
         await Task.WhenAll(tasks);
 
         Assert.True(dbService.IsInitialized);
-        Assert.Equal(3, dbService.CurrentSchemaVersion);
+        Assert.Equal(4, dbService.CurrentSchemaVersion);
     }
 
     [Fact]
@@ -363,7 +365,7 @@ public sealed class DatabaseTests : IDisposable
             await dbService2.InitializeAsync();
 
             Assert.True(dbService2.IsInitialized);
-            Assert.Equal(3, dbService2.CurrentSchemaVersion);
+            Assert.Equal(4, dbService2.CurrentSchemaVersion);
 
             var movies = await dbService2.GetAllAsync<Movie>();
             Assert.Single(movies);
@@ -407,7 +409,7 @@ public sealed class DatabaseTests : IDisposable
         await dbService.InitializeAsync();
 
         // 3. Verify upgraded to latest version (version 3)
-        Assert.Equal(3, dbService.CurrentSchemaVersion);
+        Assert.Equal(4, dbService.CurrentSchemaVersion);
 
         // Verify ScanRoots, Playlists, and PlaylistItems tables now exist
         var conn = dbService.GetConnection();

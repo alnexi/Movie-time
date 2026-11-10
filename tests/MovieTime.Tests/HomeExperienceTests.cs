@@ -133,11 +133,10 @@ public sealed class HomeExperienceTests : IDisposable
         // Act
         await vm.InitializeAsync();
 
-        // Assert: Capped at 7
-        Assert.Equal(7, vm.HeroItems.Count);
-        Assert.Equal("MOVIE 1", vm.Hero.Title);
+        // Assert: Includes all eligible movies (no 7-item cap)
+        Assert.Equal(8, vm.HeroItems.Count);
         Assert.Equal(0, vm.CurrentHeroIndex);
-        Assert.Equal(7, vm.Hero.Dots.Count);
+        Assert.Equal(8, vm.Hero.Dots.Count);
         Assert.True(vm.Hero.Dots[0].IsActive);
         Assert.False(vm.Hero.Dots[1].IsActive);
     }
@@ -170,7 +169,7 @@ public sealed class HomeExperienceTests : IDisposable
         vm.NextHeroItem();
 
         Assert.Equal(1, vm.CurrentHeroIndex);
-        Assert.Equal("FILM 2", vm.Hero.Title);
+        Assert.Equal(vm.HeroItems[1].Title.ToUpperInvariant(), vm.Hero.Title);
         Assert.False(vm.Hero.Dots[0].IsActive);
         Assert.True(vm.Hero.Dots[1].IsActive);
         Assert.False(vm.Hero.Dots[2].IsActive);
@@ -178,7 +177,7 @@ public sealed class HomeExperienceTests : IDisposable
         // Switch directly to index 2
         vm.SwitchToHeroIndex(2);
         Assert.Equal(2, vm.CurrentHeroIndex);
-        Assert.Equal("FILM 3", vm.Hero.Title);
+        Assert.Equal(vm.HeroItems[2].Title.ToUpperInvariant(), vm.Hero.Title);
         Assert.True(vm.Hero.Dots[2].IsActive);
 
         // Clamping check

@@ -10,6 +10,37 @@
     IsTabStop="True"
     UseSystemFocusVisuals="False">
 
+    <UserControl.ContextFlyout>
+        <MenuFlyout>
+            <MenuFlyoutItem Text="Play Movie"
+                            Command="{x:Bind ViewModel.PlayCommand, Mode=OneWay}">
+                <MenuFlyoutItem.Icon>
+                    <FontIcon Glyph="&#xE768;" />
+                </MenuFlyoutItem.Icon>
+            </MenuFlyoutItem>
+            <MenuFlyoutItem Text="Movie Details"
+                            Command="{x:Bind ViewModel.DetailsCommand, Mode=OneWay}">
+                <MenuFlyoutItem.Icon>
+                    <FontIcon Glyph="&#xE946;" />
+                </MenuFlyoutItem.Icon>
+            </MenuFlyoutItem>
+            <MenuFlyoutSeparator />
+            <MenuFlyoutItem Text="Remove from River Library"
+                            Command="{x:Bind ViewModel.RemoveFromLibraryCommand, Mode=OneWay}">
+                <MenuFlyoutItem.Icon>
+                    <FontIcon Glyph="&#xE74D;" />
+                </MenuFlyoutItem.Icon>
+            </MenuFlyoutItem>
+            <MenuFlyoutItem Text="Delete from Computer"
+                            Foreground="#FF453A"
+                            Command="{x:Bind ViewModel.DeleteFromDiskCommand, Mode=OneWay}">
+                <MenuFlyoutItem.Icon>
+                    <FontIcon Glyph="&#xE74D;" Foreground="#FF453A" />
+                </MenuFlyoutItem.Icon>
+            </MenuFlyoutItem>
+        </MenuFlyout>
+    </UserControl.ContextFlyout>
+
     <StackPanel Width="170" Spacing="8" Margin="0,8,16,14">
         <!-- 2:3 Vertical Movie Poster Card Area (170 x 255) -->
         <Grid x:Name="PosterContainer" Width="170" Height="255" RenderTransformOrigin="0.5,0.5">

@@ -19,6 +19,9 @@ public sealed partial class PlayerView : UserControl
 {
     private readonly DispatcherTimer _inactivityTimer;
     private bool _isUserDraggingSlider;
+    private readonly System.Collections.Generic.Dictionary<uint, Windows.Foundation.Point> _touchPoints = new();
+    private readonly System.Collections.Generic.Dictionary<uint, Windows.Foundation.Point> _touchInitialPoints = new();
+    private long _lastSeekGestureTime;
 
     public static readonly DependencyProperty ViewModelProperty =
         DependencyProperty.Register(
@@ -47,6 +50,9 @@ public sealed partial class PlayerView : UserControl
         this.Unloaded += OnUnloaded;
         this.PointerMoved += OnPointerMoved;
         this.PointerPressed += OnPointerPressed;
+        this.PointerReleased += OnPointerReleased;
+        this.PointerCanceled += OnPointerCanceled;
+        this.PointerCaptureLost += OnPointerCaptureLost;
         this.KeyDown += OnKeyDown;
 
         // Register timeline pointer handlers with handledEventsToo: true
@@ -226,14 +232,117 @@ public sealed partial class PlayerView : UserControl
         _inactivityTimer.Stop();
     }
 
-    private void OnPointerMoved(object sender, PointerRoutedEventArgs e)
-    {
-        ResetInactivityTimer();
-    }
-
     private void OnPointerPressed(object sender, PointerRoutedEventArgs e)
     {
-        ResetInactivityTimer();
+        if (e.Pointer.PointerDeviceType == Microsoft.UI.Input.PointerDeviceType.Touch)
+        {
+            var pt = e.GetCurrentPoint(this).Position;
+            _touchPoints[e.Pointer.PointerId] = pt;
+            _touchInitialPoints[e.Pointer.PointerId] = pt;
+
+            if (_touchPoints.Count == 1)
+            {
+                ResetInactivityTimer();
+            }
+        }
+        else
+        {
+            ResetInactivityTimer();
+        }
+    }
+
+    private void OnPointerMoved(object sender, PointerRoutedEventArgs e)
+    {
+        if (e.Pointer.PointerDeviceType == Microsoft.UI.Input.PointerDeviceType.Touch)
+        {
+            if (_touchPoints.ContainsKey(e.Pointer.PointerId))
+            {
+                var currentPt = e.GetCurrentPoint(this).Position;
+                _touchPoints[e.Pointer.PointerId] = currentPt;
+
+                if (_touchPoints.Count == 2)
+                {
+                    var pts = System.Linq.Enumerable.ToList(_touchPoints.Values);
+                    var initPts = System.Linq.Enumerable.ToList(_touchInitialPoints.Values);
+                    if (pts.Count == 2 && initPts.Count == 2)
+                    {
+                        double deltaX = ((pts[0].X - initPts[0].X) + (pts[1].X - initPts[1].X)) / 2.0;
+                        double deltaY = ((pts[0].Y - initPts[0].Y) + (pts[1].Y - initPts[1].Y)) / 2.0;
+
+                        // Vertical gesture: Volume adjustment (Up = Increase, Down = Decrease)
+                        if (Math.Abs(deltaY) > Math.Abs(deltaX) && Math.Abs(deltaY) > 20)
+                        {
+                            int volStep = (int)(-deltaY / 15.0);
+                            if (volStep != 0 && ViewModel != null)
+                            {
+                                ViewModel.SetVolume(ViewModel.Volume + (volStep * 2));
+
+                                var keys = System.Linq.Enumerable.ToList(_touchInitialPoints.Keys);
+                                foreach (var k in keys)
+                                {
+                                    if (_touchPoints.TryGetValue(k, out var curr))
+                                    {
+                                        _touchInitialPoints[k] = curr;
+                                    }
+                                }
+                            }
+                            e.Handled = true;
+                            return;
+                        }
+                        // Horizontal gesture: Seek ±10s (Right = Forward, Left = Backward)
+                        else if (Math.Abs(deltaX) > Math.Abs(deltaY) && Math.Abs(deltaX) > 60)
+                        {
+                            long now = Environment.TickCount64;
+                            if (now - _lastSeekGestureTime > 400 && ViewModel != null)
+                            {
+                                _lastSeekGestureTime = now;
+                                if (deltaX > 0)
+                                {
+                                    ViewModel.SeekForwardCommand.Execute(null);
+                                }
+                                else
+                                {
+                                    ViewModel.SeekBackwardCommand.Execute(null);
+                                }
+
+                                var keys = System.Linq.Enumerable.ToList(_touchInitialPoints.Keys);
+                                foreach (var k in keys)
+                                {
+                                    if (_touchPoints.TryGetValue(k, out var curr))
+                                    {
+                                        _touchInitialPoints[k] = curr;
+                                    }
+                                }
+                            }
+                            e.Handled = true;
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            ResetInactivityTimer();
+        }
+    }
+
+    private void OnPointerReleased(object sender, PointerRoutedEventArgs e)
+    {
+        _touchPoints.Remove(e.Pointer.PointerId);
+        _touchInitialPoints.Remove(e.Pointer.PointerId);
+    }
+
+    private void OnPointerCanceled(object sender, PointerRoutedEventArgs e)
+    {
+        _touchPoints.Remove(e.Pointer.PointerId);
+        _touchInitialPoints.Remove(e.Pointer.PointerId);
+    }
+
+    private void OnPointerCaptureLost(object sender, PointerRoutedEventArgs e)
+    {
+        _touchPoints.Remove(e.Pointer.PointerId);
+        _touchInitialPoints.Remove(e.Pointer.PointerId);
     }
 
     private void OnKeyDown(object sender, KeyRoutedEventArgs e)
@@ -294,6 +403,11 @@ public sealed partial class PlayerView : UserControl
 
             case VirtualKey.F:
                 vm.ToggleFullscreenCommand.Execute(null);
+                e.Handled = true;
+                break;
+
+            case VirtualKey.H:
+                vm.NavigateHomeCommand.Execute(null);
                 e.Handled = true;
                 break;
 
