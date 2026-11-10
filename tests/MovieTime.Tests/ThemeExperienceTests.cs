@@ -442,4 +442,118 @@ public sealed class ThemeExperienceTests : IDisposable
         const int sliderCenterX = 36;
         Assert.Equal(36, sliderCenterX);
     }
+
+    [Fact]
+    public void ThemePalette_NightEndpoint_MatchesOriginalRiverDarkTheme()
+    {
+        // 100% Night endpoint (t = 1.0) must match original River Dark Theme values exactly
+        var bg = ThemeColorInterpolator.Interpolate5(
+            c0: ThemeColor.FromArgb(255, 244, 245, 247),
+            c25: ThemeColor.FromArgb(255, 228, 231, 235),
+            c50: ThemeColor.FromArgb(255, 30, 27, 22),
+            c75: ThemeColor.FromArgb(255, 18, 18, 22),
+            c100: ThemeColor.FromArgb(255, 10, 10, 12),
+            t: 1.0);
+
+        Assert.Equal(10, bg.R);
+        Assert.Equal(10, bg.G);
+        Assert.Equal(12, bg.B); // #0A0A0C
+
+        var card = ThemeColorInterpolator.Interpolate5(
+            c0: ThemeColor.FromArgb(255, 255, 255, 255),
+            c25: ThemeColor.FromArgb(255, 247, 248, 250),
+            c50: ThemeColor.FromArgb(255, 40, 34, 27),
+            c75: ThemeColor.FromArgb(255, 26, 26, 32),
+            c100: ThemeColor.FromArgb(255, 20, 20, 24),
+            t: 1.0);
+
+        Assert.Equal(20, card.R);
+        Assert.Equal(20, card.G);
+        Assert.Equal(24, card.B); // #141418
+
+        var textPrimary = ThemeColorInterpolator.Interpolate5(
+            c0: ThemeColor.FromArgb(255, 17, 17, 20),
+            c25: ThemeColor.FromArgb(255, 28, 28, 32),
+            c50: ThemeColor.FromArgb(255, 247, 239, 230),
+            c75: ThemeColor.FromArgb(255, 253, 253, 253),
+            c100: ThemeColor.FromArgb(255, 255, 255, 255),
+            t: 1.0);
+
+        Assert.Equal(255, textPrimary.R);
+        Assert.Equal(255, textPrimary.G);
+        Assert.Equal(255, textPrimary.B); // #FFFFFF
+
+        var textSecondary = ThemeColorInterpolator.Interpolate5(
+            c0: ThemeColor.FromArgb(255, 92, 96, 104),
+            c25: ThemeColor.FromArgb(255, 110, 114, 122),
+            c50: ThemeColor.FromArgb(255, 200, 184, 168),
+            c75: ThemeColor.FromArgb(255, 154, 154, 164),
+            c100: ThemeColor.FromArgb(255, 142, 142, 147),
+            t: 1.0);
+
+        Assert.Equal(142, textSecondary.R);
+        Assert.Equal(142, textSecondary.G);
+        Assert.Equal(147, textSecondary.B); // #8E8E93
+    }
+
+    [Fact]
+    public void ThemePalette_DayEndpoint_MatchesOptimizedWarmLightTheme()
+    {
+        // 0% Day endpoint (t = 0.0) must match calibrated Light Theme values
+        var bg = ThemeColorInterpolator.Interpolate5(
+            c0: ThemeColor.FromArgb(255, 244, 245, 247),
+            c25: ThemeColor.FromArgb(255, 228, 231, 235),
+            c50: ThemeColor.FromArgb(255, 30, 27, 22),
+            c75: ThemeColor.FromArgb(255, 18, 18, 22),
+            c100: ThemeColor.FromArgb(255, 10, 10, 12),
+            t: 0.0);
+
+        Assert.Equal(244, bg.R);
+        Assert.Equal(245, bg.G);
+        Assert.Equal(247, bg.B); // #F4F5F7 (Warm Pearl Gray)
+
+        var card = ThemeColorInterpolator.Interpolate5(
+            c0: ThemeColor.FromArgb(255, 255, 255, 255),
+            c25: ThemeColor.FromArgb(255, 247, 248, 250),
+            c50: ThemeColor.FromArgb(255, 40, 34, 27),
+            c75: ThemeColor.FromArgb(255, 26, 26, 32),
+            c100: ThemeColor.FromArgb(255, 20, 20, 24),
+            t: 0.0);
+
+        Assert.Equal(255, card.R);
+        Assert.Equal(255, card.G);
+        Assert.Equal(255, card.B); // #FFFFFF (Crisp White Card)
+
+        var textPrimary = ThemeColorInterpolator.Interpolate5(
+            c0: ThemeColor.FromArgb(255, 17, 17, 20),
+            c25: ThemeColor.FromArgb(255, 28, 28, 32),
+            c50: ThemeColor.FromArgb(255, 247, 239, 230),
+            c75: ThemeColor.FromArgb(255, 253, 253, 253),
+            c100: ThemeColor.FromArgb(255, 255, 255, 255),
+            t: 0.0);
+
+        Assert.Equal(17, textPrimary.R);
+        Assert.Equal(17, textPrimary.G);
+        Assert.Equal(20, textPrimary.B); // #111114 (Deep Charcoal)
+    }
+
+    [Theory]
+    [InlineData(0.0, 244, 245, 247)] // Day: fades to warm pearl gray #F4F5F7
+    [InlineData(0.5, 30, 27, 22)]    // Twilight: fades to sunset umber #1E1B16
+    [InlineData(1.0, 10, 10, 12)]    // Night: fades to original dark #0A0A0C
+    public void ThemePalette_BackdropVignetteEndStops_AdaptToCurrentThemeBackground(double t, byte expectedR, byte expectedG, byte expectedB)
+    {
+        var bg = ThemeColorInterpolator.Interpolate5(
+            c0: ThemeColor.FromArgb(255, 244, 245, 247),
+            c25: ThemeColor.FromArgb(255, 228, 231, 235),
+            c50: ThemeColor.FromArgb(255, 30, 27, 22),
+            c75: ThemeColor.FromArgb(255, 18, 18, 22),
+            c100: ThemeColor.FromArgb(255, 10, 10, 12),
+            t: t);
+
+        Assert.Equal(expectedR, bg.R);
+        Assert.Equal(expectedG, bg.G);
+        Assert.Equal(expectedB, bg.B);
+    }
 }
+

@@ -14,7 +14,7 @@
         <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}"
                    FontSize="21"
                    FontWeight="SemiBold"
-                   Foreground="#FFFFFF"
+                   Foreground="{ThemeResource AppTextPrimaryBrush}"
                    Margin="48,0,0,4" />
 
         <!-- Horizontally Scrollable 16:9 Cards Row -->

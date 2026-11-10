@@ -47,26 +47,10 @@
                    Visibility="{x:Bind ViewModel.HasBackdrop, Mode=OneWay}" />
 
             <!-- Left Vignette Gradient: Guarantees title readability -->
-            <Border IsHitTestVisible="False">
-                <Border.Background>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                        <GradientStop Color="#F00A0A0C" Offset="0" />
-                        <GradientStop Color="#B00A0A0C" Offset="0.45" />
-                        <GradientStop Color="#000A0A0C" Offset="0.85" />
-                    </LinearGradientBrush>
-                </Border.Background>
-            </Border>
+            <Border IsHitTestVisible="False" Background="{ThemeResource AppBackdropVignetteLeftBrush}" />
 
             <!-- Bottom Vignette Gradient: Seamless fade into content rows below -->
-            <Border IsHitTestVisible="False">
-                <Border.Background>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                        <GradientStop Color="#000A0A0C" Offset="0.55" />
-                        <GradientStop Color="#A00A0A0C" Offset="0.85" />
-                        <GradientStop Color="#FF0A0A0C" Offset="1" />
-                    </LinearGradientBrush>
-                </Border.Background>
-            </Border>
+            <Border IsHitTestVisible="False" Background="{ThemeResource AppBackdropVignetteBottomBrush}" />
         </Grid>
 
         <!-- 2. Hero Content Overlay -->
@@ -126,33 +110,33 @@
 
                 <!-- Dual Action Buttons: Play Movie & Details -->
                 <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,6,0,0">
-                    <!-- Primary Play Button: Signature White Capsule Pill -->
+                    <!-- Primary Play Button: Signature Capsule Pill -->
                     <Button Command="{x:Bind ViewModel.PlayCommand, Mode=OneWay}"
-                            Background="#FFFFFF"
-                            Foreground="#000000"
+                            Background="{ThemeResource AppButtonPrimaryBackgroundBrush}"
+                            Foreground="{ThemeResource AppButtonPrimaryForegroundBrush}"
                             CornerRadius="18"
                             Padding="24,10"
                             FontWeight="SemiBold"
                             FontSize="14"
                             BorderThickness="0">
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <FontIcon Glyph="&#xE768;" FontSize="13" />
+                            <FontIcon Glyph="&#xE768;" FontSize="13" Foreground="{ThemeResource AppButtonPrimaryForegroundBrush}" />
                             <TextBlock Text="{x:Bind ViewModel.ActionButtonText, Mode=OneWay}" />
                         </StackPanel>
                     </Button>
 
                     <!-- Secondary Details Button -->
                     <Button Command="{x:Bind ViewModel.DetailsCommand, Mode=OneWay}"
-                            Background="#30FFFFFF"
-                            Foreground="#FFFFFF"
+                            Background="{ThemeResource AppButtonSecondaryBackgroundBrush}"
+                            Foreground="{ThemeResource AppButtonSecondaryForegroundBrush}"
                             CornerRadius="18"
                             Padding="20,10"
                             FontWeight="Medium"
                             FontSize="14"
                             BorderThickness="1"
-                            BorderBrush="#40FFFFFF">
+                            BorderBrush="{ThemeResource AppBorderBrush}">
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <FontIcon Glyph="&#xE946;" FontSize="13" />
+                            <FontIcon Glyph="&#xE946;" FontSize="13" Foreground="{ThemeResource AppButtonSecondaryForegroundBrush}" />
                             <TextBlock Text="Details" />
                         </StackPanel>
                     </Button>

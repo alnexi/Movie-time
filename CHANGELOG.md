@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Global Theme Engine Refinement & Exact Original Dark Restoration (100% Night Parity)**:
+  - Exact visual restoration of the original River Dark Theme at 100% Night (`t = 1.0`): main background `#0A0A0C`, card `#141418`, surface elevated `#181822`, subtle surface `#14141C`, primary text `#FFFFFF`, secondary text `#8E8E93`, tertiary text `#6E6E78`, disabled text `#4A4A52`, accent `#FFFFFF`, borders `#20FFFFFF` / `#12FFFFFF`.
+  - Independently optimized Warm Pearl Light Theme at 0% Day (`t = 0.0`): background `#F4F5F7`, layered cards `#FFFFFF`, elevated surfaces `#FFFFFF`, subtle slate surfaces `#EAECEF`, deep charcoal text `#111114`, slate secondary text `#5C6068`, borders `#18000000` / `#0D000000`, active pills `#111114` with `#FFFFFF` text.
+  - Continuous 5-stop Hermite smoothstep color interpolation (`ThemeColorInterpolator.Interpolate5`) with in-place mutation of existing `SolidColorBrush` and `LinearGradientBrush` instances in `Application.Current.Resources`, achieving seamless 60 FPS live slider tracking with zero UI freezing or visual tree recreation.
+  - Dynamic adaptive backdrop vignettes: replaced hardcoded `#0A0A0C` gradients in `MovieDetailsView`, `SeriesDetailsView`, and `HeroBannerControl` with dynamic vignette brushes (`AppBackdropVignetteBottomBrush`, `AppBackdropVignetteLeftBrush`) whose end stops dynamically adapt to the active theme's background color, eliminating white cutoffs and dark bands in light and intermediate themes.
+  - Comprehensive theme token coverage across all views and controls (`MovieDetailsView`, `SeriesDetailsView`, `HeroBannerControl`, `MediaRowControl`, `MediaCardControl`, `MoviePosterCardControl`, `SidebarNavigationControl`, `SettingsView`, `TvShowsView`, and `MoviesView`).
+  - 5 new automated regression tests verifying Night endpoint exact match, Day endpoint exact match, and backdrop vignette adaptive color progression.
+
 ---
 
 ## [1.1.0] - 2026-11-10 (River — Phase 7: Reliable Library Auto-Sync, Missing Media Reconciliation & Universal Open With)

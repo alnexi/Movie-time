@@ -55,27 +55,10 @@
                         </Border>
 
                         <!-- Left Vignette Gradient: Guarantees title readability (Reference 1 & 2) -->
-                        <Border>
-                            <Border.Background>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                    <GradientStop Color="#F00A0A0C" Offset="0" />
-                                    <GradientStop Color="#B80A0A0C" Offset="0.45" />
-                                    <GradientStop Color="#300A0A0C" Offset="0.8" />
-                                    <GradientStop Color="#000A0A0C" Offset="1" />
-                                </LinearGradientBrush>
-                            </Border.Background>
-                        </Border>
+                        <Border Background="{ThemeResource AppBackdropVignetteLeftBrush}" />
 
                         <!-- Bottom Vignette Gradient: Seamless fade into content below (Reference 3) -->
-                        <Border>
-                            <Border.Background>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                    <GradientStop Color="#000A0A0C" Offset="0.5" />
-                                    <GradientStop Color="#B00A0A0C" Offset="0.85" />
-                                    <GradientStop Color="#FF0A0A0C" Offset="1" />
-                                </LinearGradientBrush>
-                            </Border.Background>
-                        </Border>
+                        <Border Background="{ThemeResource AppBackdropVignetteBottomBrush}" />
                     </Grid>
 
                     <!-- B. Top Floating Back Button: Movies -->
@@ -83,14 +66,14 @@
                             HorizontalAlignment="Left"
                             VerticalAlignment="Top"
                             Margin="36,28,0,0"
-                            Background="#60181820"
-                            BorderBrush="#30FFFFFF"
+                            Background="{ThemeResource AppPillInactiveBackgroundBrush}"
+                            BorderBrush="{ThemeResource AppBorderBrush}"
                             BorderThickness="1"
                             CornerRadius="18"
                             Padding="12,6,16,6">
                         <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                            <FontIcon Glyph="&#xE72B;" FontSize="11" Foreground="#C0C0C8" />
-                            <TextBlock Text="Movies" FontSize="13" FontWeight="SemiBold" Foreground="#FFFFFF" />
+                            <FontIcon Glyph="&#xE72B;" FontSize="11" Foreground="{ThemeResource AppTextSecondaryBrush}" />
+                            <TextBlock Text="Movies" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource AppTextPrimaryBrush}" />
                         </StackPanel>
                     </Button>
 
@@ -101,22 +84,22 @@
                             <!-- Edition Capsule Badge (e.g. Director's Cut / Extended) -->
                             <Border Visibility="{x:Bind ViewModel.HasEdition, Mode=OneWay}"
                                     HorizontalAlignment="Left"
-                                    Background="#30FFFFFF"
-                                    BorderBrush="#40FFFFFF"
+                                    Background="{ThemeResource AppSurfaceSubtleBrush}"
+                                    BorderBrush="{ThemeResource AppBorderBrush}"
                                     BorderThickness="1"
                                     CornerRadius="6"
                                     Padding="8,3">
                                 <TextBlock Text="{x:Bind ViewModel.Edition, Mode=OneWay}"
                                            FontSize="11"
                                            FontWeight="Bold"
-                                           Foreground="#E0E0FF" />
+                                           Foreground="{ThemeResource AppTextPrimaryBrush}" />
                             </Border>
 
                             <!-- Movie Title -->
                             <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}"
                                        FontSize="38"
                                        FontWeight="Black"
-                                       Foreground="#FFFFFF"
+                                       Foreground="{ThemeResource AppTextPrimaryBrush}"
                                        TextWrapping="Wrap"
                                        MaxLines="2"
                                        LineHeight="44" />
@@ -196,32 +179,32 @@
 
                             <!-- Action Buttons Row (Reference 1, 2, 3) -->
                             <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,6,0,0">
-                                <!-- Primary Action: Signature White Play Capsule -->
+                                <!-- Primary Action: Signature Play Capsule -->
                                 <Button Command="{x:Bind ViewModel.PlayCommand, Mode=OneWay}"
-                                        Background="#FFFFFF"
-                                        Foreground="#000000"
+                                        Background="{ThemeResource AppButtonPrimaryBackgroundBrush}"
+                                        Foreground="{ThemeResource AppButtonPrimaryForegroundBrush}"
                                         CornerRadius="18"
                                         Padding="26,10"
                                         FontWeight="SemiBold"
                                         FontSize="14"
                                         BorderThickness="0">
                                     <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <FontIcon Glyph="&#xE768;" FontSize="13" Foreground="#000000" />
+                                        <FontIcon Glyph="&#xE768;" FontSize="13" Foreground="{ThemeResource AppButtonPrimaryForegroundBrush}" />
                                         <TextBlock Text="Play Movie" />
                                     </StackPanel>
                                 </Button>
 
                                 <!-- Secondary Action: Back to Movies -->
                                 <Button Command="{x:Bind ViewModel.BackCommand, Mode=OneWay}"
-                                        Background="#20FFFFFF"
-                                        Foreground="#FFFFFF"
+                                        Background="{ThemeResource AppButtonSecondaryBackgroundBrush}"
+                                        Foreground="{ThemeResource AppButtonSecondaryForegroundBrush}"
                                         CornerRadius="18"
                                         Padding="18,10"
                                         FontWeight="Medium"
                                         FontSize="13"
                                         BorderThickness="0">
                                     <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <FontIcon Glyph="&#xE72B;" FontSize="11" />
+                                        <FontIcon Glyph="&#xE72B;" FontSize="11" Foreground="{ThemeResource AppButtonSecondaryForegroundBrush}" />
                                         <TextBlock Text="Back to Movies" />
                                     </StackPanel>
                                 </Button>
@@ -414,7 +397,7 @@
                                             </StackPanel>
 
                                             <!-- File Size -->
-                                            <TextBlock Grid.Column="2" Text="{x:Bind FileSizeDisplay}" FontSize="11" Foreground="#A0A0A0" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="2" Text="{x:Bind FileSizeDisplay}" FontSize="11" Foreground="{ThemeResource AppTextTertiaryBrush}" VerticalAlignment="Center" />
                                         </Grid>
                                     </Button>
                                 </DataTemplate>

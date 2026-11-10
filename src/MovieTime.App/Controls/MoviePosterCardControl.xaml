@@ -25,7 +25,7 @@
                     Margin="-4,-4,-4,-4" />
 
             <!-- Poster Artwork / Base -->
-            <Border CornerRadius="14" Background="#16161E">
+            <Border CornerRadius="14" Background="{ThemeResource AppCardBackgroundBrush}">
                 <Grid>
                     <!-- Typographical / Gradient Fallback Artwork (when no poster exists) -->
                     <Border x:Name="FallbackBorder"

@@ -15,14 +15,14 @@
         <Grid Height="72" VerticalAlignment="Top" Margin="36,24,36,0">
             <!-- Left: Capsule Pill Settings & Navigation Quick Shortcuts -->
             <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Left" VerticalAlignment="Center">
-                <Border Background="#60181820"
-                        BorderBrush="#30FFFFFF"
+                <Border Background="{ThemeResource AppPillInactiveBackgroundBrush}"
+                        BorderBrush="{ThemeResource AppBorderBrush}"
                         BorderThickness="1"
                         CornerRadius="18"
                         Padding="14,7,18,7">
                     <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                        <FontIcon Glyph="&#xE713;" FontSize="14" Foreground="#FFFFFF" />
-                        <TextBlock Text="Settings" FontSize="13" FontWeight="SemiBold" Foreground="#FFFFFF" />
+                        <FontIcon Glyph="&#xE713;" FontSize="14" Foreground="{ThemeResource AppTextPrimaryBrush}" />
+                        <TextBlock Text="Settings" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource AppTextPrimaryBrush}" />
                     </StackPanel>
                 </Border>
 
@@ -53,8 +53,8 @@
             <!-- Center: Segmented Tabs [ Media Libraries & Storage ] [ Theme Experience ] -->
             <Border HorizontalAlignment="Center"
                     VerticalAlignment="Center"
-                    Background="#25181820"
-                    BorderBrush="#25FFFFFF"
+                    Background="{ThemeResource AppPillInactiveBackgroundBrush}"
+                    BorderBrush="{ThemeResource AppBorderBrush}"
                     BorderThickness="1"
                     CornerRadius="20"
                     Padding="4">
@@ -194,7 +194,7 @@
 
                                     <StackPanel Orientation="Horizontal" Spacing="10">
                                         <Button Command="{x:Bind ViewModel.SetDayThemeCommand, Mode=OneWay}"
-                                                Background="#20FFFFFF"
+                                                Background="{ThemeResource AppButtonSecondaryBackgroundBrush}"
                                                 Foreground="{ThemeResource AppTextPrimaryBrush}"
                                                 BorderThickness="1"
                                                 BorderBrush="{ThemeResource AppBorderBrush}"
@@ -209,7 +209,7 @@
                                         </Button>
 
                                         <Button Command="{x:Bind ViewModel.SetTwilightThemeCommand, Mode=OneWay}"
-                                                Background="#20FFFFFF"
+                                                Background="{ThemeResource AppButtonSecondaryBackgroundBrush}"
                                                 Foreground="{ThemeResource AppTextPrimaryBrush}"
                                                 BorderThickness="1"
                                                 BorderBrush="{ThemeResource AppBorderBrush}"
@@ -224,7 +224,7 @@
                                         </Button>
 
                                         <Button Command="{x:Bind ViewModel.SetNightThemeCommand, Mode=OneWay}"
-                                                Background="#20FFFFFF"
+                                                Background="{ThemeResource AppButtonSecondaryBackgroundBrush}"
                                                 Foreground="{ThemeResource AppTextPrimaryBrush}"
                                                 BorderThickness="1"
                                                 BorderBrush="{ThemeResource AppBorderBrush}"
@@ -263,7 +263,7 @@
                                 </StackPanel>
 
                                 <!-- Keyboard Navigation Tip -->
-                                <Border Background="#10FFFFFF"
+                                <Border Background="{ThemeResource AppSurfaceSubtleBrush}"
                                         CornerRadius="10"
                                         Padding="14,10">
                                     <StackPanel Orientation="Horizontal" Spacing="8">
@@ -289,10 +289,10 @@
                         <TextBlock Text="Media Libraries &amp; Storage"
                                    FontSize="30"
                                    FontWeight="Bold"
-                                   Foreground="#FFFFFF" />
+                                   Foreground="{ThemeResource AppTextPrimaryBrush}" />
                         <TextBlock Text="River organizes movies across your local drives using dedicated MLibrary folders. Only files inside registered MLibrary directories are scanned and cataloged."
                                    FontSize="13"
-                                   Foreground="#8E8E93"
+                                   Foreground="{ThemeResource AppTextSecondaryBrush}"
                                    TextWrapping="Wrap"
                                    LineHeight="18"
                                    MaxWidth="780" />
@@ -302,22 +302,22 @@
                 <Grid ColumnDefinitions="Auto,*,Auto">
                     <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
                         <Button Command="{x:Bind ViewModel.OpenAddDialogCommand, Mode=OneWay}"
-                                Background="#FFFFFF"
-                                Foreground="#000000"
+                                Background="{ThemeResource AppButtonPrimaryBackgroundBrush}"
+                                Foreground="{ThemeResource AppButtonPrimaryForegroundBrush}"
                                 CornerRadius="16"
                                 Padding="18,8"
                                 FontWeight="SemiBold"
                                 FontSize="13"
                                 BorderThickness="0">
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                <FontIcon Glyph="&#xE710;" FontSize="12" Foreground="#000000" />
+                                <FontIcon Glyph="&#xE710;" FontSize="12" Foreground="{ThemeResource AppButtonPrimaryForegroundBrush}" />
                                 <TextBlock Text="Add Drive Library" />
                             </StackPanel>
                         </Button>
 
                         <Button Command="{x:Bind ViewModel.ScanAllLibrariesCommand, Mode=OneWay}"
-                                Background="#20FFFFFF"
-                                Foreground="#FFFFFF"
+                                Background="{ThemeResource AppButtonSecondaryBackgroundBrush}"
+                                Foreground="{ThemeResource AppButtonSecondaryForegroundBrush}"
                                 CornerRadius="16"
                                 Padding="16,8"
                                 FontWeight="Medium"
@@ -325,7 +325,7 @@
                                 BorderThickness="0"
                                 IsEnabled="{x:Bind ViewModel.HasRegisteredLibraries, Mode=OneWay}">
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                <FontIcon Glyph="&#xE777;" FontSize="12" Foreground="#FFFFFF" />
+                                <FontIcon Glyph="&#xE777;" FontSize="12" Foreground="{ThemeResource AppButtonSecondaryForegroundBrush}" />
                                 <TextBlock Text="Scan All Libraries" />
                             </StackPanel>
                         </Button>
@@ -351,13 +351,13 @@
                     <TextBlock Text="REGISTERED STORAGE DRIVES"
                                FontSize="11"
                                FontWeight="Bold"
-                               Foreground="#6E6E78"
+                               Foreground="{ThemeResource AppTextTertiaryBrush}"
                                CharacterSpacing="80" />
 
                     <!-- Empty State: No Libraries Registered Yet -->
                     <Border Visibility="{x:Bind ViewModel.IsLibraryEmpty, Mode=OneWay}"
-                            Background="#14141C"
-                            BorderBrush="#20FFFFFF"
+                            Background="{ThemeResource AppCardBackgroundBrush}"
+                            BorderBrush="{ThemeResource AppBorderBrush}"
                             BorderThickness="1"
                             CornerRadius="16"
                             Padding="36,40">
@@ -365,20 +365,20 @@
                             <Border Width="60"
                                     Height="60"
                                     CornerRadius="30"
-                                    Background="#1E1E2A"
+                                    Background="{ThemeResource AppSurfaceSubtleBrush}"
                                     HorizontalAlignment="Center">
-                                <FontIcon Glyph="&#xEDA2;" FontSize="26" Foreground="#8E8EAA" />
+                                <FontIcon Glyph="&#xEDA2;" FontSize="26" Foreground="{ThemeResource AppTextSecondaryBrush}" />
                             </Border>
 
                             <TextBlock Text="No Storage Drives Registered"
                                        FontSize="18"
                                        FontWeight="SemiBold"
-                                       Foreground="#FFFFFF"
+                                       Foreground="{ThemeResource AppTextPrimaryBrush}"
                                        HorizontalAlignment="Center" />
 
                             <TextBlock Text="To start building your library, select a drive to host an MLibrary folder. Place movie files into the folder and River will discover them automatically."
                                        FontSize="13"
-                                       Foreground="#8E8E93"
+                                       Foreground="{ThemeResource AppTextSecondaryBrush}"
                                        TextWrapping="Wrap"
                                        TextAlignment="Center"
                                        MaxWidth="460"
@@ -386,15 +386,15 @@
 
                             <Button Command="{x:Bind ViewModel.OpenAddDialogCommand, Mode=OneWay}"
                                     HorizontalAlignment="Center"
-                                    Background="#FFFFFF"
-                                    Foreground="#000000"
-                                    CornerRadius="16"
-                                    Padding="20,9"
-                                    FontWeight="SemiBold"
-                                    FontSize="13"
-                                    Margin="0,8,0,0">
+                                    Background="{ThemeResource AppButtonPrimaryBackgroundBrush}"
+                                Foreground="{ThemeResource AppButtonPrimaryForegroundBrush}"
+                                CornerRadius="16"
+                                Padding="20,9"
+                                FontWeight="SemiBold"
+                                FontSize="13"
+                                Margin="0,8,0,0">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE710;" FontSize="12" Foreground="#000000" />
+                                    <FontIcon Glyph="&#xE710;" FontSize="12" Foreground="{ThemeResource AppButtonPrimaryForegroundBrush}" />
                                     <TextBlock Text="Add Your First Drive" />
                                 </StackPanel>
                             </Button>
@@ -406,8 +406,8 @@
                                   Visibility="{x:Bind ViewModel.HasRegisteredLibraries, Mode=OneWay}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:RegisteredMLibraryViewModel">
-                                <Border Background="#14141C"
-                                        BorderBrush="#20FFFFFF"
+                                <Border Background="{ThemeResource AppCardBackgroundBrush}"
+                                        BorderBrush="{ThemeResource AppBorderBrush}"
                                         BorderThickness="1"
                                         CornerRadius="14"
                                         Padding="20,16"
@@ -416,11 +416,11 @@
                                         <!-- Left Info: Drive Name, Path, Last Scanned -->
                                         <StackPanel Grid.Column="0" Spacing="6">
                                             <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                                                <FontIcon Glyph="&#xEDA2;" FontSize="16" Foreground="#A0A0B0" VerticalAlignment="Center" />
+                                                <FontIcon Glyph="&#xEDA2;" FontSize="16" Foreground="{ThemeResource AppTextSecondaryBrush}" VerticalAlignment="Center" />
                                                 <TextBlock Text="{x:Bind DisplayTitle, Mode=OneWay}"
                                                            FontSize="15"
                                                            FontWeight="SemiBold"
-                                                           Foreground="#FFFFFF" />
+                                                           Foreground="{ThemeResource AppTextPrimaryBrush}" />
 
                                                 <!-- Status Badges -->
                                                 <!-- Available (Green) -->
@@ -476,25 +476,25 @@
                                             <TextBlock Text="{x:Bind Path, Mode=OneWay}"
                                                        FontSize="12"
                                                        FontFamily="Consolas, Segoe UI"
-                                                       Foreground="#8E8E98" />
+                                                       Foreground="{ThemeResource AppTextSecondaryBrush}" />
 
                                             <!-- Last Scanned info -->
                                             <TextBlock Text="{x:Bind LastScannedDisplay, Mode=OneWay}"
                                                        FontSize="11"
-                                                       Foreground="#6E6E78" />
+                                                       Foreground="{ThemeResource AppTextTertiaryBrush}" />
                                         </StackPanel>
 
                                         <!-- Right Actions: Scan, Toggle, Remove -->
                                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                             <Button Command="{x:Bind ScanCommand}"
                                                     IsEnabled="{x:Bind CanScan, Mode=OneWay}"
-                                                    Background="#20FFFFFF"
-                                                    Foreground="#FFFFFF"
+                                                    Background="{ThemeResource AppButtonSecondaryBackgroundBrush}"
+                                                    Foreground="{ThemeResource AppButtonSecondaryForegroundBrush}"
                                                     CornerRadius="12"
                                                     Padding="12,6"
                                                     FontSize="12">
                                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                                    <FontIcon Glyph="&#xE777;" FontSize="11" />
+                                                    <FontIcon Glyph="&#xE777;" FontSize="11" Foreground="{ThemeResource AppButtonSecondaryForegroundBrush}" />
                                                     <TextBlock Text="Scan" />
                                                 </StackPanel>
                                             </Button>
@@ -521,8 +521,8 @@
                 </StackPanel>
 
                 <!-- Information Section: How MLibrary Works -->
-                <Border Background="#0F0F16"
-                        BorderBrush="#18FFFFFF"
+                <Border Background="{ThemeResource AppSurfaceSubtleBrush}"
+                        BorderBrush="{ThemeResource AppBorderSubtleBrush}"
                         BorderThickness="1"
                         CornerRadius="14"
                         Padding="24,20"
@@ -531,19 +531,19 @@
                         <TextBlock Text="HOW STORAGE LIBRARIES WORK"
                                    FontSize="11"
                                    FontWeight="Bold"
-                                   Foreground="#6E6E78"
+                                   Foreground="{ThemeResource AppTextTertiaryBrush}"
                                    CharacterSpacing="80" />
                         <TextBlock Text="• Dedicated Folders: River only scans the 'MLibrary' folder on each selected drive (e.g. D:\MLibrary). It will never scan your drive root or personal documents."
                                    FontSize="12"
-                                   Foreground="#8E8E93"
+                                   Foreground="{ThemeResource AppTextSecondaryBrush}"
                                    LineHeight="18" />
                         <TextBlock Text="• Offline and Private: All media scanning and filename parsing runs locally on your machine with zero external network tracking."
                                    FontSize="12"
-                                   Foreground="#8E8E93"
+                                   Foreground="{ThemeResource AppTextSecondaryBrush}"
                                    LineHeight="18" />
                         <TextBlock Text="• Safe Removal: Removing a library from River unregisters the folder from the catalog. Your movie files on disk are never modified or deleted."
                                    FontSize="12"
-                                   Foreground="#8E8E93"
+                                   Foreground="{ThemeResource AppTextSecondaryBrush}"
                                    LineHeight="18" />
                     </StackPanel>
                 </Border>
@@ -554,7 +554,7 @@
 
         <!-- 3. Add Drive Modal Dialog Backdrop Overlay -->
         <Grid Visibility="{x:Bind ViewModel.IsAddDialogOpen, Mode=OneWay}"
-              Background="#A0000000"
+              Background="{ThemeResource AppOverlayBrush}"
               HorizontalAlignment="Stretch"
               VerticalAlignment="Stretch">
 
@@ -562,8 +562,8 @@
             <Border Width="500"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
-                    Background="#181822"
-                    BorderBrush="#35FFFFFF"
+                    Background="{ThemeResource AppSurfaceElevatedBrush}"
+                    BorderBrush="{ThemeResource AppBorderBrush}"
                     BorderThickness="1"
                     CornerRadius="18"
                     Padding="28,26">
@@ -574,10 +574,10 @@
                         <TextBlock Text="Add Drive Library"
                                    FontSize="18"
                                    FontWeight="Bold"
-                                   Foreground="#FFFFFF" />
+                                   Foreground="{ThemeResource AppTextPrimaryBrush}" />
                         <TextBlock Text="Select a storage drive to host your dedicated MLibrary folder."
                                    FontSize="12"
-                                   Foreground="#8E8E93" />
+                                   Foreground="{ThemeResource AppTextSecondaryBrush}" />
                     </StackPanel>
 
                     <!-- Drive Selection ComboBox -->
@@ -585,19 +585,19 @@
                         <TextBlock Text="Storage Drive"
                                    FontSize="12"
                                    FontWeight="SemiBold"
-                                   Foreground="#C0C0C8" />
+                                   Foreground="{ThemeResource AppTextPrimaryBrush}" />
 
                         <ComboBox ItemsSource="{x:Bind ViewModel.AvailableDrives, Mode=OneWay}"
                                   SelectedItem="{x:Bind ViewModel.SelectedDrive, Mode=TwoWay}"
                                   HorizontalAlignment="Stretch"
-                                  Background="#242432"
-                                  BorderBrush="#30FFFFFF">
+                                  Background="{ThemeResource AppInputBackgroundBrush}"
+                                  BorderBrush="{ThemeResource AppBorderBrush}">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate x:DataType="models:DriveStorageInfo">
                                     <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <TextBlock Text="{x:Bind DisplayName}" FontWeight="SemiBold" Foreground="#FFFFFF" />
-                                        <TextBlock Text="—" Foreground="#6E6E78" />
-                                        <TextBlock Text="{x:Bind CapacitySummary}" Foreground="#8E8E98" FontSize="11" />
+                                        <TextBlock Text="{x:Bind DisplayName}" FontWeight="SemiBold" Foreground="{ThemeResource AppTextPrimaryBrush}" />
+                                        <TextBlock Text="—" Foreground="{ThemeResource AppTextTertiaryBrush}" />
+                                        <TextBlock Text="{x:Bind CapacitySummary}" Foreground="{ThemeResource AppTextSecondaryBrush}" FontSize="11" />
                                     </StackPanel>
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
@@ -605,8 +605,8 @@
                     </StackPanel>
 
                     <!-- Target Path Preview Box -->
-                    <Border Background="#101018"
-                            BorderBrush="#20FFFFFF"
+                    <Border Background="{ThemeResource AppInputBackgroundBrush}"
+                            BorderBrush="{ThemeResource AppBorderSubtleBrush}"
                             BorderThickness="1"
                             CornerRadius="10"
                             Padding="14,10">
@@ -614,12 +614,12 @@
                             <TextBlock Text="TARGET FOLDER PATH"
                                        FontSize="10"
                                        FontWeight="Bold"
-                                       Foreground="#6E6E78"
+                                       Foreground="{ThemeResource AppTextTertiaryBrush}"
                                        CharacterSpacing="80" />
                             <TextBlock Text="{x:Bind ViewModel.PreviewTargetPath, Mode=OneWay}"
                                        FontSize="13"
                                        FontFamily="Consolas, Segoe UI"
-                                       Foreground="#FFFFFF" />
+                                       Foreground="{ThemeResource AppTextPrimaryBrush}" />
                         </StackPanel>
                     </Border>
 
@@ -688,7 +688,7 @@
                         <Button Grid.Column="1"
                                 Command="{x:Bind ViewModel.CloseAddDialogCommand, Mode=OneWay}"
                                 Background="Transparent"
-                                Foreground="#CCCCCC"
+                                Foreground="{ThemeResource AppTextSecondaryBrush}"
                                 CornerRadius="14"
                                 Padding="16,8"
                                 FontSize="13"
@@ -699,8 +699,8 @@
                         <Button Grid.Column="2"
                                 Command="{x:Bind ViewModel.ConfirmAddLibraryCommand, Mode=OneWay}"
                                 IsEnabled="{x:Bind ViewModel.CanConfirmAdd, Mode=OneWay}"
-                                Background="#FFFFFF"
-                                Foreground="#000000"
+                                Background="{ThemeResource AppButtonPrimaryBackgroundBrush}"
+                                Foreground="{ThemeResource AppButtonPrimaryForegroundBrush}"
                                 CornerRadius="14"
                                 Padding="20,8"
                                 FontWeight="SemiBold"

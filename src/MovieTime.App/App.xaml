@@ -9,13 +9,50 @@
             </ResourceDictionary.MergedDictionaries>
 
             <!-- Dynamic Theme Palette Brushes (interpolated in real time by ThemeManagerService) -->
+            <!-- 1. Backgrounds & Surfaces -->
             <SolidColorBrush x:Key="AppBackgroundBrush" Color="#0A0A0C" />
             <SolidColorBrush x:Key="AppCardBackgroundBrush" Color="#141418" />
+            <SolidColorBrush x:Key="AppSurfaceElevatedBrush" Color="#181822" />
+            <SolidColorBrush x:Key="AppSurfaceSubtleBrush" Color="#14141C" />
+            <SolidColorBrush x:Key="AppInputBackgroundBrush" Color="#1C1C26" />
+            <SolidColorBrush x:Key="AppPillInactiveBackgroundBrush" Color="#60181820" />
+            <SolidColorBrush x:Key="AppPillActiveBackgroundBrush" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="AppPillActiveForegroundBrush" Color="#000000" />
+            <SolidColorBrush x:Key="AppGlassFillBrush" Color="#20FFFFFF" />
+            <SolidColorBrush x:Key="AppOverlayBrush" Color="#90000000" />
+
+            <!-- 2. Typography -->
             <SolidColorBrush x:Key="AppTextPrimaryBrush" Color="#FFFFFF" />
             <SolidColorBrush x:Key="AppTextSecondaryBrush" Color="#8E8E93" />
+            <SolidColorBrush x:Key="AppTextTertiaryBrush" Color="#6E6E78" />
+            <SolidColorBrush x:Key="AppTextDisabledBrush" Color="#4A4A52" />
+
+            <!-- 3. Accents & Interactive Actions -->
             <SolidColorBrush x:Key="AppAccentBrush" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="AppAccentSecondaryBrush" Color="#8E8E93" />
+            <SolidColorBrush x:Key="AppButtonPrimaryBackgroundBrush" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="AppButtonPrimaryForegroundBrush" Color="#000000" />
+            <SolidColorBrush x:Key="AppButtonSecondaryBackgroundBrush" Color="#20FFFFFF" />
+            <SolidColorBrush x:Key="AppButtonSecondaryForegroundBrush" Color="#FFFFFF" />
+
+            <!-- 4. Borders & Dividers -->
             <SolidColorBrush x:Key="AppBorderBrush" Color="#20FFFFFF" />
-            <SolidColorBrush x:Key="AppGlassFillBrush" Color="#20FFFFFF" />
+            <SolidColorBrush x:Key="AppBorderSubtleBrush" Color="#12FFFFFF" />
+
+            <!-- 5. Cinematic Backdrop Dynamic Vignette Gradients -->
+            <LinearGradientBrush x:Key="AppBackdropVignetteBottomBrush" StartPoint="0,0" EndPoint="0,1">
+                <GradientStop Color="#000A0A0C" Offset="0.0" />
+                <GradientStop Color="#000A0A0C" Offset="0.5" />
+                <GradientStop Color="#B00A0A0C" Offset="0.85" />
+                <GradientStop Color="#FF0A0A0C" Offset="1.0" />
+            </LinearGradientBrush>
+
+            <LinearGradientBrush x:Key="AppBackdropVignetteLeftBrush" StartPoint="0,0" EndPoint="1,0">
+                <GradientStop Color="#F00A0A0C" Offset="0.0" />
+                <GradientStop Color="#B80A0A0C" Offset="0.45" />
+                <GradientStop Color="#300A0A0C" Offset="0.80" />
+                <GradientStop Color="#000A0A0C" Offset="1.0" />
+            </LinearGradientBrush>
 
             <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" xmlns:converters="using:MovieTime.App.Converters" />
             <converters:BoolToVisibilityConverter x:Key="InverseBoolVisibilityConverter" Invert="True" xmlns:converters="using:MovieTime.App.Converters" />
