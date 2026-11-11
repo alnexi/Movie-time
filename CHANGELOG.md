@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-11-11 (River — Final Data Safety & Lifecycle Audit)
+
+### Fixed & Improved
+- **Filesystem Directory Boundary Safety**:
+  - Implemented `MediaRemovalService.IsPathUnderDirectory` with strict directory separator matching to ensure scan root unregistration never matches sibling directories sharing common prefixes (e.g. `C:\Movies` vs `C:\Movies_Backup`).
+- **Surviving Nested Root Media Preservation**:
+  - Unregistering a child or nested scan root now checks for surviving active scan roots covering the media file; files covered by surviving roots are retained and reassigned (`ScanRootId = coveringRoot.Id`) rather than deleted.
+- **Cascade PlaybackProgress Cleanup**:
+  - Added `DeleteByMovieIdAsync` and `DeleteByEpisodeIdAsync` to `IPlaybackProgressRepository` and `PlaybackProgressRepository`.
+  - Ensures all associated playback progress records are deleted whenever a movie or episode is removed from the library.
+- **PlaybackProgress SQLite Upsert Fix**:
+  - Fixed `PlaybackProgressRepository.SaveProgressAsync` to use `InsertAsync` for new records (allowing SQLite auto-increment primary key generation) and `UpdateAsync` for existing records, preventing new records from overwriting row `Id = 0`.
+- **Player Shutdown & Progress Persistence**:
+  - Updated `App.xaml.cs` `OnWindowClosed` to retrieve the active `MainWindow.PlayerViewModel` instance, stopping playback and flushing progress to database before database disposal.
+  - Added `SemaphoreSlim _saveProgressLock` in `PlayerViewModel` to guard against race conditions between periodic 5-second background progress saves and shutdown/exit saves.
+  - Disposed `_volumeFeedbackTimer`, `_speedFeedbackTimer`, `_speedHudTimer`, and `_saveProgressLock` in `PlayerViewModel.Dispose()`.
+- **Theme Settings Flush on Shutdown**:
+  - Ensured `themeSettings.FlushPendingSavesAsync()` is invoked during `App.xaml.cs` `OnWindowClosed` prior to database disposal.
+
 ## [1.2.0] - 2026-11-11 (River — Safe Final QA Bug Fixes & Home Navigation Repair)
 
 ### Fixed

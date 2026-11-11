@@ -85,6 +85,7 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
     private string? _fileSizeDisplay;
 
     private DateTime _lastSavedProgressTime = DateTime.MinValue;
+    private readonly SemaphoreSlim _saveProgressLock = new(1, 1);
 
     public event Action<string>? NavigationRequested;
     public event Action<bool>? FullscreenToggled;
@@ -998,6 +999,7 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
 
     public async Task StopPlaybackAsync()
     {
+        await _saveProgressLock.WaitAsync().ConfigureAwait(false);
         try
         {
             await SaveProgressAsync(isFinished: false);
@@ -1014,6 +1016,7 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
                 IsFullscreen = false;
                 FullscreenToggled?.Invoke(false);
             }
+            _saveProgressLock.Release();
         }
     }
 
@@ -1118,7 +1121,20 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
             // Periodically save progress to database every 5 seconds (only when playing and not dragging)
             if (!_isDraggingSlider && (DateTime.UtcNow - _lastSavedProgressTime).TotalSeconds >= 5)
             {
-                _ = SaveProgressAsync(isFinished: false);
+                if (_saveProgressLock.Wait(0))
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await SaveProgressAsync(isFinished: false);
+                        }
+                        finally
+                        {
+                            _saveProgressLock.Release();
+                        }
+                    });
+                }
             }
         });
     }
@@ -1312,5 +1328,9 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
     {
         UnhookPlayerEvents();
         _playerService.Stop();
+        _volumeFeedbackTimer?.Dispose();
+        _speedFeedbackTimer?.Dispose();
+        _speedHudTimer?.Dispose();
+        _saveProgressLock.Dispose();
     }
 }

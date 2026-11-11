@@ -281,11 +281,23 @@ public partial class App : Application
 
         try
         {
-            var playerViewModel = Services.GetService<MovieTime.App.ViewModels.PlayerViewModel>();
-            if (playerViewModel != null)
+            var themeSettings = Services.GetService<MovieTime.Core.Theme.IThemeSettingsService>();
+            if (themeSettings != null)
             {
-                await playerViewModel.StopPlaybackAsync();
-                playerViewModel.Dispose();
+                await themeSettings.FlushPendingSavesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error flushing theme settings on shutdown.");
+        }
+
+        try
+        {
+            if (_window is MainWindow mainWindow && mainWindow.PlayerViewModel != null)
+            {
+                await mainWindow.PlayerViewModel.StopPlaybackAsync();
+                mainWindow.PlayerViewModel.Dispose();
             }
         }
         catch (Exception ex)

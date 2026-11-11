@@ -24,6 +24,7 @@ public sealed class MediaRemovalService : IMediaRemovalService
     private readonly ISeasonRepository _seasonRepository;
     private readonly ISeriesRepository _seriesRepository;
     private readonly IPlaybackProgressRepository? _playbackProgressRepository;
+    private readonly IScanRootRepository? _scanRootRepository;
     private readonly ILogger<MediaRemovalService> _logger;
 
     public MediaRemovalService(
@@ -35,6 +36,20 @@ public sealed class MediaRemovalService : IMediaRemovalService
         ISeriesRepository seriesRepository,
         IPlaybackProgressRepository? playbackProgressRepository = null,
         ILogger<MediaRemovalService>? logger = null)
+        : this(exclusionRepository, mediaFileRepository, movieRepository, episodeRepository, seasonRepository, seriesRepository, playbackProgressRepository, null, logger)
+    {
+    }
+
+    public MediaRemovalService(
+        ILibraryExclusionRepository exclusionRepository,
+        IMediaFileRepository mediaFileRepository,
+        IMovieRepository movieRepository,
+        IEpisodeRepository episodeRepository,
+        ISeasonRepository seasonRepository,
+        ISeriesRepository seriesRepository,
+        IPlaybackProgressRepository? playbackProgressRepository,
+        IScanRootRepository? scanRootRepository,
+        ILogger<MediaRemovalService>? logger = null)
     {
         _exclusionRepository = exclusionRepository ?? throw new ArgumentNullException(nameof(exclusionRepository));
         _mediaFileRepository = mediaFileRepository ?? throw new ArgumentNullException(nameof(mediaFileRepository));
@@ -43,6 +58,7 @@ public sealed class MediaRemovalService : IMediaRemovalService
         _seasonRepository = seasonRepository ?? throw new ArgumentNullException(nameof(seasonRepository));
         _seriesRepository = seriesRepository ?? throw new ArgumentNullException(nameof(seriesRepository));
         _playbackProgressRepository = playbackProgressRepository;
+        _scanRootRepository = scanRootRepository;
         _logger = logger ?? NullLogger<MediaRemovalService>.Instance;
     }
 
@@ -56,6 +72,26 @@ public sealed class MediaRemovalService : IMediaRemovalService
         {
             return path.Trim();
         }
+    }
+
+    /// <summary>
+    /// Checks whether the target file path resides strictly inside the specified directory path,
+    /// respecting filesystem directory separators and boundaries.
+    /// </summary>
+    public static bool IsPathUnderDirectory(string filePath, string directoryPath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath) || string.IsNullOrWhiteSpace(directoryPath)) return false;
+        var normFile = NormalizePath(filePath);
+        var normDir = NormalizePath(directoryPath);
+        if (normFile.Equals(normDir, StringComparison.OrdinalIgnoreCase)) return true;
+        var dirWithSep = normDir.EndsWith(Path.DirectorySeparatorChar)
+            ? normDir
+            : normDir + Path.DirectorySeparatorChar;
+        var dirWithAlt = normDir.EndsWith(Path.AltDirectorySeparatorChar)
+            ? normDir
+            : normDir + Path.AltDirectorySeparatorChar;
+        return normFile.StartsWith(dirWithSep, StringComparison.OrdinalIgnoreCase) ||
+               normFile.StartsWith(dirWithAlt, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <inheritdoc />
@@ -91,6 +127,18 @@ public sealed class MediaRemovalService : IMediaRemovalService
             await _mediaFileRepository.DeleteAsync(file.Id).ConfigureAwait(false);
         }
 
+        if (_playbackProgressRepository != null)
+        {
+            try
+            {
+                await _playbackProgressRepository.DeleteByMovieIdAsync(movieId).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to clean playback progress for Movie ID {MovieId}", movieId);
+            }
+        }
+
         // 2. Delete movie record from database
         await _movieRepository.DeleteAsync(movieId).ConfigureAwait(false);
         _logger.LogInformation("Successfully removed Movie ID {MovieId} from library.", movieId);
@@ -104,19 +152,47 @@ public sealed class MediaRemovalService : IMediaRemovalService
 
         _logger.LogInformation("Reconciling media records for removed scan root (Id={Id}, Path='{Path}')...", scanRootId, scanRootPath);
 
-        var normalizedRoot = string.IsNullOrWhiteSpace(scanRootPath) ? string.Empty : NormalizePath(scanRootPath);
+        // Fetch surviving active scan roots if repository is available to preserve shared/nested media
+        var survivingRoots = new System.Collections.Generic.List<ScanRoot>();
+        if (_scanRootRepository != null)
+        {
+            try
+            {
+                var allRoots = await _scanRootRepository.GetAllAsync().ConfigureAwait(false);
+                survivingRoots = allRoots.Where(r => r.Id != scanRootId && r.IsEnabled).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to load surviving scan roots for reconciliation check.");
+            }
+        }
 
-        // Fetch all media files belonging to this scan root
+        // Fetch all media files belonging to this scan root or located under its path
         var allFiles = await _mediaFileRepository.GetAllAsync().ConfigureAwait(false);
         var targetFiles = allFiles.Where(f =>
             (scanRootId > 0 && f.ScanRootId == scanRootId) ||
-            (!string.IsNullOrEmpty(normalizedRoot) && !string.IsNullOrEmpty(f.FilePath) &&
-             NormalizePath(f.FilePath).StartsWith(normalizedRoot, StringComparison.OrdinalIgnoreCase))
+            (!string.IsNullOrEmpty(scanRootPath) && !string.IsNullOrEmpty(f.FilePath) &&
+             IsPathUnderDirectory(f.FilePath, scanRootPath))
         ).ToList();
 
         int removedCount = 0;
         foreach (var file in targetFiles)
         {
+            // If another surviving active scan root also covers this file, preserve it and reassign ScanRootId
+            var coveringSurvivingRoot = survivingRoots.FirstOrDefault(r => IsPathUnderDirectory(file.FilePath, r.Path));
+            if (coveringSurvivingRoot != null)
+            {
+                _logger.LogInformation("Media file '{Path}' is still covered by surviving scan root {RootId} ('{RootPath}'). Reassigning and preserving.",
+                    file.FilePath, coveringSurvivingRoot.Id, coveringSurvivingRoot.Path);
+
+                if (file.ScanRootId != coveringSurvivingRoot.Id)
+                {
+                    file.ScanRootId = coveringSurvivingRoot.Id;
+                    await _mediaFileRepository.UpdateAsync(file).ConfigureAwait(false);
+                }
+                continue;
+            }
+
             try
             {
                 await CleanupDatabaseEntitiesForMediaFileAsync(file).ConfigureAwait(false);
@@ -210,20 +286,25 @@ public sealed class MediaRemovalService : IMediaRemovalService
 
     private async Task CleanupDatabaseEntitiesForMediaFileAsync(MediaFile mediaFile)
     {
-        // 1. Movie parent cleanup
+        // 1. Clean up playback progress for this media file
+        if (_playbackProgressRepository != null)
+        {
+            try
+            {
+                await _playbackProgressRepository.DeleteByMediaFileIdAsync(mediaFile.Id).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to clean playback progress for MediaFile ID {FileId}", mediaFile.Id);
+            }
+        }
+
+        // 2. Movie parent cleanup
         if (mediaFile.MovieId.HasValue)
         {
             int movieId = mediaFile.MovieId.Value;
             var siblingFiles = await _mediaFileRepository.GetByMovieIdAsync(movieId).ConfigureAwait(false);
-            bool hasOtherFiles = false;
-            foreach (var sibling in siblingFiles)
-            {
-                if (sibling.Id != mediaFile.Id)
-                {
-                    hasOtherFiles = true;
-                    break;
-                }
-            }
+            bool hasOtherFiles = siblingFiles.Any(sibling => sibling.Id != mediaFile.Id);
 
             if (!hasOtherFiles)
             {
@@ -234,7 +315,7 @@ public sealed class MediaRemovalService : IMediaRemovalService
                 {
                     try
                     {
-                        await _playbackProgressRepository.DeleteByMediaFileIdAsync(mediaFile.Id).ConfigureAwait(false);
+                        await _playbackProgressRepository.DeleteByMovieIdAsync(movieId).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
@@ -244,20 +325,12 @@ public sealed class MediaRemovalService : IMediaRemovalService
             }
         }
 
-        // 2. Episode parent cleanup
+        // 3. Episode parent cleanup
         if (mediaFile.EpisodeId.HasValue)
         {
             int episodeId = mediaFile.EpisodeId.Value;
             var siblingFiles = await _mediaFileRepository.GetByEpisodeIdAsync(episodeId).ConfigureAwait(false);
-            bool hasOtherFiles = false;
-            foreach (var sibling in siblingFiles)
-            {
-                if (sibling.Id != mediaFile.Id)
-                {
-                    hasOtherFiles = true;
-                    break;
-                }
-            }
+            bool hasOtherFiles = siblingFiles.Any(sibling => sibling.Id != mediaFile.Id);
 
             if (!hasOtherFiles)
             {
@@ -265,11 +338,24 @@ public sealed class MediaRemovalService : IMediaRemovalService
                 var episode = await _episodeRepository.GetByIdAsync(episodeId).ConfigureAwait(false);
                 await _episodeRepository.DeleteAsync(episodeId).ConfigureAwait(false);
 
+                if (_playbackProgressRepository != null)
+                {
+                    try
+                    {
+                        await _playbackProgressRepository.DeleteByEpisodeIdAsync(episodeId).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to clean playback progress for Episode ID {EpisodeId}", episodeId);
+                    }
+                }
+
                 if (episode != null)
                 {
                     // Check if season has remaining episodes
                     var seasonEpisodes = await _episodeRepository.GetBySeasonIdAsync(episode.SeasonId).ConfigureAwait(false);
-                    if (seasonEpisodes.Count == 0)
+                    bool hasOtherEpisodesInSeason = seasonEpisodes.Any(e => e.Id != episodeId);
+                    if (!hasOtherEpisodesInSeason)
                     {
                         _logger.LogInformation("Season ID {SeasonId} has no remaining episodes; removing season.", episode.SeasonId);
                         await _seasonRepository.DeleteAsync(episode.SeasonId).ConfigureAwait(false);
@@ -277,7 +363,8 @@ public sealed class MediaRemovalService : IMediaRemovalService
 
                     // Check if series has remaining episodes
                     var seriesEpisodes = await _episodeRepository.GetBySeriesIdAsync(episode.SeriesId).ConfigureAwait(false);
-                    if (seriesEpisodes.Count == 0)
+                    bool hasOtherEpisodesInSeries = seriesEpisodes.Any(e => e.Id != episodeId);
+                    if (!hasOtherEpisodesInSeries)
                     {
                         _logger.LogInformation("Series ID {SeriesId} has no remaining episodes; removing series.", episode.SeriesId);
                         await _seriesRepository.DeleteAsync(episode.SeriesId).ConfigureAwait(false);
@@ -286,7 +373,7 @@ public sealed class MediaRemovalService : IMediaRemovalService
             }
         }
 
-        // 3. Delete the MediaFile record
+        // 4. Delete the MediaFile record
         await _mediaFileRepository.DeleteAsync(mediaFile.Id).ConfigureAwait(false);
     }
 
