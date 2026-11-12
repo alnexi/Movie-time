@@ -198,6 +198,7 @@ River is created, architected, and maintained by:
 
 **Ali Nematollahi**  
 GitHub: [@alnexi](https://github.com/alnexi)  
+Email: [ali_nematollahi@icloud.com]
 Repository: [https://github.com/alnexi/Movie-time](https://github.com/alnexi/Movie-time)
 
 ---
