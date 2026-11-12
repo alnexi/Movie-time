@@ -4,8 +4,8 @@
 
 [![.NET](https://img.shields.io/badge/.NET-10.0%20LTS%20(x64)-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![Windows App SDK](https://img.shields.io/badge/WinUI%203-Windows%20App%20SDK%201.7-0078D7?logo=windows)](https://learn.microsoft.com/en-us/windows/apps/winui/winui3/)
-[![Tests](https://img.shields.io/badge/Unit%20Tests-343%20Passed-brightgreen)](https://github.com/alnexi/Movie-time)
-[![Version](https://img.shields.io/badge/Version-1.2.0-blue)](https://github.com/alnexi/Movie-time)
+[![Tests](https://img.shields.io/badge/Unit%20Tests-351%20Passed-brightgreen)](https://github.com/alnexi/Movie-time)
+[![Version](https://img.shields.io/badge/Version-1.2.1-blue)](https://github.com/alnexi/Movie-time)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
@@ -254,6 +254,56 @@ The solution features **308 unit and integration tests** covering:
 - **Cinematic Player Presentation Layer**: Time formatting, non-blocking asynchronous seeking, volume amplification (0-200%), playback speed controls (0.1x-2.0x), track flyouts, and auto-hide timer triggers.
 - **Windows Integration**: Registry Open With configuration, single-instance activation redirection, and application metadata validation.
 - **Theme Experience**: Continuous 0-100% theme progression, color interpolation, Bayer dithering, and 3D sinking physics.
+
+---
+
+## Premium All-in-One Installer (`River-Setup-x64.exe`)
+
+River includes a production-grade, standalone single-file installer featuring its own custom-branded **Liquid Glass UI**, completely separate from generic Windows wizard or default Inno Setup styling.
+
+### 1. Architecture & Design System
+- **Framework**: Standalone .NET 10 x64 WPF application (`MovieTime.Installer`), published as a single-file self-contained executable with embedded native libraries and compression.
+- **UI Aesthetic**: Deep cinematic dark glass backdrop (`#080A0E` / `#0D1117`), translucent acrylic cards, subtle cyan borders (`#30363D`), Segoe UI Variable typography, and custom rounded window chrome with minimize/close controls.
+- **Iconic Branding**: Embedded pixel-art sailboat from River's Theme Experience with a gentle floating bobbing animation and atmospheric night reflections.
+- **Workflow**:
+  1. **Welcome Screen**: Clean branding overview, feature badges, "Install River" (default express install), and "Customize..." button.
+  2. **Installation Options**: Target directory selection (default: `%ProgramFiles%\River`), native folder picker, free disk space calculator, and shortcut / file association toggles.
+  3. **Live Progress Screen**: Real-time extraction progress bar with cyan gradient glow, percentage indicator, animated status, and active filename logging.
+  4. **Completion Screen**: Emerald checkmark badge, target path summary, "Launch River now" checkbox, and finish button.
+  5. **Error Recovery Screen**: Graceful error reporting with technical details and retry capabilities.
+
+### 2. Bundled Offline Dependencies
+River's installer is **100% offline-capable**; no internet access or external runtime installations are required on the target computer:
+- **.NET 10 (x64) Runtime**: Self-contained runtime assemblies bundled inside the single `.exe`.
+- **Windows App SDK / WinUI 3**: Self-contained native runtime (`Microsoft.ui.xaml.dll`, `resources.pri`, etc.).
+- **LibVLC 3.0.24 & Codecs**: Full native LibVLC runtime (`libvlc.dll`, `libvlccore.dll`, and complete `plugins` folder for all audio/video/subtitle codecs).
+- **SQLite Native Engine**: `e_sqlite3.dll` WAL-mode database provider.
+- **Application Assets**: High-resolution icons, pixel-art branding, and theme assets.
+
+### 3. Installation & Integration Behavior
+- **Target Folder**: `C:\Program Files\River` (configurable by user).
+- **Shortcuts**: Creates Start Menu and Desktop shortcuts with `app.ico` using native Windows Shell COM (`IShellLinkW` / `IPersistFile`).
+- **File Associations**: Registers River in Windows Explorer "Open With" menu for all supported video formats (`.mp4`, `.mkv`, `.avi`, `.mov`, `.wmv`, etc.).
+- **Windows Uninstaller**: Registers cleanly in Windows "Installed apps" / "Add or remove programs" with display icon, publisher, version, estimated size, and uninstall string (`"C:\Program Files\River\Uninstall.exe"`).
+- **Dedicated Uninstaller**: Drops `Uninstall.exe` in the application directory.
+- **Data Safety Guarantee**: Uninstallation or upgrading **never deletes or modifies user media or personal database/settings** under `%LocalAppData%\MovieTime`.
+
+### 4. Building the Installer
+Run the automated build script from an elevated or standard PowerShell console:
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File .\build-installer.ps1
+```
+The script will:
+1. Publish `MovieTime.App` in self-contained Release x64 mode.
+2. Compress the application payload into `RiverPayload.zip`.
+3. Publish `MovieTime.Installer` as a single-file executable (`River-Setup-x64.exe`).
+4. Copy the final verified executable to `%USERPROFILE%\Desktop\River Installer\River-Setup-x64.exe`.
+5. Verify file size and validate matching SHA-256 checksums.
+
+### 5. Supported Operating Systems & Limitations
+- **Supported**: Windows 10 Version 1809 (Build 17763) or higher (x64), Windows 11 (x64).
+- **Permissions**: Requires Administrator permissions (UAC prompt) to write to `%ProgramFiles%` and register in `HKLM`.
+- **Known Limitations**: ARM64 and 32-bit (x86) Windows editions are not supported (River is built strictly for 64-bit x64 systems).
 
 ---
 

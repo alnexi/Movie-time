@@ -27,6 +27,7 @@
     <Compile Include="..\..\src\MovieTime.App\Common\*.cs" LinkBase="Common" />
     <Compile Include="..\..\src\MovieTime.App\ViewModels\*.cs" LinkBase="ViewModels" />
     <Compile Include="..\..\src\MovieTime.App\Services\WindowsOpenWithRegistrar.cs" LinkBase="Services" />
+    <Compile Include="..\..\src\MovieTime.Installer\ShortcutHelper.cs" LinkBase="Installer" />
   </ItemGroup>
 
 </Project>

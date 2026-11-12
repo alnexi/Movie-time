@@ -51,3 +51,8 @@ Desktop.ini
 secrets.json
 appsettings.*.local.json
 subtitle_settings.json
+
+## Installer generated payload archives
+*.zip
+RiverPayload.zip
+

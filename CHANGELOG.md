@@ -9,6 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-11-12 (River — Premium All-in-One Installer)
+
+### Added
+- **Premium All-in-One Installer (`River-Setup-x64.exe`)**:
+  - Implemented custom standalone single-file installer UI in `MovieTime.Installer` using .NET 10 x64 WPF with River's signature dark Liquid Glass aesthetic.
+  - Complete custom styling: translucent acrylic glass cards, rounded chromeless window, minimize/close controls, and River's animated pixel-art sailboat floating in an atmospheric night scene.
+  - Multi-step guided wizard: Welcome, Installation Options (directory selection, disk space check, shortcut & file association toggles), Real-Time Progress, Completion, and Error Recovery.
+- **100% Offline Dependency Bundling**:
+  - Automatically embeds all prerequisites inside a single 184 MB standalone binary (`River-Setup-x64.exe`):
+    - .NET 10 x64 self-contained runtime.
+    - Windows App SDK / WinUI 3 self-contained runtime assemblies.
+    - Native LibVLC 3.0.24 libraries (`libvlc.dll`, `libvlccore.dll`) and full codecs/plugins directory.
+    - SQLite native engine (`e_sqlite3.dll`).
+    - All River visual assets and icons.
+  - Zero external prerequisites or internet connectivity required during installation.
+- **Windows Integration & Shell Registration**:
+  - Native Windows Shell COM shortcut creation for Start Menu and Desktop via `IShellLinkW` / `IPersistFile`.
+  - Windows Explorer "Open With" file association registration for video formats (`.mp4`, `.mkv`, `.avi`, `.mov`, etc.).
+  - Proper Windows "Installed apps" / "Add or remove programs" registration with publisher, version, display icon, and estimated size.
+- **Dedicated Uninstaller with Data Safety Guarantee**:
+  - Drops matching `Uninstall.exe` in the application directory.
+  - Strictly preserves personal user data: **never deletes or modifies `%LocalAppData%\MovieTime` (database, settings, artwork) or user media files**.
+- **Automated Build Pipeline**:
+  - Created `build-installer.ps1` automating self-contained publish, optimal payload compression, single-file compilation, and automated deployment to `%USERPROFILE%\Desktop\River Installer\River-Setup-x64.exe` with SHA-256 validation.
+- **Automated Verification Tests**:
+  - Added `InstallerTests.cs` covering shortcut creation/deletion, desktop binary existence & PE header validation, payload archive dependency inspection, and uninstallation data safety. Total automated test suite expanded to 351 tests (100% passing).
+
 ## [1.2.1] - 2026-11-11 (River — Final Data Safety & Lifecycle Audit)
 
 ### Fixed & Improved

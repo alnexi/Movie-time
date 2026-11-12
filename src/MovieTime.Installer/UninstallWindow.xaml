@@ -1,0 +1,248 @@
+<Window x:Class="MovieTime.Installer.UninstallWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="River Uninstaller"
+        Width="620" Height="380"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        Icon="Assets/app.ico">
+
+    <!-- Outer Window Border with Rounded Corners -->
+    <Border CornerRadius="14"
+            BorderThickness="1"
+            BorderBrush="#30363D"
+            ClipToBounds="True">
+        <Border.Background>
+            <SolidColorBrush Color="#080A0E" />
+        </Border.Background>
+
+        <Grid>
+            <!-- Atmospheric Dark Night Backdrop -->
+            <Image Source="Assets/night_scene_clean.png"
+                   Opacity="0.18"
+                   Stretch="UniformToFill"
+                   IsHitTestVisible="False" />
+
+            <!-- Dark Vignette Overlay -->
+            <Rectangle IsHitTestVisible="False">
+                <Rectangle.Fill>
+                    <RadialGradientBrush Center="0.5,0.4" GradientOrigin="0.5,0.4" RadiusX="0.8" RadiusY="0.8">
+                        <GradientStop Color="#00000000" Offset="0.1" />
+                        <GradientStop Color="#E6080A0E" Offset="0.75" />
+                        <GradientStop Color="#FA080A0E" Offset="1.0" />
+                    </RadialGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="42" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Custom Header / Window Titlebar -->
+                <Border Grid.Row="0"
+                        Background="#10141D"
+                        BorderBrush="#1F2937"
+                        BorderThickness="0,0,0,1"
+                        MouseDown="OnTitleBarMouseDown">
+                    <Grid Margin="16,0,12,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Brand Header -->
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Image Source="Assets/app.ico" Width="20" Height="20" Margin="0,0,10,0" />
+                            <TextBlock Text="RIVER UNINSTALLER"
+                                       FontFamily="{StaticResource SegoeUIVariable}"
+                                       FontWeight="Bold"
+                                       FontSize="13"
+                                       Foreground="{StaticResource BrushTextPrimary}"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+
+                        <!-- Window Buttons -->
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Style="{StaticResource WindowCloseButtonStyle}"
+                                    Click="OnCloseClick"
+                                    ToolTip="Close" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Main Content Area -->
+                <Grid Grid.Row="1" Margin="28,20">
+
+                    <!-- ======================================================== -->
+                    <!-- 1. CONFIRMATION PANEL                                     -->
+                    <!-- ======================================================== -->
+                    <Grid x:Name="ConfirmPanel" Visibility="Visible">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0">
+                            <TextBlock Text="Uninstall River"
+                                       FontFamily="{StaticResource SegoeUIVariable}"
+                                       FontSize="22"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource BrushTextPrimary}" />
+                            <TextBlock Text="Are you sure you want to completely remove River from your computer?"
+                                       FontSize="13"
+                                       Foreground="{StaticResource BrushTextSecondary}"
+                                       Margin="0,4,0,0" />
+                        </StackPanel>
+
+                        <!-- Safe Data Notice Card -->
+                        <Border Grid.Row="1"
+                                Background="#0F172A"
+                                BorderThickness="1"
+                                BorderBrush="#1E293B"
+                                CornerRadius="10"
+                                Padding="16,14"
+                                Margin="0,16,0,0"
+                                VerticalAlignment="Center">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Shield / Safe Icon -->
+                                <Border Grid.Column="0"
+                                        Width="36" Height="36"
+                                        CornerRadius="18"
+                                        Background="#064E3B"
+                                        BorderThickness="1"
+                                        BorderBrush="#10B981"
+                                        Margin="0,0,14,0">
+                                    <Path Data="M 10,18 L 15,23 L 26,12"
+                                          Stroke="#10B981"
+                                          StrokeThickness="2"
+                                          StrokeStartLineCap="Round"
+                                          StrokeEndLineCap="Round"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                                </Border>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="Data Safety Guarantee"
+                                               FontWeight="SemiBold"
+                                               FontSize="13"
+                                               Foreground="#10B981" />
+                                    <TextBlock Text="Your local video files and your personal library database in %LocalAppData%\MovieTime will NOT be modified or deleted."
+                                               FontSize="12"
+                                               Foreground="#94A3B8"
+                                               TextWrapping="Wrap"
+                                               LineHeight="17"
+                                               Margin="0,3,0,0" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- Action Buttons -->
+                        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                            <Button Style="{StaticResource SecondaryButtonStyle}"
+                                    Content="Cancel"
+                                    Width="100"
+                                    Click="OnCloseClick"
+                                    Margin="0,0,12,0" />
+                            <Button Style="{StaticResource DangerButtonStyle}"
+                                    Content="Uninstall River"
+                                    Click="OnStartUninstallClick" />
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- ======================================================== -->
+                    <!-- 2. PROGRESS PANEL                                         -->
+                    <!-- ======================================================== -->
+                    <Grid x:Name="ProgressPanel" Visibility="Collapsed" VerticalAlignment="Center">
+                        <StackPanel>
+                            <TextBlock Text="Uninstalling River..."
+                                       FontFamily="{StaticResource SegoeUIVariable}"
+                                       FontSize="20"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource BrushTextPrimary}"
+                                       Margin="0,0,0,6" />
+                            <TextBlock x:Name="UninstallStatusText"
+                                       Text="Removing shortcuts and Windows registration..."
+                                       FontSize="12.5"
+                                       Foreground="{StaticResource BrushTextSecondary}"
+                                       Margin="0,0,0,18" />
+
+                            <!-- Progress Track -->
+                            <Border Height="8"
+                                    CornerRadius="4"
+                                    Background="#161B22"
+                                    BorderThickness="1"
+                                    BorderBrush="#21262D"
+                                    ClipToBounds="True">
+                                <Grid HorizontalAlignment="Left" x:Name="UninstallProgressFill" Width="0">
+                                    <Border CornerRadius="4" Background="#EF4444" />
+                                </Grid>
+                            </Border>
+
+                            <TextBlock x:Name="UninstallDetailText"
+                                       Text="Please wait..."
+                                       FontSize="11"
+                                       Foreground="#64748B"
+                                       Margin="0,10,0,0" />
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- ======================================================== -->
+                    <!-- 3. COMPLETED PANEL                                        -->
+                    <!-- ======================================================== -->
+                    <Grid x:Name="DonePanel" Visibility="Collapsed" VerticalAlignment="Center">
+                        <StackPanel HorizontalAlignment="Center">
+                            <!-- Success Checkmark -->
+                            <Border Width="50" Height="50"
+                                    CornerRadius="25"
+                                    Background="#064E3B"
+                                    BorderThickness="1"
+                                    BorderBrush="#10B981"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,0,0,14">
+                                <Path Data="M 14,25 L 21,32 L 36,17"
+                                      Stroke="#10B981"
+                                      StrokeThickness="2.5"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center" />
+                            </Border>
+
+                            <TextBlock Text="River Has Been Uninstalled"
+                                       FontFamily="{StaticResource SegoeUIVariable}"
+                                       FontSize="20"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource BrushTextPrimary}"
+                                       HorizontalAlignment="Center" />
+                            <TextBlock Text="All application files have been removed. Your personal media files and library data remain safe."
+                                       FontSize="12.5"
+                                       Foreground="{StaticResource BrushTextSecondary}"
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap"
+                                       Margin="0,6,0,20" />
+
+                            <Button Style="{StaticResource PrimaryButtonStyle}"
+                                    Content="Close"
+                                    Width="120"
+                                    HorizontalAlignment="Center"
+                                    Click="OnCloseClick" />
+                        </StackPanel>
+                    </Grid>
+
+                </Grid>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>
