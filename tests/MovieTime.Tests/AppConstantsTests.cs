@@ -15,6 +15,7 @@ public class AppConstantsTests
     public void ApplicationVersion_ShouldNotBeNullOrEmpty()
     {
         Assert.False(string.IsNullOrWhiteSpace(AppConstants.ApplicationVersion));
+        Assert.Equal("1.2.2", AppConstants.ApplicationVersion);
     }
 
     [Fact]

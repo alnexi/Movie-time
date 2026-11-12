@@ -238,8 +238,8 @@ public sealed class InstallationService
             using var key = baseKey.CreateSubKey(subKeyName, writable: true);
 
             key.SetValue("DisplayName", "River");
-            key.SetValue("DisplayVersion", "1.2.1");
-            key.SetValue("Publisher", "River Media");
+            key.SetValue("DisplayVersion", "1.2.2");
+            key.SetValue("Publisher", "Ali Nematollahi");
             key.SetValue("DisplayIcon", $"\"{appIcon}\",0");
             key.SetValue("InstallLocation", installDir);
             key.SetValue("UninstallString", $"\"{uninstallerPath}\" --uninstall");
@@ -272,8 +272,8 @@ public sealed class InstallationService
             {
                 using var cuKey = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\River", writable: true);
                 cuKey.SetValue("DisplayName", "River");
-                cuKey.SetValue("DisplayVersion", "1.2.1");
-                cuKey.SetValue("Publisher", "River Media");
+                cuKey.SetValue("DisplayVersion", "1.2.2");
+                cuKey.SetValue("Publisher", "Ali Nematollahi");
                 cuKey.SetValue("DisplayIcon", $"\"{appIcon}\",0");
                 cuKey.SetValue("InstallLocation", installDir);
                 cuKey.SetValue("UninstallString", $"\"{uninstallerPath}\" --uninstall");

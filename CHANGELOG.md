@@ -35,6 +35,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Created `build-installer.ps1` automating self-contained publish, optimal payload compression, single-file compilation, and automated deployment to `%USERPROFILE%\Desktop\River Installer\River-Setup-x64.exe` with SHA-256 validation.
 - **Automated Verification Tests**:
   - Added `InstallerTests.cs` covering shortcut creation/deletion, desktop binary existence & PE header validation, payload archive dependency inspection, and uninstallation data safety. Total automated test suite expanded to 351 tests (100% passing).
+- **Repository Polish & Release Preparation**:
+  - Cleaned repository structure and hardened `.gitignore` against build artifacts and crash dumps.
+  - Rewrote and polished `README.md` with complete architecture diagrams, badge links, offline setup guidelines, and author attribution for Ali Nematollahi.
+  - Added official MIT `LICENSE` file.
+  - Synchronized application and installer version metadata across all project configurations to `1.2.2`.
 
 ## [1.2.1] - 2026-11-11 (River — Final Data Safety & Lifecycle Audit)
 

@@ -52,6 +52,14 @@ secrets.json
 appsettings.*.local.json
 subtitle_settings.json
 
+## Temporary, crash dump & backup files
+*.tmp
+*.temp
+*.bak
+*.crash
+CrashDumps/
+[Cc]rash[Dd]umps/
+
 ## Installer generated payload archives
 *.zip
 RiverPayload.zip
