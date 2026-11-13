@@ -43,6 +43,7 @@ public sealed class VlcPlayerService : IVlcPlayerService
     private int _volume = 100;
     private int _previousVolume = 100;
     private bool _isMuted;
+    private bool _isApplyingSubtitleSettings;
     private float _playbackRate = 1.0f;
     private bool _isDisposed;
 
@@ -215,8 +216,8 @@ public sealed class VlcPlayerService : IVlcPlayerService
                 {
                     "--no-osd",
                     "--no-video-title-show",
-                    "--file-caching=1500",
-                    "--disc-caching=1500",
+                    "--file-caching=300",
+                    "--disc-caching=300",
                     "--network-caching=0",
                     "--no-stats",
                     "--drop-late-frames",
@@ -246,8 +247,9 @@ public sealed class VlcPlayerService : IVlcPlayerService
                 _libVlc = new LibVLC(optionsList.ToArray());
                 _mediaPlayer = new MediaPlayer(_libVlc);
 
-                // Configure default volume
+                // Configure default volume and mute state
                 _mediaPlayer.Volume = _volume;
+                _mediaPlayer.Mute = _isMuted;
 
                 // Subscribe to MediaPlayer events
                 HookMediaPlayerEvents(_mediaPlayer);
@@ -303,9 +305,9 @@ public sealed class VlcPlayerService : IVlcPlayerService
         mp.ESAdded += OnTracksUpdated;
         mp.ESDeleted += OnTracksUpdated;
         mp.ESSelected += OnTracksUpdated;
-        mp.Muted += (s, e) => { _isMuted = true; VolumeChanged?.Invoke(_volume, _isMuted); };
-        mp.Unmuted += (s, e) => { _isMuted = false; VolumeChanged?.Invoke(_volume, _isMuted); };
-        mp.VolumeChanged += (s, e) => { _volume = Math.Clamp((int)Math.Round(e.Volume * 100), 0, 200); VolumeChanged?.Invoke(_volume, _isMuted); };
+        mp.Muted += OnPlayerMuted;
+        mp.Unmuted += OnPlayerUnmuted;
+        mp.VolumeChanged += OnPlayerVolumeChanged;
     }
 
     private void UnhookMediaPlayerEvents(MediaPlayer mp)
@@ -321,6 +323,30 @@ public sealed class VlcPlayerService : IVlcPlayerService
         mp.ESAdded -= OnTracksUpdated;
         mp.ESDeleted -= OnTracksUpdated;
         mp.ESSelected -= OnTracksUpdated;
+        mp.Muted -= OnPlayerMuted;
+        mp.Unmuted -= OnPlayerUnmuted;
+        mp.VolumeChanged -= OnPlayerVolumeChanged;
+    }
+
+    private void OnPlayerMuted(object? sender, EventArgs e)
+    {
+        if (_isApplyingSubtitleSettings) return;
+        _isMuted = true;
+        VolumeChanged?.Invoke(_volume, _isMuted);
+    }
+
+    private void OnPlayerUnmuted(object? sender, EventArgs e)
+    {
+        if (_isApplyingSubtitleSettings) return;
+        _isMuted = false;
+        VolumeChanged?.Invoke(_volume, _isMuted);
+    }
+
+    private void OnPlayerVolumeChanged(object? sender, MediaPlayerVolumeChangedEventArgs e)
+    {
+        if (_isApplyingSubtitleSettings) return;
+        _volume = Math.Clamp((int)Math.Round(e.Volume * 100), 0, 200);
+        VolumeChanged?.Invoke(_volume, _isMuted);
     }
 
     public async Task<bool> OpenMediaAsync(string filePath, long startPositionMs = 0)
@@ -335,6 +361,8 @@ public sealed class VlcPlayerService : IVlcPlayerService
 
         try
         {
+            _subtitleSettings = _subtitleSettingsService?.GetSettings() ?? _subtitleSettings ?? new SubtitleSettings();
+
             if (_libVlc == null || _mediaPlayer == null)
             {
                 if (_swapChainReadyTcs != null && !_swapChainReadyTcs.Task.IsCompleted)
@@ -406,6 +434,10 @@ public sealed class VlcPlayerService : IVlcPlayerService
                 PlaybackError?.Invoke("Failed to start playback for this media file.");
                 return false;
             }
+
+            // Restore volume and mute state
+            _mediaPlayer.Volume = _volume;
+            _mediaPlayer.Mute = _isMuted;
 
             if (_audioDelayMs != 0)
             {
@@ -599,8 +631,25 @@ public sealed class VlcPlayerService : IVlcPlayerService
     public bool SetSubtitleTrack(int trackId)
     {
         if (_mediaPlayer == null) return false;
+        var savedVol = _volume;
+        var savedMute = _isMuted;
         var result = _mediaPlayer.SetSpu(trackId);
         RefreshTracks();
+
+        // Ensure audio volume and mute state are never altered by SPU track changes
+        if (_mediaPlayer != null)
+        {
+            if (_mediaPlayer.Mute != savedMute)
+            {
+                _mediaPlayer.Mute = savedMute;
+            }
+            if (_mediaPlayer.Volume != savedVol && savedVol > 0)
+            {
+                _mediaPlayer.Volume = savedVol;
+            }
+        }
+        _isMuted = savedMute;
+        _volume = savedVol;
         return result;
     }
 
@@ -724,50 +773,71 @@ public sealed class VlcPlayerService : IVlcPlayerService
             var subTrack = CurrentSubtitleTrackId;
             var extAudio = _externalAudioPath;
             var extSub = _externalSubtitlePath;
+            var targetVolume = _volume;
+            var targetMuted = _isMuted;
 
-            lock (_lock)
+            _isApplyingSubtitleSettings = true;
+            try
             {
-                if (_mediaPlayer != null)
+                lock (_lock)
                 {
-                    UnhookMediaPlayerEvents(_mediaPlayer);
-                    if (_mediaPlayer.IsPlaying)
+                    if (_mediaPlayer != null)
                     {
-                        _mediaPlayer.Stop();
+                        UnhookMediaPlayerEvents(_mediaPlayer);
+                        if (_mediaPlayer.IsPlaying)
+                        {
+                            _mediaPlayer.Stop();
+                        }
+                        _mediaPlayer.Dispose();
+                        _mediaPlayer = null;
                     }
-                    _mediaPlayer.Dispose();
-                    _mediaPlayer = null;
+                    _currentMedia?.Dispose();
+                    _currentMedia = null;
+                    _libVlc?.Dispose();
+                    _libVlc = null;
                 }
-                _currentMedia?.Dispose();
-                _currentMedia = null;
-                _libVlc?.Dispose();
-                _libVlc = null;
+
+                EnsureInitializedWithSwapChain(_swapChainOptions);
+                var opened = await OpenMediaAsync(_currentFilePath, pos).ConfigureAwait(false);
+
+                if (opened)
+                {
+                    if (_mediaPlayer != null)
+                    {
+                        _mediaPlayer.Volume = targetVolume;
+                        _mediaPlayer.Mute = targetMuted;
+                    }
+                    _volume = targetVolume;
+                    _isMuted = targetMuted;
+
+                    if (!string.IsNullOrEmpty(extAudio) && File.Exists(extAudio))
+                    {
+                        await AddExternalAudioAsync(extAudio).ConfigureAwait(false);
+                    }
+                    if (!string.IsNullOrEmpty(extSub) && File.Exists(extSub))
+                    {
+                        await AddExternalSubtitleAsync(extSub).ConfigureAwait(false);
+                    }
+                    if (audioTrack != -1)
+                    {
+                        SetAudioTrack(audioTrack);
+                    }
+                    if (subTrack != -1)
+                    {
+                        SetSubtitleTrack(subTrack);
+                    }
+                    if (!wasPlaying)
+                    {
+                        Pause();
+                    }
+                }
             }
-
-            EnsureInitializedWithSwapChain(_swapChainOptions);
-            var opened = await OpenMediaAsync(_currentFilePath, pos).ConfigureAwait(false);
-
-            if (opened)
+            finally
             {
-                if (!string.IsNullOrEmpty(extAudio) && File.Exists(extAudio))
-                {
-                    await AddExternalAudioAsync(extAudio).ConfigureAwait(false);
-                }
-                if (!string.IsNullOrEmpty(extSub) && File.Exists(extSub))
-                {
-                    await AddExternalSubtitleAsync(extSub).ConfigureAwait(false);
-                }
-                if (audioTrack != -1)
-                {
-                    SetAudioTrack(audioTrack);
-                }
-                if (subTrack != -1)
-                {
-                    SetSubtitleTrack(subTrack);
-                }
-                if (!wasPlaying)
-                {
-                    Pause();
-                }
+                _isApplyingSubtitleSettings = false;
+                _volume = targetVolume;
+                _isMuted = targetMuted;
+                VolumeChanged?.Invoke(_volume, _isMuted);
             }
         }
 

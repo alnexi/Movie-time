@@ -41,7 +41,7 @@
         </LinearGradientBrush>
     </UserControl.Resources>
 
-    <Grid x:Name="PlayerRootGrid">
+    <Grid x:Name="PlayerRootGrid" DoubleTapped="OnPlayerRootDoubleTapped">
 
         <!-- ================= 1. NATIVE HARDWARE VIDEO SURFACE ================= -->
         <lvs:VideoView x:Name="LibVlcVideoView"
@@ -79,6 +79,8 @@
                     HorizontalAlignment="Left"
                     VerticalAlignment="Top"
                     Margin="48,36,0,0"
+                    PointerEntered="OnHudPointerEntered"
+                    PointerExited="OnHudPointerExited"
                     Visibility="{x:Bind ViewModel.IsControlsVisible, Mode=OneWay}">
             <Button x:Name="BackButton"
                     Command="{x:Bind ViewModel.BackCommand, Mode=OneWay}"
@@ -122,6 +124,8 @@
         <!-- ================= 4. CENTER TRANSPORT CONTROLS ================= -->
         <Grid HorizontalAlignment="Center"
               VerticalAlignment="Center"
+              PointerEntered="OnHudPointerEntered"
+              PointerExited="OnHudPointerExited"
               Visibility="{x:Bind ViewModel.IsControlsVisible, Mode=OneWay}">
             <StackPanel Orientation="Horizontal" Spacing="24" VerticalAlignment="Center">
 
@@ -151,14 +155,18 @@
                         Background="Transparent"
                         BorderThickness="0"
                         CornerRadius="28"
-                        ToolTipService.ToolTip="Skip 10 Seconds Backward (Left Arrow)">
+                        ToolTipService.ToolTip="Skip 10 Seconds Backward (J)">
                     <Border Width="56" Height="56"
                             CornerRadius="28"
                             Background="{StaticResource LiquidGlassSurfaceBrush}"
                             BorderBrush="{StaticResource LiquidGlassBorderBrush}"
                             BorderThickness="1">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <FontIcon Glyph="&#xEE35;" FontSize="20" Foreground="#FFFFFF" />
+                            <FontIcon Glyph="&#xEE35;" FontSize="20" Foreground="#FFFFFF" RenderTransformOrigin="0.5,0.5">
+                                <FontIcon.RenderTransform>
+                                    <ScaleTransform ScaleX="-1" />
+                                </FontIcon.RenderTransform>
+                            </FontIcon>
                             <TextBlock Text="10" FontSize="9" FontWeight="Bold" Foreground="#D0D0D8" HorizontalAlignment="Center" Margin="0,-4,0,0" />
                         </StackPanel>
                     </Border>
@@ -200,18 +208,14 @@
                         Background="Transparent"
                         BorderThickness="0"
                         CornerRadius="28"
-                        ToolTipService.ToolTip="Skip 10 Seconds Forward (Right Arrow)">
+                        ToolTipService.ToolTip="Skip 10 Seconds Forward (L)">
                     <Border Width="56" Height="56"
                             CornerRadius="28"
                             Background="{StaticResource LiquidGlassSurfaceBrush}"
                             BorderBrush="{StaticResource LiquidGlassBorderBrush}"
                             BorderThickness="1">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <FontIcon Glyph="&#xEE35;" FontSize="20" Foreground="#FFFFFF" RenderTransformOrigin="0.5,0.5">
-                                <FontIcon.RenderTransform>
-                                    <ScaleTransform ScaleX="-1" />
-                                </FontIcon.RenderTransform>
-                            </FontIcon>
+                            <FontIcon Glyph="&#xEE35;" FontSize="20" Foreground="#FFFFFF" />
                             <TextBlock Text="10" FontSize="9" FontWeight="Bold" Foreground="#D0D0D8" HorizontalAlignment="Center" Margin="0,-4,0,0" />
                         </StackPanel>
                     </Border>
@@ -241,6 +245,8 @@
         <!-- ================= 5. BOTTOM CINEMATIC HUD ================= -->
         <Grid VerticalAlignment="Bottom"
               Margin="60,0,60,38"
+              PointerEntered="OnHudPointerEntered"
+              PointerExited="OnHudPointerExited"
               Visibility="{x:Bind ViewModel.IsControlsVisible, Mode=OneWay}">
             <StackPanel Spacing="16">
 
@@ -545,20 +551,28 @@
                 BorderBrush="{StaticResource LiquidGlassBorderBrush}"
                 BorderThickness="1"
                 Padding="16"
+                PointerEntered="OnSubtitleMenuPointerEntered"
+                PointerExited="OnSubtitleMenuPointerExited"
                 Visibility="{x:Bind ViewModel.IsSubtitleMenuOpen, Mode=OneWay}">
-            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                <StackPanel Spacing="12">
-                    <Grid>
-                        <TextBlock Text="Subtitles" FontSize="14" FontWeight="Bold" Foreground="#FFFFFF" />
-                        <Button HorizontalAlignment="Right"
-                                Command="{x:Bind ViewModel.ToggleSubtitleMenuCommand, Mode=OneWay}"
-                                Padding="4" Background="Transparent" BorderThickness="0">
-                            <FontIcon Glyph="&#xE711;" FontSize="12" Foreground="#8A8A98" />
-                        </Button>
-                    </Grid>
+            <Grid RowDefinitions="Auto,*">
+                <!-- Header (Pinned outside ScrollViewer with dedicated hit target) -->
+                <Grid Grid.Row="0" Margin="0,0,0,12">
+                    <TextBlock Text="Subtitles" FontSize="14" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center" />
+                    <Button HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Command="{x:Bind ViewModel.ToggleSubtitleMenuCommand, Mode=OneWay}"
+                            Width="32" Height="32"
+                            Padding="0" Background="Transparent" BorderThickness="0"
+                            CornerRadius="16"
+                            ToolTipService.ToolTip="Close Subtitles (Esc)">
+                        <FontIcon Glyph="&#xE711;" FontSize="12" Foreground="#C0C0C8" />
+                    </Button>
+                </Grid>
 
-                    <!-- Subtitle Tracks List -->
-                    <ItemsControl ItemsSource="{x:Bind ViewModel.SubtitleTracks, Mode=OneWay}">
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,4,0">
+                    <StackPanel Spacing="12">
+                        <!-- Subtitle Tracks List -->
+                        <ItemsControl ItemsSource="{x:Bind ViewModel.SubtitleTracks, Mode=OneWay}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="CorePlayback:PlayerTrackInfo"
                                           xmlns:CorePlayback="using:MovieTime.Core.Playback">
@@ -721,7 +735,8 @@
                     </StackPanel>
                 </StackPanel>
             </ScrollViewer>
-        </Border>
+        </Grid>
+    </Border>
 
         <!-- B. Audio Options Popover Menu -->
         <Border x:Name="AudioMenuPanel"
@@ -736,18 +751,24 @@
                 BorderThickness="1"
                 Padding="16"
                 Visibility="{x:Bind ViewModel.IsAudioMenuOpen, Mode=OneWay}">
-            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                <StackPanel Spacing="12">
-                    <Grid>
-                        <TextBlock Text="Audio Tracks" FontSize="14" FontWeight="Bold" Foreground="#FFFFFF" />
-                        <Button HorizontalAlignment="Right"
-                                Command="{x:Bind ViewModel.ToggleAudioMenuCommand, Mode=OneWay}"
-                                Padding="4" Background="Transparent" BorderThickness="0">
-                            <FontIcon Glyph="&#xE711;" FontSize="12" Foreground="#8A8A98" />
-                        </Button>
-                    </Grid>
+            <Grid RowDefinitions="Auto,*">
+                <!-- Header (Pinned outside ScrollViewer with dedicated hit target) -->
+                <Grid Grid.Row="0" Margin="0,0,0,12">
+                    <TextBlock Text="Audio Tracks" FontSize="14" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center" />
+                    <Button HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Command="{x:Bind ViewModel.ToggleAudioMenuCommand, Mode=OneWay}"
+                            Width="32" Height="32"
+                            Padding="0" Background="Transparent" BorderThickness="0"
+                            CornerRadius="16"
+                            ToolTipService.ToolTip="Close Audio Options (Esc)">
+                        <FontIcon Glyph="&#xE711;" FontSize="12" Foreground="#C0C0C8" />
+                    </Button>
+                </Grid>
 
-                    <ItemsControl ItemsSource="{x:Bind ViewModel.AudioTracks, Mode=OneWay}">
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,4,0">
+                    <StackPanel Spacing="12">
+                        <ItemsControl ItemsSource="{x:Bind ViewModel.AudioTracks, Mode=OneWay}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="CorePlayback:PlayerTrackInfo"
                                           xmlns:CorePlayback="using:MovieTime.Core.Playback">
@@ -832,6 +853,7 @@
                     </StackPanel>
                 </StackPanel>
             </ScrollViewer>
+            </Grid>
         </Border>
 
         <!-- C. InSight / Media Information & Shortcuts Popover Card -->
@@ -847,18 +869,24 @@
                 BorderThickness="1"
                 Padding="20"
                 Visibility="{x:Bind ViewModel.IsInfoOpen, Mode=OneWay}">
-            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                <StackPanel Spacing="14">
-                    <Grid>
-                        <TextBlock Text="Media InSight &amp; Shortcuts" FontSize="15" FontWeight="Bold" Foreground="#FFFFFF" />
-                        <Button HorizontalAlignment="Right"
-                                Command="{x:Bind ViewModel.ToggleInfoCommand, Mode=OneWay}"
-                                Padding="4" Background="Transparent" BorderThickness="0">
-                            <FontIcon Glyph="&#xE711;" FontSize="12" Foreground="#8A8A98" />
-                        </Button>
-                    </Grid>
+            <Grid RowDefinitions="Auto,*">
+                <!-- Header (Pinned outside ScrollViewer with dedicated hit target) -->
+                <Grid Grid.Row="0" Margin="0,0,0,12">
+                    <TextBlock Text="Media InSight &amp; Shortcuts" FontSize="15" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center" />
+                    <Button HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Command="{x:Bind ViewModel.ToggleInfoCommand, Mode=OneWay}"
+                            Width="32" Height="32"
+                            Padding="0" Background="Transparent" BorderThickness="0"
+                            CornerRadius="16"
+                            ToolTipService.ToolTip="Close Media Info (Esc)">
+                        <FontIcon Glyph="&#xE711;" FontSize="12" Foreground="#C0C0C8" />
+                    </Button>
+                </Grid>
 
-                    <!-- Technical Metadata -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,4,0">
+                    <StackPanel Spacing="14">
+                        <!-- Technical Metadata -->
                     <StackPanel Spacing="8">
                         <Grid>
                             <TextBlock Text="Title" FontSize="11" Foreground="#8E8E93" />
@@ -913,6 +941,7 @@
                     </StackPanel>
                 </StackPanel>
             </ScrollViewer>
+            </Grid>
         </Border>
 
         <!-- ================= 7. ERROR STATE OVERLAY ================= -->

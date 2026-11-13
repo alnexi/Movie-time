@@ -48,6 +48,11 @@ public sealed partial class MainWindow : Window
 
         this.InitializeComponent();
 
+        if (this.Content is UIElement rootElement)
+        {
+            rootElement.KeyDown += OnMainWindowKeyDown;
+        }
+
         if (dispatcherService is MovieTime.App.Services.WinUiDispatcherService winUiDispatcher)
         {
             winUiDispatcher.SetDispatcherQueue(this.DispatcherQueue);
@@ -327,6 +332,7 @@ public sealed partial class MainWindow : Window
 
         App.Logger?.LogInformation("NavigateToPlayer: Setting MainPlayerView.Visibility = Visible...");
         MainPlayerView.Visibility = Visibility.Visible;
+        MainPlayerView.FocusForPlayback();
 
         App.Logger?.LogInformation("NavigateToPlayer: Calling EnsureVideoSurfaceAttached...");
         MainPlayerView.EnsureVideoSurfaceAttached();
@@ -348,9 +354,27 @@ public sealed partial class MainWindow : Window
         MainPlaylistsView.Visibility = Visibility.Collapsed;
 
         MainPlayerView.Visibility = Visibility.Visible;
+        MainPlayerView.FocusForPlayback();
         MainPlayerView.EnsureVideoSurfaceAttached();
 
         _ = PlayerViewModel.InitializeWithPlaylistAsync(filePath, movieId, queue, startIndex);
+    }
+
+    private void OnMainWindowKeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
+    {
+        if (MainPlayerView.Visibility == Visibility.Visible && !e.Handled)
+        {
+            var focused = Microsoft.UI.Xaml.Input.FocusManager.GetFocusedElement(this.Content.XamlRoot);
+            if (focused is Microsoft.UI.Xaml.Controls.TextBox ||
+                focused is Microsoft.UI.Xaml.Controls.AutoSuggestBox ||
+                focused is Microsoft.UI.Xaml.Controls.PasswordBox ||
+                focused is Microsoft.UI.Xaml.Controls.RichEditBox)
+            {
+                return;
+            }
+
+            MainPlayerView.HandlePlaybackKey(e);
+        }
     }
 
     private void ExitPlayerMode()

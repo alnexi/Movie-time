@@ -28,6 +28,7 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
     private readonly ISeriesRepository? _seriesRepository;
     private readonly ISeasonRepository? _seasonRepository;
     private readonly IFilePickerService? _filePickerService;
+    private readonly ISubtitleSettingsService? _subtitleSettingsService;
     private readonly ILogger<PlayerViewModel> _logger;
     private readonly IDispatcherService? _dispatcher;
 
@@ -466,7 +467,8 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
         IFilePickerService? filePickerService = null,
         IEpisodeRepository? episodeRepository = null,
         ISeriesRepository? seriesRepository = null,
-        ISeasonRepository? seasonRepository = null)
+        ISeasonRepository? seasonRepository = null,
+        ISubtitleSettingsService? subtitleSettingsService = null)
     {
         _playerService = playerService ?? throw new ArgumentNullException(nameof(playerService));
         _movieRepository = movieRepository ?? throw new ArgumentNullException(nameof(movieRepository));
@@ -478,7 +480,8 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
         _logger = logger ?? NullLogger<PlayerViewModel>.Instance;
         _dispatcher = dispatcher;
         _filePickerService = filePickerService;
-        _subtitleSettings = _playerService.CurrentSubtitleSettings ?? new SubtitleSettings();
+        _subtitleSettingsService = subtitleSettingsService;
+        _subtitleSettings = _subtitleSettingsService?.GetSettings() ?? _playerService.CurrentSubtitleSettings ?? new SubtitleSettings();
 
         PlayPauseCommand = new RelayCommand(OnPlayPause);
         SeekForwardCommand = new RelayCommand(() => SeekRelative(10000));
@@ -563,6 +566,10 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
         HasError = false;
         ErrorMessage = null;
         IsControlsVisible = true;
+
+        // Restore global persistent subtitle appearance preferences
+        _subtitleSettings = _subtitleSettingsService?.GetSettings() ?? _playerService.CurrentSubtitleSettings ?? _subtitleSettings;
+        NotifySubtitleSettingsChanged();
 
         if (string.IsNullOrWhiteSpace(_filePath) || !File.Exists(_filePath))
         {
@@ -896,7 +903,12 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
 
     public async Task SetSubtitleFontSizeAsync(SubtitleFontSize size)
     {
+        _subtitleSettings = _subtitleSettingsService?.GetSettings() ?? _subtitleSettings;
         _subtitleSettings.FontSize = size;
+        if (_subtitleSettingsService != null)
+        {
+            await _subtitleSettingsService.SaveSettingsAsync(_subtitleSettings).ConfigureAwait(false);
+        }
         NotifySubtitleSettingsChanged();
         await _playerService.ApplySubtitleSettingsAsync(_subtitleSettings);
         TriggerInteraction();
@@ -904,7 +916,12 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
 
     public async Task SetSubtitleColorAsync(SubtitleColor color)
     {
+        _subtitleSettings = _subtitleSettingsService?.GetSettings() ?? _subtitleSettings;
         _subtitleSettings.Color = color;
+        if (_subtitleSettingsService != null)
+        {
+            await _subtitleSettingsService.SaveSettingsAsync(_subtitleSettings).ConfigureAwait(false);
+        }
         NotifySubtitleSettingsChanged();
         await _playerService.ApplySubtitleSettingsAsync(_subtitleSettings);
         TriggerInteraction();
@@ -912,7 +929,12 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
 
     public async Task SetSubtitleOutlineAsync(SubtitleOutline outline)
     {
+        _subtitleSettings = _subtitleSettingsService?.GetSettings() ?? _subtitleSettings;
         _subtitleSettings.Outline = outline;
+        if (_subtitleSettingsService != null)
+        {
+            await _subtitleSettingsService.SaveSettingsAsync(_subtitleSettings).ConfigureAwait(false);
+        }
         NotifySubtitleSettingsChanged();
         await _playerService.ApplySubtitleSettingsAsync(_subtitleSettings);
         TriggerInteraction();
@@ -920,7 +942,12 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
 
     public async Task SetSubtitleBackgroundAsync(SubtitleBackground background)
     {
+        _subtitleSettings = _subtitleSettingsService?.GetSettings() ?? _subtitleSettings;
         _subtitleSettings.Background = background;
+        if (_subtitleSettingsService != null)
+        {
+            await _subtitleSettingsService.SaveSettingsAsync(_subtitleSettings).ConfigureAwait(false);
+        }
         NotifySubtitleSettingsChanged();
         await _playerService.ApplySubtitleSettingsAsync(_subtitleSettings);
         TriggerInteraction();
@@ -928,7 +955,12 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
 
     public async Task SetSubtitlePositionAsync(SubtitlePosition position)
     {
+        _subtitleSettings = _subtitleSettingsService?.GetSettings() ?? _subtitleSettings;
         _subtitleSettings.Position = position;
+        if (_subtitleSettingsService != null)
+        {
+            await _subtitleSettingsService.SaveSettingsAsync(_subtitleSettings).ConfigureAwait(false);
+        }
         NotifySubtitleSettingsChanged();
         await _playerService.ApplySubtitleSettingsAsync(_subtitleSettings);
         TriggerInteraction();
@@ -937,6 +969,10 @@ public sealed class PlayerViewModel : ObservableObject, IDisposable
     public async Task ResetSubtitleSettingsAsync()
     {
         _subtitleSettings = new SubtitleSettings();
+        if (_subtitleSettingsService != null)
+        {
+            await _subtitleSettingsService.SaveSettingsAsync(_subtitleSettings).ConfigureAwait(false);
+        }
         NotifySubtitleSettingsChanged();
         await _playerService.ApplySubtitleSettingsAsync(_subtitleSettings);
         TriggerInteraction();

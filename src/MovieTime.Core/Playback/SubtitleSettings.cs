@@ -69,10 +69,10 @@ public sealed class SubtitleSettings
 
     public int GetFontSizePoints() => FontSize switch
     {
-        SubtitleFontSize.Small => 22,
-        SubtitleFontSize.Large => 40,
-        SubtitleFontSize.ExtraLarge => 52,
-        _ => 30 // Medium default
+        SubtitleFontSize.Small => 32,
+        SubtitleFontSize.Large => 54,
+        SubtitleFontSize.ExtraLarge => 68,
+        _ => 42 // Medium default
     };
 
     public int GetOutlineThickness() => Outline switch
@@ -92,9 +92,9 @@ public sealed class SubtitleSettings
 
     public int GetSubMarginPixels() => Position switch
     {
-        SubtitlePosition.Higher => 45,
-        SubtitlePosition.Lower => 10,
-        _ => 25 // Default
+        SubtitlePosition.Higher => 60,
+        SubtitlePosition.Lower => 15,
+        _ => 30 // Default
     };
 
     public SubtitleSettings Clone()

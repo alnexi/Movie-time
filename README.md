@@ -12,8 +12,8 @@
   <a href="https://github.com/alnexi/Movie-time"><img src="https://img.shields.io/badge/Windows-10%20%7C%2011%20(x64)-0078D7?logo=windows" alt="Windows 10 and 11 x64" /></a>
   <a href="https://dotnet.microsoft.com/"><img src="https://img.shields.io/badge/.NET-10.0%20LTS%20(x64)-512BD4?logo=dotnet" alt=".NET 10" /></a>
   <a href="https://learn.microsoft.com/en-us/windows/apps/winui/winui3/"><img src="https://img.shields.io/badge/WinUI%203-Windows%20App%20SDK%201.7-0078D7" alt="WinUI 3" /></a>
-  <a href="https://github.com/alnexi/Movie-time/releases"><img src="https://img.shields.io/badge/Release-v1.2.2-blue" alt="Release v1.2.2" /></a>
-  <a href="https://github.com/alnexi/Movie-time"><img src="https://img.shields.io/badge/Automated%20Tests-351%20Passed-brightgreen" alt="351 Tests Passed" /></a>
+  <a href="https://github.com/alnexi/Movie-time/releases"><img src="https://img.shields.io/badge/Release-v1.2.3-blue" alt="Release v1.2.3" /></a>
+  <a href="https://github.com/alnexi/Movie-time"><img src="https://img.shields.io/badge/Automated%20Tests-355%20Passed-brightgreen" alt="355 Tests Passed" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License" /></a>
 </p>
 
@@ -185,7 +185,7 @@ The compiled installer will be validated, verified against SHA-256 checksums, an
 
 ## Project Status & Limitations
 
-- **Current Version**: `v1.2.2` (Stable Official Release).
+- **Current Version**: `v1.2.3` (Stable Official Release).
 - **Maintenance**: Actively maintained.
 - **Hardware Platform**: River is built specifically for 64-bit (`x64`) Windows. 32-bit (x86) and ARM64 architectures are not currently supported.
 - **Storage Model**: River is designed exclusively for local and network-attached storage. It intentionally does not provide cloud synchronization or account login.

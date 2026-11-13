@@ -18,6 +18,8 @@ namespace MovieTime.App.Views;
 public sealed partial class PlayerView : UserControl
 {
     private readonly DispatcherTimer _inactivityTimer;
+    private readonly DispatcherTimer _subtitleMenuCloseTimer;
+    private bool _isPointerOverHud;
     private bool _isUserDraggingSlider;
     private readonly System.Collections.Generic.Dictionary<uint, Windows.Foundation.Point> _touchPoints = new();
     private readonly System.Collections.Generic.Dictionary<uint, Windows.Foundation.Point> _touchInitialPoints = new();
@@ -42,9 +44,15 @@ public sealed partial class PlayerView : UserControl
 
         _inactivityTimer = new DispatcherTimer
         {
-            Interval = TimeSpan.FromSeconds(3.5)
+            Interval = TimeSpan.FromSeconds(3.0)
         };
         _inactivityTimer.Tick += OnInactivityTimerTick;
+
+        _subtitleMenuCloseTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(650)
+        };
+        _subtitleMenuCloseTimer.Tick += OnSubtitleMenuCloseTimerTick;
 
         this.Loaded += OnLoaded;
         this.Unloaded += OnUnloaded;
@@ -230,6 +238,80 @@ public sealed partial class PlayerView : UserControl
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
         _inactivityTimer.Stop();
+        _subtitleMenuCloseTimer.Stop();
+    }
+
+    /// <summary>
+    /// Programmatically sets focus to PlayerView to ensure keyboard shortcuts work immediately in windowed mode.
+    /// </summary>
+    public void FocusForPlayback()
+    {
+        this.Focus(FocusState.Programmatic);
+    }
+
+    /// <summary>
+    /// Handles keyboard shortcut forwarding from the window or parent views.
+    /// </summary>
+    public void HandlePlaybackKey(KeyRoutedEventArgs e)
+    {
+        OnKeyDown(this, e);
+    }
+
+    private void OnHudPointerEntered(object sender, PointerRoutedEventArgs e)
+    {
+        _isPointerOverHud = true;
+        ResetInactivityTimer();
+    }
+
+    private void OnHudPointerExited(object sender, PointerRoutedEventArgs e)
+    {
+        _isPointerOverHud = false;
+        ResetInactivityTimer();
+    }
+
+    private void OnSubtitleMenuPointerEntered(object sender, PointerRoutedEventArgs e)
+    {
+        _subtitleMenuCloseTimer.Stop();
+    }
+
+    private void OnSubtitleMenuPointerExited(object sender, PointerRoutedEventArgs e)
+    {
+        if (ViewModel?.IsSubtitleMenuOpen == true)
+        {
+            _subtitleMenuCloseTimer.Stop();
+            _subtitleMenuCloseTimer.Start();
+        }
+    }
+
+    private void OnSubtitleMenuCloseTimerTick(object? sender, object e)
+    {
+        _subtitleMenuCloseTimer.Stop();
+        if (ViewModel != null && ViewModel.IsSubtitleMenuOpen)
+        {
+            ViewModel.IsSubtitleMenuOpen = false;
+        }
+    }
+
+    private void OnPlayerRootDoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
+    {
+        if (ViewModel == null) return;
+
+        // If double click originated inside interactive controls or flyout panels, ignore
+        var element = e.OriginalSource as DependencyObject;
+        while (element != null && element != this && element != PlayerRootGrid)
+        {
+            if (element is Button || element is Slider || element is TextBox ||
+                element is ToggleButton || element is ItemsControl ||
+                element == SubtitleMenuPanel || element == AudioMenuPanel ||
+                element == InfoPanel)
+            {
+                return;
+            }
+            element = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetParent(element);
+        }
+
+        ViewModel.ToggleFullscreenCommand.Execute(null);
+        e.Handled = true;
     }
 
     private void OnPointerPressed(object sender, PointerRoutedEventArgs e)
@@ -517,8 +599,10 @@ public sealed partial class PlayerView : UserControl
     {
         if (ViewModel == null) return;
 
-        // Auto-hide controls only during active playback and when menus are closed
+        // Auto-hide controls only during active playback, when pointer is NOT hovering over HUD controls,
+        // when menus are closed, and user is not actively scrubbing
         if (ViewModel.IsPlaying &&
+            !_isPointerOverHud &&
             !ViewModel.IsAudioMenuOpen &&
             !ViewModel.IsSubtitleMenuOpen &&
             !ViewModel.IsInfoOpen &&

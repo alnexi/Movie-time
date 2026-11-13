@@ -9,7 +9,7 @@ namespace MovieTime.Core;
 public static class AppConstants
 {
     public const string ApplicationName = "River";
-    public const string ApplicationVersion = "1.2.2";
+    public const string ApplicationVersion = "1.2.3";
     public const string LocalDataFolder = "MovieTime";
 
     /// <summary>

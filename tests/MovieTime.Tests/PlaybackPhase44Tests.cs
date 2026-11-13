@@ -278,12 +278,124 @@ public sealed class PlaybackPhase44Tests : IDisposable
             Position = SubtitlePosition.Higher
         };
 
-        Assert.Equal(52, settings.GetFontSizePoints());
+        Assert.Equal(68, settings.GetFontSizePoints());
         Assert.Equal(0x0000FFFF, settings.GetColorRgb());
         Assert.Equal("#00E5FF", settings.GetColorHex());
         Assert.Equal(1, settings.GetOutlineThickness());
         Assert.Equal(90, settings.GetBackgroundOpacity());
-        Assert.Equal(45, settings.GetSubMarginPixels());
+        Assert.Equal(60, settings.GetSubMarginPixels());
+    }
+
+    [Fact]
+    public void SubtitleSettings_RecalibratedFontSizes_MatchNewLegibilityScale()
+    {
+        Assert.Equal(32, new SubtitleSettings { FontSize = SubtitleFontSize.Small }.GetFontSizePoints());
+        Assert.Equal(42, new SubtitleSettings { FontSize = SubtitleFontSize.Medium }.GetFontSizePoints());
+        Assert.Equal(54, new SubtitleSettings { FontSize = SubtitleFontSize.Large }.GetFontSizePoints());
+        Assert.Equal(68, new SubtitleSettings { FontSize = SubtitleFontSize.ExtraLarge }.GetFontSizePoints());
+    }
+
+    [Fact]
+    public async Task PlayerViewModel_ChangingSubtitleSettings_DoesNotMuteAudio()
+    {
+        var storage = new StoragePathService(_tempDir);
+        var subService = new SubtitleSettingsService(storage, NullLogger<SubtitleSettingsService>.Instance);
+        var vm = new PlayerViewModel(
+            _fakePlayer,
+            _movieRepository,
+            _mediaFileRepository,
+            _progressRepository,
+            NullLogger<PlayerViewModel>.Instance,
+            dispatcher: null,
+            filePickerService: _fakePicker,
+            subtitleSettingsService: subService);
+
+        // Ensure initially unmuted with volume 80
+        _fakePlayer.SetVolume(80);
+        Assert.False(vm.IsMuted);
+        Assert.Equal(80, vm.Volume);
+
+        // Change subtitle size
+        await vm.SetSubtitleFontSizeAsync(SubtitleFontSize.ExtraLarge);
+        Assert.False(vm.IsMuted);
+        Assert.False(_fakePlayer.IsMuted);
+        Assert.Equal(80, vm.Volume);
+
+        // Change subtitle color
+        await vm.SetSubtitleColorAsync(SubtitleColor.Yellow);
+        Assert.False(vm.IsMuted);
+        Assert.False(_fakePlayer.IsMuted);
+        Assert.Equal(80, vm.Volume);
+
+        // Change subtitle outline
+        await vm.SetSubtitleOutlineAsync(SubtitleOutline.Thick);
+        Assert.False(vm.IsMuted);
+        Assert.False(_fakePlayer.IsMuted);
+        Assert.Equal(80, vm.Volume);
+
+        // Change subtitle background
+        await vm.SetSubtitleBackgroundAsync(SubtitleBackground.Dark);
+        Assert.False(vm.IsMuted);
+        Assert.False(_fakePlayer.IsMuted);
+        Assert.Equal(80, vm.Volume);
+    }
+
+    [Fact]
+    public async Task PlayerViewModel_SubtitleSettings_PersistAcrossInstances()
+    {
+        var storage = new StoragePathService(_tempDir);
+        var subService = new SubtitleSettingsService(storage, NullLogger<SubtitleSettingsService>.Instance);
+
+        // 1. Create first ViewModel and set custom subtitle preferences
+        var vm1 = new PlayerViewModel(
+            _fakePlayer,
+            _movieRepository,
+            _mediaFileRepository,
+            _progressRepository,
+            NullLogger<PlayerViewModel>.Instance,
+            dispatcher: null,
+            filePickerService: _fakePicker,
+            subtitleSettingsService: subService);
+
+        await vm1.SetSubtitleFontSizeAsync(SubtitleFontSize.Large);
+        await vm1.SetSubtitleColorAsync(SubtitleColor.Yellow);
+        await vm1.SetSubtitleOutlineAsync(SubtitleOutline.Thick);
+        await vm1.SetSubtitleBackgroundAsync(SubtitleBackground.Subtle);
+
+        // 2. Create second ViewModel representing a new video playback or app restart
+        var fakePlayer2 = new FakeVlcPlayerService();
+        var vm2 = new PlayerViewModel(
+            fakePlayer2,
+            _movieRepository,
+            _mediaFileRepository,
+            _progressRepository,
+            NullLogger<PlayerViewModel>.Instance,
+            dispatcher: null,
+            filePickerService: _fakePicker,
+            subtitleSettingsService: subService);
+
+        Assert.Equal(SubtitleFontSize.Large, vm2.SubtitleFontSize);
+        Assert.Equal(SubtitleColor.Yellow, vm2.SubtitleColor);
+        Assert.Equal(SubtitleOutline.Thick, vm2.SubtitleOutline);
+        Assert.Equal(SubtitleBackground.Subtle, vm2.SubtitleBackground);
+    }
+
+    [Fact]
+    public void PlayerViewModel_SeekCommands_UseCorrectRelativeOffsets()
+    {
+        var vm = CreateViewModel();
+
+        vm.SeekBackwardCommand.Execute(null);
+        Assert.Equal(-10000L, _fakePlayer.LastSeekRelativeDelta);
+
+        vm.SeekForwardCommand.Execute(null);
+        Assert.Equal(10000L, _fakePlayer.LastSeekRelativeDelta);
+
+        vm.SeekBackward5sCommand.Execute(null);
+        Assert.Equal(-5000L, _fakePlayer.LastSeekRelativeDelta);
+
+        vm.SeekForward5sCommand.Execute(null);
+        Assert.Equal(5000L, _fakePlayer.LastSeekRelativeDelta);
     }
 
     [Fact]

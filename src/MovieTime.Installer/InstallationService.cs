@@ -229,6 +229,71 @@ public sealed class InstallationService
         }
     }
 
+    /// <summary>
+    /// Detects if an existing installation of River is present on the system.
+    /// Checks HKLM, HKCU, and standard installation directory.
+    /// </summary>
+    public static (bool IsInstalled, string? InstallPath, string? Version) DetectExistingInstallation()
+    {
+        const string subKeyName = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\River";
+
+        // 1. Check HKLM 64-bit
+        try
+        {
+            using var baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
+            using var key = baseKey.OpenSubKey(subKeyName);
+            if (key != null)
+            {
+                var installLoc = key.GetValue("InstallLocation") as string;
+                var version = key.GetValue("DisplayVersion") as string;
+                if (!string.IsNullOrEmpty(installLoc) && Directory.Exists(installLoc))
+                {
+                    return (true, installLoc, version ?? "1.0.0");
+                }
+            }
+        }
+        catch
+        {
+            // Ignore registry read errors
+        }
+
+        // 2. Check HKCU
+        try
+        {
+            using var cuKey = Registry.CurrentUser.OpenSubKey(subKeyName);
+            if (cuKey != null)
+            {
+                var installLoc = cuKey.GetValue("InstallLocation") as string;
+                var version = cuKey.GetValue("DisplayVersion") as string;
+                if (!string.IsNullOrEmpty(installLoc) && Directory.Exists(installLoc))
+                {
+                    return (true, installLoc, version ?? "1.0.0");
+                }
+            }
+        }
+        catch
+        {
+            // Ignore registry read errors
+        }
+
+        // 3. Fallback: Check standard Program Files folder
+        try
+        {
+            var defaultPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "River");
+            var defaultExe = Path.Combine(defaultPath, "MovieTime.App.exe");
+            if (File.Exists(defaultExe))
+            {
+                return (true, defaultPath, "1.2.2");
+            }
+        }
+        catch
+        {
+            // Ignore file check errors
+        }
+
+        return (false, null, null);
+    }
+
     private static void RegisterUninstallInfo(string installDir, string uninstallerPath, string appIcon)
     {
         try
@@ -238,7 +303,7 @@ public sealed class InstallationService
             using var key = baseKey.CreateSubKey(subKeyName, writable: true);
 
             key.SetValue("DisplayName", "River");
-            key.SetValue("DisplayVersion", "1.2.2");
+            key.SetValue("DisplayVersion", "1.2.3");
             key.SetValue("Publisher", "Ali Nematollahi");
             key.SetValue("DisplayIcon", $"\"{appIcon}\",0");
             key.SetValue("InstallLocation", installDir);
@@ -272,7 +337,7 @@ public sealed class InstallationService
             {
                 using var cuKey = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\River", writable: true);
                 cuKey.SetValue("DisplayName", "River");
-                cuKey.SetValue("DisplayVersion", "1.2.2");
+                cuKey.SetValue("DisplayVersion", "1.2.3");
                 cuKey.SetValue("Publisher", "Ali Nematollahi");
                 cuKey.SetValue("DisplayIcon", $"\"{appIcon}\",0");
                 cuKey.SetValue("InstallLocation", installDir);

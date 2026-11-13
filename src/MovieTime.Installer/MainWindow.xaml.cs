@@ -23,11 +23,32 @@ public partial class MainWindow : Window
     private readonly InstallationService _installerService = new();
     private InstallationOptions _options = new();
     private CancellationTokenSource? _cts;
+    private readonly bool _isUpgrade;
 
     public MainWindow()
     {
         InitializeComponent();
-        PathTextBox.Text = _options.InstallPath;
+
+        var existing = InstallationService.DetectExistingInstallation();
+        if (existing.IsInstalled && !string.IsNullOrEmpty(existing.InstallPath))
+        {
+            _isUpgrade = true;
+            _options.InstallPath = existing.InstallPath;
+            PathTextBox.Text = existing.InstallPath;
+
+            WelcomeTitleText.Text = "Upgrade River";
+            WelcomeSubtitleText.Text = $"Upgrade to v1.2.3 (Current: v{existing.Version})";
+            WelcomeDescText.Text = $"An existing River installation was detected at {existing.InstallPath}.\n\nRiver will be upgraded seamlessly to version 1.2.3. All your movies, TV shows, watch progress, and settings will remain untouched and safe.";
+            QuickInstallButton.Content = "Upgrade River Now";
+
+            FinishTitleText.Text = "Upgrade Complete!";
+            FinishSubtitleText.Text = "River has been successfully upgraded to v1.2.3 with all library data preserved.";
+        }
+        else
+        {
+            PathTextBox.Text = _options.InstallPath;
+        }
+
         UpdateDriveSpace(PathTextBox.Text);
         ShowStep(InstallerStep.Welcome);
     }
@@ -116,7 +137,10 @@ public partial class MainWindow : Window
 
     private async void OnQuickInstallClick(object sender, RoutedEventArgs e)
     {
-        _options = new InstallationOptions();
+        if (!_isUpgrade)
+        {
+            _options = new InstallationOptions();
+        }
         await RunInstallationAsync();
     }
 
